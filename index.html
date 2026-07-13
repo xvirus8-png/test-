@@ -799,8 +799,8 @@ async function createPDF() {
   const {jsPDF}=window.jspdf;
   const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   for (let i=0;i<state.pages.length;i++) {
-    setProgress((i/state.pages.length)*80+10,`صفحة ${i+1} من ${state.pages.length}...`);
-    await sleep(50);
+    setProgress((i/state.pages.length)*70+10,`جاري إضافة الصفحة ${i+1} من ${state.pages.length}...`);
+    await sleep(400);
     const page=state.pages[i];
     const img=await loadImage(page.dataUrl);
     const imgRatio=img.width/img.height, pageRatio=210/297;
@@ -810,12 +810,12 @@ async function createPDF() {
     if (i>0) pdf.addPage();
     pdf.addImage(page.dataUrl,'JPEG',drawX,drawY,drawW,drawH,undefined,'MEDIUM');
   }
-  setProgress(90,'جاري الضغط...');
-  await sleep(100);
+  setProgress(85,'جاري ضغط الصفحة...');
+  await sleep(600);
   const blob=pdf.output('blob');
   const fileName='scan_'+new Date().toISOString().slice(0,10)+'_'+Date.now()+'.pdf';
-  setProgress(100,'اكتمل!');
-  await sleep(600);
+  setProgress(100,'اكتمل بنجاح!');
+  await sleep(800);
   hideProgress();
   if (state.lastPDFUrl) URL.revokeObjectURL(state.lastPDFUrl);
   state.lastPDFBlob=blob; state.lastPDFName=fileName;
