@@ -1244,296 +1244,274 @@
 
         // ---- Image processing with OpenCV ----
         async function processImageWithOpenCV(dataURL, mode) {
-            await loadOpenCV();
+    await loadOpenCV();
 
-            const cv = window.cv;
-            const img = new Image();
-            img.src = dataURL;
-            await new Promise((r) => { img.onload = r;
-                img.onerror = r; });
+    const cv = window.cv;
+    const img = new Image();
+    img.src = dataURL;
+    await new Promise((r) => { img.onload = r; img.onerror = r; });
 
-            // Convert to cv.Mat
-            let src = cv.imread(img);
-            let gray = new cv.Mat();
-            let edges = new cv.Mat();
-            let contours = new cv.MatVector();
-            let hierarchy = new cv.Mat();
+    // تعريف جميع المتغيرات مسبقاً
+    let src = null;
+    let gray = null;
+    let blurred = null;
+    let edges = null;
+    let contours = null;
+    let hierarchy = null;
+    let resultMat = null;
+    let docPoints = null;
+    let warped = null;
+    let lab = null;
+    let channels = null;
+    let L = null;
+    let L_clahe = null;
+    let lab_clahe = null;
+    let shadowFixed = null;
+    let kernel = null;
+    let sharpened = null;
+    let finalMat = null;
+    let hsv = null, hsv2 = null, hsvChannels = null, V = null, V_eq = null, hsv_eq = null, rgb_eq = null;
 
-            try {
-                // ---- Step 1: Read image ----
-                addLog('📖 جاري قراءة الصورة...');
-                setProgress(5, 'جاري قراءة الصورة...', 'تحميل البيانات');
-                await sleep(80);
+    try {
+        src = cv.imread(img);
+        addLog('📖 جاري قراءة الصورة...');
+        setProgress(5, 'جاري قراءة الصورة...', 'تحميل البيانات');
+        await sleep(80);
 
-                // ---- Step 2: Grayscale & Blur ----
-                addLog('🔍 جاري اكتشاف الورقة...');
-                setProgress(15, 'جاري اكتشاف الورقة...', 'تحليل الحواف');
-                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-                await sleep(60);
+        addLog('🔍 جاري اكتشاف الورقة...');
+        setProgress(15, 'جاري اكتشاف الورقة...', 'تحليل الحواف');
+        gray = new cv.Mat();
+        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+        await sleep(60);
 
-                // ---- Step 3: Edge detection ----
-                const blurred = new cv.Mat();
-                cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
-                cv.Canny(blurred, edges, 50, 150, 3);
+        blurred = new cv.Mat();
+        cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+        edges = new cv.Mat();
+        cv.Canny(blurred, edges, 50, 150, 3);
 
-                // ---- Step 4: Find contours ----
-                cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+        contours = new cv.MatVector();
+        hierarchy = new cv.Mat();
+        cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-                let docPoints = null;
-                let maxArea = 0;
-
-                for (let i = 0; i < contours.size(); i++) {
-                    const cnt = contours.get(i);
-                    const area = cv.contourArea(cnt);
-                    if (area < 1000) continue;
-                    const peri = cv.arcLength(cnt, true);
-                    const approx = new cv.Mat();
-                    cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
-                    if (approx.rows === 4 && area > maxArea) {
-                        maxArea = area;
-                        docPoints = approx.clone();
-                    }
-                    approx.delete();
-                }
-
-                let resultMat = src.clone();
-
-                if (docPoints && maxArea > 5000) {
-                    // ---- Step 5: Perspective correction ----
-                    addLog('📐 جاري تصحيح المنظور...');
-                    setProgress(40, 'جاري تصحيح المنظور...', 'قص الورقة');
-
-                    const pts = [];
-                    for (let i = 0; i < 4; i++) {
-                        const x = docPoints.data32S[i * 2];
-                        const y = docPoints.data32S[i * 2 + 1];
-                        pts.push([x, y]);
-                    }
-
-                    // Sort points: top-left, top-right, bottom-right, bottom-left
-                    const sorted = sortPoints(pts);
-                    const w = Math.max(
-                        Math.sqrt((sorted[1][0] - sorted[0][0]) ** 2 + (sorted[1][1] - sorted[0][1]) ** 2),
-                        Math.sqrt((sorted[2][0] - sorted[3][0]) ** 2 + (sorted[2][1] - sorted[3][1]) ** 2)
-                    );
-                    const h = Math.max(
-                        Math.sqrt((sorted[3][0] - sorted[0][0]) ** 2 + (sorted[3][1] - sorted[0][1]) ** 2),
-                        Math.sqrt((sorted[2][0] - sorted[1][0]) ** 2 + (sorted[2][1] - sorted[1][1]) ** 2)
-                    );
-
-                    const dstW = Math.round(Math.max(w, h) * 1.0);
-                    const dstH = Math.round(Math.min(w, h) * 1.0);
-
-                    const srcPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [
-                        sorted[0][0], sorted[0][1],
-                        sorted[1][0], sorted[1][1],
-                        sorted[2][0], sorted[2][1],
-                        sorted[3][0], sorted[3][1]
-                    ]);
-                    const dstPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [
-                        0, 0,
-                        dstW, 0,
-                        dstW, dstH,
-                        0, dstH
-                    ]);
-
-                    const M = cv.getPerspectiveTransform(srcPoints, dstPoints);
-                    const warped = new cv.Mat();
-                    cv.warpPerspective(src, warped, M, new cv.Size(dstW, dstH), cv.INTER_LINEAR, cv.BORDER_CONSTANT,
-                        new cv.Scalar(255, 255, 255, 255));
-
-                    srcPoints.delete();
-                    dstPoints.delete();
-                    M.delete();
-                    docPoints.delete();
-
-                    resultMat = warped;
-                    addLog('✅ تم اكتشاف الورقة وتصحيح المنظور');
-                } else {
-                    addLog('⚠️ لم يتم اكتشاف ورقة، سيتم استخدام الصورة كما هي');
-                    setProgress(40, 'لم يتم اكتشاف ورقة', 'استخدام الصورة الأصلية');
-                    if (docPoints) docPoints.delete();
-                }
-
-                // ---- Step 6: Shadow removal & illumination ----
-                addLog('☀️ جاري إزالة الظلال وتحسين الإضاءة...');
-                setProgress(55, 'جاري إزالة الظلال...', 'معالجة الإضاءة');
-                await sleep(80);
-
-                // Simple shadow removal: CLAHE on L channel in LAB
-                const lab = new cv.Mat();
-                cv.cvtColor(resultMat, lab, cv.COLOR_RGBA2Lab);
-                const channels = new cv.MatVector();
-                cv.split(lab, channels);
-                const L = channels.get(0);
-                const clahe = new cv.CLAHE(3.0, new cv.Size(8, 8));
-                const L_clahe = new cv.Mat();
-                clahe.apply(L, L_clahe);
-                channels.set(0, L_clahe);
-                const lab_clahe = new cv.Mat();
-                cv.merge(channels, lab_clahe);
-                const shadowFixed = new cv.Mat();
-                cv.cvtColor(lab_clahe, shadowFixed, cv.COLOR_Lab2RGBA);
-                L.delete();
-                L_clahe.delete();
-                lab.delete();
-                lab_clahe.delete();
-                clahe.delete();
-                channels.delete();
-                resultMat.delete();
-                resultMat = shadowFixed;
-
-                // ---- Step 7: Sharpen & Noise reduction ----
-                addLog('🔧 جاري تحسين الحدة وتقليل التشويش...');
-                setProgress(70, 'جاري تحسين الجودة...', 'زيادة الحدة');
-                await sleep(80);
-
-                // Sharpen kernel
-                const kernel = cv.matFromArray(3, 3, cv.CV_32F, [
-                    0, -1, 0,
-                    -1, 5, -1,
-                    0, -1, 0
-                ]);
-                const sharpened = new cv.Mat();
-                cv.filter2D(resultMat, sharpened, -1, kernel);
-                kernel.delete();
-                resultMat.delete();
-                resultMat = sharpened;
-
-                // ---- Step 8: Mode application ----
-                addLog('🎨 جاري تطبيق وضع: ' + mode);
-                setProgress(85, 'جاري تطبيق الوضع...', mode);
-
-                let finalMat = resultMat.clone();
-                if (mode === 'bw') {
-                    const gray2 = new cv.Mat();
-                    cv.cvtColor(resultMat, gray2, cv.COLOR_RGBA2GRAY);
-                    const bw = new cv.Mat();
-                    cv.threshold(gray2, bw, 127, 255, cv.THRESH_BINARY);
-                    finalMat = new cv.Mat();
-                    cv.cvtColor(bw, finalMat, cv.COLOR_GRAY2RGBA);
-                    gray2.delete();
-                    bw.delete();
-                } else if (mode === 'gray') {
-                    const gray2 = new cv.Mat();
-                    cv.cvtColor(resultMat, gray2, cv.COLOR_RGBA2GRAY);
-                    finalMat = new cv.Mat();
-                    cv.cvtColor(gray2, finalMat, cv.COLOR_GRAY2RGBA);
-                    gray2.delete();
-                } else if (mode === 'auto') {
-                    // Auto enhancement: histogram equalization on V channel in HSV
-                    const hsv = new cv.Mat();
-                    cv.cvtColor(resultMat, hsv, cv.COLOR_RGBA2RGB);
-                    const hsv2 = new cv.Mat();
-                    cv.cvtColor(hsv, hsv2, cv.COLOR_RGB2HSV);
-                    const hsvChannels = new cv.MatVector();
-                    cv.split(hsv2, hsvChannels);
-                    const V = hsvChannels.get(2);
-                    const V_eq = new cv.Mat();
-                    cv.equalizeHist(V, V_eq);
-                    hsvChannels.set(2, V_eq);
-                    const hsv_eq = new cv.Mat();
-                    cv.merge(hsvChannels, hsv_eq);
-                    const rgb_eq = new cv.Mat();
-                    cv.cvtColor(hsv_eq, rgb_eq, cv.COLOR_HSV2RGB);
-                    finalMat = new cv.Mat();
-                    cv.cvtColor(rgb_eq, finalMat, cv.COLOR_RGB2RGBA);
-                    V.delete();
-                    V_eq.delete();
-                    hsv.delete();
-                    hsv2.delete();
-                    hsv_eq.delete();
-                    rgb_eq.delete();
-                    hsvChannels.delete();
-                }
-
-                resultMat.delete();
-
-                // ---- Step 9: Convert to dataURL ----
-                addLog('📄 جاري إنشاء الصورة النهائية...');
-                setProgress(92, 'جاري إنشاء الصورة...', 'تجهيز البيانات');
-
-                const canvasOut = document.createElement('canvas');
-                canvasOut.width = finalMat.cols;
-                canvasOut.height = finalMat.rows;
-                cv.imshow(canvasOut, finalMat);
-                finalMat.delete();
-
-                const resultDataURL = canvasOut.toDataURL('image/jpeg', 0.92);
-                canvasOut.remove();
-
-                addLog('✅ اكتملت المعالجة بنجاح!', true);
-                setProgress(100, '✅ اكتمل!', 'جاهز للحفظ');
-
-                return resultDataURL;
-
-            } catch (err) {
-                console.error('Processing error:', err);
-                addLog('❌ خطأ: ' + err.message, true);
-                throw err;
-            } finally {
-                // Cleanup
-                if (src) src.delete();
-                if (gray) gray.delete();
-                if (edges) edges.delete();
-                if (contours) contours.delete();
-                if (hierarchy) hierarchy.delete();
-                if (blurred) blurred.delete();
+        let maxArea = 0;
+        for (let i = 0; i < contours.size(); i++) {
+            const cnt = contours.get(i);
+            const area = cv.contourArea(cnt);
+            if (area < 1000) continue;
+            const peri = cv.arcLength(cnt, true);
+            const approx = new cv.Mat();
+            cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
+            if (approx.rows === 4 && area > maxArea) {
+                maxArea = area;
+                if (docPoints) docPoints.delete();
+                docPoints = approx.clone();
             }
+            approx.delete();
         }
 
-        function sortPoints(pts) {
-            // Sort by x then y to get top-left, top-right, bottom-right, bottom-left
-            const sorted = pts.slice().sort((a, b) => a[0] - b[0]);
-            const left = sorted.slice(0, 2);
-            const right = sorted.slice(2);
-            left.sort((a, b) => a[1] - b[1]);
-            right.sort((a, b) => a[1] - b[1]);
-            return [left[0], right[0], right[1], left[1]];
+        resultMat = src.clone();
+
+        if (docPoints && maxArea > 5000) {
+            addLog('📐 جاري تصحيح المنظور...');
+            setProgress(40, 'جاري تصحيح المنظور...', 'قص الورقة');
+
+            const pts = [];
+            for (let i = 0; i < 4; i++) {
+                const x = docPoints.data32S[i * 2];
+                const y = docPoints.data32S[i * 2 + 1];
+                pts.push([x, y]);
+            }
+
+            const sorted = sortPoints(pts);
+            const w = Math.max(
+                Math.sqrt((sorted[1][0] - sorted[0][0]) ** 2 + (sorted[1][1] - sorted[0][1]) ** 2),
+                Math.sqrt((sorted[2][0] - sorted[3][0]) ** 2 + (sorted[2][1] - sorted[3][1]) ** 2)
+            );
+            const h = Math.max(
+                Math.sqrt((sorted[3][0] - sorted[0][0]) ** 2 + (sorted[3][1] - sorted[0][1]) ** 2),
+                Math.sqrt((sorted[2][0] - sorted[1][0]) ** 2 + (sorted[2][1] - sorted[1][1]) ** 2)
+            );
+
+            const dstW = Math.round(Math.max(w, h) * 1.0);
+            const dstH = Math.round(Math.min(w, h) * 1.0);
+
+            const srcPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [
+                sorted[0][0], sorted[0][1],
+                sorted[1][0], sorted[1][1],
+                sorted[2][0], sorted[2][1],
+                sorted[3][0], sorted[3][1]
+            ]);
+            const dstPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [
+                0, 0,
+                dstW, 0,
+                dstW, dstH,
+                0, dstH
+            ]);
+
+            const M = cv.getPerspectiveTransform(srcPoints, dstPoints);
+            warped = new cv.Mat();
+            cv.warpPerspective(src, warped, M, new cv.Size(dstW, dstH), cv.INTER_LINEAR, cv.BORDER_CONSTANT,
+                new cv.Scalar(255, 255, 255, 255));
+
+            srcPoints.delete();
+            dstPoints.delete();
+            M.delete();
+            docPoints.delete();
+            docPoints = null;
+
+            resultMat.delete();
+            resultMat = warped;
+            addLog('✅ تم اكتشاف الورقة وتصحيح المنظور');
+        } else {
+            addLog('⚠️ لم يتم اكتشاف ورقة، سيتم استخدام الصورة كما هي');
+            setProgress(40, 'لم يتم اكتشاف ورقة', 'استخدام الصورة الأصلية');
+            if (docPoints) { docPoints.delete(); docPoints = null; }
         }
 
-        function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+        // ---- إزالة الظلال ----
+        addLog('☀️ جاري إزالة الظلال وتحسين الإضاءة...');
+        setProgress(55, 'جاري إزالة الظلال...', 'معالجة الإضاءة');
+        await sleep(80);
 
-        // ================================================================
-        // 16. PROCESS BUTTON
-        // ================================================================
-        processBtn.addEventListener('click', async () => {
-            if (state.isProcessing) return;
-            if (!state.currentImageDataURL) {
-                showToast('❌ لا توجد صورة للمعالجة');
-                return;
-            }
+        lab = new cv.Mat();
+        cv.cvtColor(resultMat, lab, cv.COLOR_RGBA2Lab);
+        channels = new cv.MatVector();
+        cv.split(lab, channels);
+        L = channels.get(0);
+        const clahe = new cv.CLAHE(3.0, new cv.Size(8, 8));
+        L_clahe = new cv.Mat();
+        clahe.apply(L, L_clahe);
+        channels.set(0, L_clahe);
+        lab_clahe = new cv.Mat();
+        cv.merge(channels, lab_clahe);
+        shadowFixed = new cv.Mat();
+        cv.cvtColor(lab_clahe, shadowFixed, cv.COLOR_Lab2RGBA);
+        L.delete();
+        L_clahe.delete();
+        lab.delete();
+        lab_clahe.delete();
+        clahe.delete();
+        channels.delete();
+        resultMat.delete();
+        resultMat = shadowFixed;
 
-            state.isProcessing = true;
-            showScreen('processing');
-            clearLog();
-            setProgress(0, 'بدء المعالجة...', 'جاري التهيئة');
+        // ---- تحسين الحدة ----
+        addLog('🔧 جاري تحسين الحدة وتقليل التشويش...');
+        setProgress(70, 'جاري تحسين الجودة...', 'زيادة الحدة');
+        await sleep(80);
 
-            try {
-                const mode = state.currentMode;
-                const resultDataURL = await processImageWithOpenCV(state.currentImageDataURL, mode);
+        kernel = cv.matFromArray(3, 3, cv.CV_32F, [
+            0, -1, 0,
+            -1, 5, -1,
+            0, -1, 0
+        ]);
+        sharpened = new cv.Mat();
+        cv.filter2D(resultMat, sharpened, -1, kernel);
+        kernel.delete();
+        resultMat.delete();
+        resultMat = sharpened;
 
-                // Add to pages
-                state.pages.push({
-                    dataURL: resultDataURL,
-                    processed: true,
-                    mode: mode,
-                });
-                updatePageInfo();
+        // ---- تطبيق الوضع ----
+        addLog('🎨 جاري تطبيق وضع: ' + mode);
+        setProgress(85, 'جاري تطبيق الوضع...', mode);
 
-                // Show PDF screen
-                showScreen('pdf');
-                renderPdfPages();
-                showToast('✅ تمت المعالجة وإضافة الصفحة');
+        if (mode === 'bw') {
+            const gray2 = new cv.Mat();
+            cv.cvtColor(resultMat, gray2, cv.COLOR_RGBA2GRAY);
+            const bw = new cv.Mat();
+            cv.threshold(gray2, bw, 127, 255, cv.THRESH_BINARY);
+            finalMat = new cv.Mat();
+            cv.cvtColor(bw, finalMat, cv.COLOR_GRAY2RGBA);
+            gray2.delete();
+            bw.delete();
+        } else if (mode === 'gray') {
+            const gray2 = new cv.Mat();
+            cv.cvtColor(resultMat, gray2, cv.COLOR_RGBA2GRAY);
+            finalMat = new cv.Mat();
+            cv.cvtColor(gray2, finalMat, cv.COLOR_GRAY2RGBA);
+            gray2.delete();
+        } else if (mode === 'auto') {
+            hsv = new cv.Mat();
+            cv.cvtColor(resultMat, hsv, cv.COLOR_RGBA2RGB);
+            hsv2 = new cv.Mat();
+            cv.cvtColor(hsv, hsv2, cv.COLOR_RGB2HSV);
+            hsvChannels = new cv.MatVector();
+            cv.split(hsv2, hsvChannels);
+            V = hsvChannels.get(2);
+            V_eq = new cv.Mat();
+            cv.equalizeHist(V, V_eq);
+            hsvChannels.set(2, V_eq);
+            hsv_eq = new cv.Mat();
+            cv.merge(hsvChannels, hsv_eq);
+            rgb_eq = new cv.Mat();
+            cv.cvtColor(hsv_eq, rgb_eq, cv.COLOR_HSV2RGB);
+            finalMat = new cv.Mat();
+            cv.cvtColor(rgb_eq, finalMat, cv.COLOR_RGB2RGBA);
+            V.delete();
+            V_eq.delete();
+            hsv.delete();
+            hsv2.delete();
+            hsv_eq.delete();
+            rgb_eq.delete();
+            hsvChannels.delete();
+        } else {
+            // وضع ملون (افتراضي)
+            finalMat = resultMat.clone();
+        }
 
-            } catch (err) {
-                console.error(err);
-                showToast('❌ فشلت المعالجة: ' + err.message);
-                showScreen('preview');
-            } finally {
-                state.isProcessing = false;
-            }
-        });
+        resultMat.delete();
+
+        // ---- تحويل إلى DataURL ----
+        addLog('📄 جاري إنشاء الصورة النهائية...');
+        setProgress(92, 'جاري إنشاء الصورة...', 'تجهيز البيانات');
+
+        const canvasOut = document.createElement('canvas');
+        canvasOut.width = finalMat.cols;
+        canvasOut.height = finalMat.rows;
+        cv.imshow(canvasOut, finalMat);
+        finalMat.delete();
+
+        const resultDataURL = canvasOut.toDataURL('image/jpeg', 0.92);
+        canvasOut.remove();
+
+        addLog('✅ اكتملت المعالجة بنجاح!', true);
+        setProgress(100, '✅ اكتمل!', 'جاهز للحفظ');
+
+        return resultDataURL;
+
+    } catch (err) {
+        console.error('Processing error:', err);
+        addLog('❌ خطأ: ' + err.message, true);
+        throw err;
+    } finally {
+        // حذف جميع المتغيرات إذا كانت موجودة
+        if (src) src.delete();
+        if (gray) gray.delete();
+        if (blurred) blurred.delete();
+        if (edges) edges.delete();
+        if (contours) contours.delete();
+        if (hierarchy) hierarchy.delete();
+        if (resultMat) resultMat.delete();
+        if (docPoints) docPoints.delete();
+        if (warped) warped.delete();
+        if (lab) lab.delete();
+        if (channels) channels.delete();
+        if (L) L.delete();
+        if (L_clahe) L_clahe.delete();
+        if (lab_clahe) lab_clahe.delete();
+        if (shadowFixed) shadowFixed.delete();
+        if (kernel) kernel.delete();
+        if (sharpened) sharpened.delete();
+        if (finalMat) finalMat.delete();
+        if (hsv) hsv.delete();
+        if (hsv2) hsv2.delete();
+        if (hsvChannels) hsvChannels.delete();
+        if (V) V.delete();
+        if (V_eq) V_eq.delete();
+        if (hsv_eq) hsv_eq.delete();
+        if (rgb_eq) rgb_eq.delete();
+    }
+}
 
         // ================================================================
         // 17. PDF RENDERING
