@@ -1,4 +1,4 @@
-<!-- scanner v1.8 -->
+<!-- scanner v1.9 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -499,6 +499,16 @@ html,body{height:100%;overflow:hidden;font-family:system-ui,-apple-system,'Segoe
 .corner-canvas-wrap{position:relative;width:100%;flex:1;overflow:hidden;touch-action:none;background:#000}
 .corner-canvas-wrap canvas{position:absolute;top:0;left:0;width:100%;height:100%}
 
+.scan-line{position:absolute;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,var(--primary),transparent);box-shadow:0 0 15px var(--primary),0 0 30px var(--primary);z-index:5;pointer-events:none;opacity:0;transition:opacity .3s}
+.scan-line.active{opacity:1;animation:scanDown 1.2s ease-in-out}
+@keyframes scanDown{0%{top:0}100%{top:100%}}
+
+.corner-pulse{position:absolute;width:28px;height:28px;border-radius:50%;background:rgba(13,110,253,.3);z-index:3;pointer-events:none;animation:pulse 1s ease-out forwards;transform:translate(-50%,-50%)}
+@keyframes pulse{0%{transform:translate(-50%,-50%) scale(.5);opacity:1}100%{transform:translate(-50%,-50%) scale(2.5);opacity:0}}
+
+.smart-crop-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:50px;font-size:10px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--primary),#6366f1);animation:badgePulse 2s ease-in-out infinite}
+@keyframes badgePulse{0%,100%{box-shadow:0 0 0 0 rgba(13,110,253,.4)}50%{box-shadow:0 0 0 8px rgba(13,110,253,0)}}
+
 .camera-viewfinder{position:relative;width:100%;flex:1;background:#000;overflow:hidden}
 .camera-viewfinder video{width:100%;height:100%;object-fit:cover}
 .camera-overlay{position:absolute;inset:0;pointer-events:none}
@@ -545,7 +555,7 @@ input[type="file"]{display:none}
   <div class="top-bar">
     <button class="icon-btn" id="btn-dark-mode" title="الوضع الداكن"><i class="bi bi-moon"></i></button>
     <h1>ماسح المستندات</h1>
-    <span class="version" style="font-size:11px;color:var(--text3);font-weight:700">v1.8</span>
+    <span class="version" style="font-size:11px;color:var(--text3);font-weight:700">v1.9</span>
   </div>
   <div class="scroll-area fade-in">
     <div class="scan-main" id="opt-camera">
@@ -612,6 +622,7 @@ input[type="file"]{display:none}
     <button class="icon-btn" id="btn-preview-help"><i class="bi bi-question-circle"></i></button>
   </div>
   <div class="corner-canvas-wrap" id="corner-wrap">
+    <div class="scan-line" id="scan-line"></div>
     <canvas id="canvas-preview"></canvas>
     <canvas id="canvas-overlay" style="z-index:2"></canvas>
   </div>
@@ -624,6 +635,7 @@ input[type="file"]{display:none}
     </div>
     <div class="btn-group">
       <button class="btn btn-secondary" id="btn-preview-crop"><i class="bi bi-crop"></i> قص</button>
+      <button class="btn btn-primary" id="btn-preview-smart-crop" style="background:linear-gradient(135deg,var(--primary),#6366f1)"><i class="bi bi-magic"></i> قص ذكي</button>
       <button class="btn btn-primary" id="btn-preview-save"><i class="bi bi-check-lg"></i> حفظ</button>
     </div>
   </div>
@@ -708,7 +720,7 @@ input[type="file"]{display:none}
 (function(){
 'use strict';
 
-const APP_VERSION = 'v1.8';
+const APP_VERSION = 'v1.9';
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
 
@@ -798,14 +810,53 @@ function detectWithOpenCV(w,h) {
 }
 
 function detectWithCanvas(w,h) {
-  const step=4, data=state.rawImage.data, gray=new Uint8Array(w*h);
+  const step=2, data=state.rawImage.data, gray=new Uint8Array(w*h);
   for(let i=0;i<w*h;i++) gray[i]=Math.round(data[i*4]*0.299+data[i*4+1]*0.587+data[i*4+2]*0.114);
+  const blurred=new Uint8Array(w*h);
+  const k=[1,4,7,4,1,4,16,26,16,4,7,26,41,26,7,4,16,26,16,4,1,4,7,4,1],ks=273;
+  for(let y=2;y<h-2;y+=step){for(let x=2;x<w-2;x+=step){let s=0,ki=0;for(let ky=-2;ky<=2;ky++){for(let kx=-2;kx<=2;kx++){s+=gray[(y+ky)*w+(x+kx)]*k[ki++];}}blurred[y*w+x]=s/ks;}}
   const edges=new Uint8Array(w*h);
-  for(let y=1;y<h-1;y+=step){for(let x=1;x<w-1;x+=step){const idx=y*w+x;const gx=-gray[idx-w-1]+gray[idx-w+1]-2*gray[idx-1]+2*gray[idx+1]-gray[idx+w-1]+gray[idx+w+1];const gy=-gray[idx-w-1]-2*gray[idx-w]-gray[idx-w+1]+gray[idx+w-1]+2*gray[idx+w]+gray[idx+w+1];edges[idx]=Math.sqrt(gx*gx+gy*gy)>40?255:0;}}
+  for(let y=2;y<h-2;y+=step){for(let x=2;x<w-2;x+=step){const idx=y*w+x;const gx=-blurred[idx-w-1]+blurred[idx-w+1]-2*blurred[idx-1]+2*blurred[idx+1]-blurred[idx+w-1]+blurred[idx+w+1];const gy=-blurred[idx-w-1]-2*blurred[idx-w]-blurred[idx-w+1]+blurred[idx+w-1]+2*blurred[idx+w]+blurred[idx+w+1];const mag=Math.sqrt(gx*gx+gy*gy);edges[idx]=mag>30?255:0;}}
+  const candidates=[];
+  for(let angle=0;angle<180;angle+=5){
+    const rad=angle*Math.PI/180,cos=Math.cos(rad),sin=Math.sin(rad);
+    let topSum=0,topCount=0,botSum=0,botCount=0,leftSum=0,leftCount=0,rightSum=0,rightCount=0;
+    for(let y=0;y<h;y+=step){for(let x=0;x<w;x+=step){
+      if(!edges[y*w+x])continue;
+      const proj=cos*x+sin*y;
+      const perp=-sin*x+cos*y;
+      const pRange=h*0.6;
+      if(perp<-pRange*0.3){topSum+=proj;topCount++;}
+      else if(perp>pRange*0.3){botSum+=proj;botCount++;}
+      if(proj<-pRange*0.3){leftSum+=perp;leftCount++;}
+      else if(proj>pRange*0.3){rightSum+=perp;rightCount++;}
+    }}
+    if(topCount>10&&botCount>10&&leftCount>10&&rightCount>10){
+      const topAvg=topSum/topCount,botAvg=botSum/botCount,leftAvg=leftSum/leftCount,rightAvg=rightSum/rightCount;
+      const score=Math.min(topCount,botCount,leftCount,rightCount);
+      const area=(botAvg-topAvg)*(rightAvg-leftAvg);
+      if(area>w*h*0.08) candidates.push({angle,topAvg,botAvg,leftAvg,rightAvg,score,area,cos,sin});
+    }
+  }
+  candidates.sort((a,b)=>b.score*b.area-a.score*a.area);
+  if(candidates.length>0){
+    const c=candidates[0],rad=c.angle*Math.PI/180,cos=c.cos,sin=c.sin;
+    const toXY=(proj,perp)=>({x:Math.round(cos*proj-sin*perp),y:Math.round(sin*proj+cos*perp)});
+    const m=0.02;
+    const pts=[
+      toXY(c.topAvg,c.leftAvg*(1-m)),
+      toXY(c.topAvg,c.rightAvg*(1-m)),
+      toXY(c.botAvg,c.rightAvg*(1+m)),
+      toXY(c.botAvg,c.leftAvg*(1+m))
+    ];
+    let valid=true;
+    for(const p of pts){if(p.x<0||p.x>w||p.y<0||p.y>h){valid=false;break;}}
+    if(valid){return orderCorners(pts);}
+  }
   let tX=w/2,tY=h/8,bX=w/2,bY=h*7/8,lX=w/8,lY=h/2,rX=w*7/8,rY=h/2;
-  for(let y=0;y<h;y++){for(let x=0;x<w;x++){if(edges[y*w+x]){if(y<tY+h*0.1&&Math.abs(x-w/2)<w*0.4){tX=x;tY=y;}if(y>bY-h*0.1&&Math.abs(x-w/2)<w*0.4){bX=x;bY=y;}if(x<lX+w*0.1&&Math.abs(y-h/2)<h*0.4){lX=x;lY=y;}if(x>rX-w*0.1&&Math.abs(y-h/2)<h*0.4){rX=x;rY=y;}}}}
-  const m=0.05;
-  return orderCorners([{x:Math.max(0,lX*(1+m)),y:Math.max(0,tY*(1+m))},{x:Math.min(w,rX*(1-m)),y:Math.max(0,tY*(1+m))},{x:Math.min(w,rX*(1-m)),y:Math.min(h,bY*(1-m))},{x:Math.max(0,lX*(1+m)),y:Math.min(h,bY*(1-m))}]);
+  for(let y=0;y<h;y+=step){for(let x=0;x<w;x+=step){if(edges[y*w+x]){if(y<tY+h*0.1&&Math.abs(x-w/2)<w*0.4){tX=x;tY=y;}if(y>bY-h*0.1&&Math.abs(x-w/2)<w*0.4){bX=x;bY=y;}if(x<lX+w*0.1&&Math.abs(y-h/2)<h*0.4){lX=x;lY=y;}if(x>rX-w*0.1&&Math.abs(y-h/2)<h*0.4){rX=x;rY=y;}}}}
+  const m2=0.05;
+  return orderCorners([{x:Math.max(0,lX*(1+m2)),y:Math.max(0,tY*(1+m2))},{x:Math.min(w,rX*(1-m2)),y:Math.max(0,tY*(1+m2))},{x:Math.min(w,rX*(1-m2)),y:Math.min(h,bY*(1-m2))},{x:Math.max(0,lX*(1+m2)),y:Math.min(h,bY*(1-m2))}]);
 }
 
 function orderCorners(pts) {
@@ -821,17 +872,110 @@ function drawCorners() {
   if(!state.corners) return;
   const pts=state.corners;
   ctxOverlay.beginPath();ctxOverlay.moveTo(pts[0].x,pts[0].y);for(let i=1;i<4;i++)ctxOverlay.lineTo(pts[i].x,pts[i].y);ctxOverlay.closePath();
-  ctxOverlay.fillStyle='rgba(13,110,253,.1)';ctxOverlay.fill();
-  ctxOverlay.strokeStyle='rgba(13,110,253,.8)';ctxOverlay.lineWidth=2;ctxOverlay.setLineDash([8,4]);ctxOverlay.stroke();ctxOverlay.setLineDash([]);
-  pts.forEach(p=>{ctxOverlay.beginPath();ctxOverlay.arc(p.x,p.y,14,0,Math.PI*2);ctxOverlay.fillStyle='rgba(13,110,253,.2)';ctxOverlay.fill();ctxOverlay.beginPath();ctxOverlay.arc(p.x,p.y,8,0,Math.PI*2);ctxOverlay.fillStyle='#0d6efd';ctxOverlay.fill();ctxOverlay.strokeStyle='#fff';ctxOverlay.lineWidth=2;ctxOverlay.stroke();});
+  ctxOverlay.fillStyle='rgba(13,110,253,.08)';ctxOverlay.fill();
+  ctxOverlay.strokeStyle='rgba(13,110,253,.7)';ctxOverlay.lineWidth=Math.max(1.5,canvasOverlay.width*0.003);ctxOverlay.setLineDash([8,4]);ctxOverlay.stroke();ctxOverlay.setLineDash([]);
+  const hr=Math.max(10,canvasOverlay.width*0.018);
+  const hrOuter=Math.max(16,canvasOverlay.width*0.032);
+  pts.forEach((p,i)=>{
+    ctxOverlay.beginPath();ctxOverlay.arc(p.x,p.y,hrOuter+6,0,Math.PI*2);ctxOverlay.fillStyle='rgba(13,110,253,.12)';ctxOverlay.fill();
+    ctxOverlay.beginPath();ctxOverlay.arc(p.x,p.y,hrOuter,0,Math.PI*2);ctxOverlay.fillStyle=i===state.dragging?'rgba(13,110,253,.35)':'rgba(13,110,253,.2)';ctxOverlay.fill();
+    ctxOverlay.beginPath();ctxOverlay.arc(p.x,p.y,hr,0,Math.PI*2);ctxOverlay.fillStyle=i===state.dragging?'#4f8bfd':'#0d6efd';ctxOverlay.fill();
+    ctxOverlay.strokeStyle='#fff';ctxOverlay.lineWidth=2;ctxOverlay.stroke();
+  });
 }
 
 function getCanvasPoint(cx,cy){const r=canvasOverlay.getBoundingClientRect();return{x:(cx-r.left)*(canvasOverlay.width/r.width),y:(cy-r.top)*(canvasOverlay.height/r.height)};}
 
-canvasOverlay.addEventListener('pointerdown',e=>{if(!state.corners)return;const pt=getCanvasPoint(e.clientX,e.clientY);let ci=-1,md=30;state.corners.forEach((c,i)=>{const d=Math.hypot(c.x-pt.x,c.y-pt.y);if(d<md){md=d;ci=i;}});if(ci>=0){state.dragging=ci;canvasOverlay.setPointerCapture(e.pointerId);e.preventDefault();}});
-canvasOverlay.addEventListener('pointermove',e=>{if(state.dragging===null)return;const pt=getCanvasPoint(e.clientX,e.clientY);state.corners[state.dragging]={x:Math.max(0,Math.min(canvasOverlay.width,pt.x)),y:Math.max(0,Math.min(canvasOverlay.height,pt.y))};drawCorners();e.preventDefault();});
+function snapToEdges(pt) {
+  const w=canvasOverlay.width,h=canvasOverlay.height,threshold=Math.max(20,w*0.03);
+  const edges=[
+    {type:'top',match:p=>Math.abs(p.y)<threshold,fix:p=>({x:p.x,y:0})},
+    {type:'bottom',match:p=>Math.abs(p.y-h)<threshold,fix:p=>({x:p.x,y:h})},
+    {type:'left',match:p=>Math.abs(p.x)<threshold,fix:p=>({x:0,y:p.y})},
+    {type:'right',match:p=>Math.abs(p.x-w)<threshold,fix:p=>({x:w,y:p.y})}
+  ];
+  for(const e of edges) if(e.match(pt)) return e.fix(pt);
+  return pt;
+}
+
+canvasOverlay.addEventListener('pointerdown',e=>{if(!state.corners)return;const pt=getCanvasPoint(e.clientX,e.clientY);let ci=-1,md=40;state.corners.forEach((c,i)=>{const d=Math.hypot(c.x-pt.x,c.y-pt.y);if(d<md){md=d;ci=i;}});if(ci>=0){state.dragging=ci;canvasOverlay.setPointerCapture(e.pointerId);e.preventDefault();}});
+canvasOverlay.addEventListener('pointermove',e=>{if(state.dragging===null)return;const pt=getCanvasPoint(e.clientX,e.clientY);const snapped=snapToEdges(pt);state.corners[state.dragging]={x:Math.max(0,Math.min(canvasOverlay.width,snapped.x)),y:Math.max(0,Math.min(canvasOverlay.height,snapped.y))};drawCorners();e.preventDefault();});
 canvasOverlay.addEventListener('pointerup',()=>{state.dragging=null;});
 canvasOverlay.addEventListener('pointercancel',()=>{state.dragging=null;});
+
+function animateCorners(from,to,duration){
+  duration=duration||400;
+  const start=performance.now();
+  const fromPts=from.map(p=>({...p}));
+  return new Promise(resolve=>{
+    function frame(now){
+      const t=Math.min(1,(now-start)/duration);
+      const ease=1-Math.pow(1-t,3);
+      state.corners=fromPts.map((p,i)=>({x:p.x+(to[i].x-p.x)*ease,y:p.y+(to[i].y-p.y)*ease}));
+      drawCorners();
+      if(t<1) requestAnimationFrame(frame);
+      else resolve();
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+function showScanLine(){
+  const sl=$('#scan-line');
+  sl.classList.remove('active');
+  void sl.offsetWidth;
+  sl.classList.add('active');
+  return new Promise(r=>setTimeout(r,1200));
+}
+
+function showCornerPulse(pts){
+  const wrap=$('#corner-wrap');
+  pts.forEach((p,i)=>{
+    setTimeout(()=>{
+      const el=document.createElement('div');
+      el.className='corner-pulse';
+      const r=canvasOverlay.getBoundingClientRect();
+      const scaleX=r.width/canvasOverlay.width;
+      const scaleY=r.height/canvasOverlay.height;
+      const lx=canvasOverlay.offsetLeft+r.left-wrap.getBoundingClientRect().left;
+      const ly=canvasOverlay.offsetTop+r.top-wrap.getBoundingClientRect().top;
+      el.style.left=(lx+p.x*scaleX)+'px';
+      el.style.top=(ly+p.y*scaleY)+'px';
+      wrap.appendChild(el);
+      setTimeout(()=>el.remove(),1000);
+    },i*80);
+  });
+}
+
+async function smartCrop(){
+  if(!state.rawImage){showToast('اختر صورة أولاً');return;}
+  const w=canvasOverlay.width,h=canvasOverlay.height;
+  showProgress();setProgress(5,'جاري التحليل...');await yieldToUI();
+  const scanP=showScanLine();
+  setProgress(20,'جاري اكتشاف المستند...');await yieldToUI();
+  const corners=detectDocumentCorners();
+  setProgress(60,'جاري حساب الزوايا...');await yieldToUI();
+  await scanP;
+  if(corners){
+    const oldCorners=state.corners?state.corners.map(p=>({...p})):corners.map(p=>({x:p.x,y:p.y}));
+    state.corners=corners;
+    setProgress(85,'جاري تعديل الزوايا...');await yieldToUI();
+    await animateCorners(oldCorners,corners,450);
+    showCornerPulse(corners);
+    setProgress(100,'تم الاكتشاف!');await sleep(600);hideProgress();
+    showToast('تم اكتشاف المستند تلقائياً');
+  }else{
+    state.corners=[
+      {x:w*0.05,y:h*0.05},{x:w*0.95,y:h*0.05},
+      {x:w*0.95,y:h*0.95},{x:w*0.05,y:h*0.95}
+    ];
+    drawCorners();
+    setProgress(100,'لم يتم الاكتشاف');await sleep(600);hideProgress();
+    showToast('لم يتم اكتشاف المستند — اضبط الزوايا يدوياً');
+  }
+}
+
+$('#btn-preview-smart-crop').addEventListener('click',smartCrop);
 
 function perspectiveTransform(srcW,srcH,corners) {
   const dstW=Math.max(Math.hypot(corners[1].x-corners[0].x,corners[1].y-corners[0].y),Math.hypot(corners[2].x-corners[3].x,corners[2].y-corners[3].y));
@@ -966,7 +1110,23 @@ async function handleMultipleFiles(files){showProgress();let added=0;for(const f
 
 function readFileAsDataURL(file){return new Promise((r,j)=>{const reader=new FileReader();reader.onload=e=>r(e.target.result);reader.onerror=j;reader.readAsDataURL(file);});}
 
-async function autoDetectCorners(){setProgress(10,'جاري اكتشاف المستند...');showProgress();await sleep(300);const corners=detectDocumentCorners();state.corners=corners;setProgress(60,'جاري التحليل...');await sleep(300);setProgress(100,corners?'تم الاكتشاف!':'لم يتم الاكتشاف');await sleep(400);hideProgress();if(corners){drawCorners();showToast('تم اكتشاف المستند');}else{state.corners=[{x:canvasOverlay.width*0.05,y:canvasOverlay.height*0.05},{x:canvasOverlay.width*0.95,y:canvasOverlay.height*0.05},{x:canvasOverlay.width*0.95,y:canvasOverlay.height*0.95},{x:canvasOverlay.width*0.05,y:canvasOverlay.height*0.95}];drawCorners();showToast('اضبط الزوايا يدوياً');}}
+async function autoDetectCorners(){
+  showProgress();setProgress(10,'جاري اكتشاف المستند...');await yieldToUI();
+  const scanP=showScanLine();
+  setProgress(30,'جاري تحليل الصورة...');await yieldToUI();
+  const corners=detectDocumentCorners();
+  setProgress(70,'جاري حساب الزوايا...');await yieldToUI();
+  await scanP;
+  if(corners){
+    state.corners=corners;
+    setProgress(100,'تم الاكتشاف!');await sleep(400);hideProgress();
+    drawCorners();showCornerPulse(corners);showToast('تم اكتشاف المستند');
+  }else{
+    state.corners=[{x:canvasOverlay.width*0.05,y:canvasOverlay.height*0.05},{x:canvasOverlay.width*0.95,y:canvasOverlay.height*0.05},{x:canvasOverlay.width*0.95,y:canvasOverlay.height*0.95},{x:canvasOverlay.width*0.05,y:canvasOverlay.height*0.95}];
+    setProgress(100,'لم يتم الاكتشاف');await sleep(400);hideProgress();
+    drawCorners();showToast('اضبط الزوايا يدوياً');
+  }
+}
 
 async function startCamera(){try{state.cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:state.facingMode,width:{ideal:1920},height:{ideal:1080}}});$('#camera-video').srcObject=state.cameraStream;showScreen('screen-camera');}catch(e){showToast('لا يمكن الوصول للكاميرا');}}
 function stopCamera(){if(state.cameraStream){state.cameraStream.getTracks().forEach(t=>t.stop());state.cameraStream=null;}}
