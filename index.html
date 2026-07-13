@@ -1,1874 +1,1312 @@
+<!-- scanner v1.0 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ماسح المستندات - ScanPro</title>
-    <meta name="theme-color" content="#1a1a2e">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIlNjYW5Qcm8gLSBtw6FzaMWgIGFsbcO8c3RhbmF0IiwKICAic2hvcnRfbmFtZSI6ICJTY2FuUHJvIiwKICAiZGVzY3JpcHRpb24iOiAiTcOhc2lodSDEqGZ0cmFmaSBtYWg0IGZpaHJpIiwKICAic3RhcnRfdXJsIjogIi4iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMxYTFhMmUiLAogICJ0aGVtZV9jb2xvciI6ICIjMWEzYzRjIiwKICAiaWNvbnMiOiBbCiAgICB7CiAgICAgICJzcmMiOiAiZGF0YTppbWFnZS9zdmcreG1sLDxzdmcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB2aWV3Qm94PScwIDAgNTEyIDUxMic+PHJlY3Qgd2lkdGg9JzUxMicgaGVpZ2h0PSc1MTInIHJ4PSc2MCcgZmlsbD0nJTIzMWEzYzRjJy8+PHRleHQgeD0nMjU2JyB5PSczNDAnIGZvbnQtc2l6ZT0nMjUwJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmaWxsPSd3aGl0ZScgZm9udC1mYW1pbHk9J1NhbnMtU2VyaWYnPlA8L3RleHQ+PC9zdmc+IiwKICAgICAgInNpemVzIjogIjUxMng1MTIiLAogICAgICAidHlwZSI6ICJpbWFnZS9zdmcreG1sIiwKICAgICAgInB1cnBvc2UiOiAiYW55IG1hc2thYmxlIgogICAgfQogIF0KfQ==">
-    <style>
-        /* ============================================================
-               CSS: Material 3 + Glassmorphism + Dark Mode + RTL
-               ============================================================ */
-        *,
-        *::before,
-        *::after {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d6efd">
+<title>ماسح المستندات</title>
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoi2KrZgtix2YrYr9ipINin2YTYrNiv2YrYr9mK2K8iLCJzaG9ydF9uYW1lIjoi2KrZgtix2YrYr9ipIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiMwZjExMTciLCJ0aGVtZV9jb2xvciI6IiMwZDZlZmQiLCJvcmllbnRhdGlvbiI6Im5vbmUiLCJpY29ucyI6W3sic3JjIjoiZGF0YTppbWFnZS9zdmcreG1sLDxzdmcgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB2aWV3Qm94PScwIDAgMTAwIDEwMCc+PHJlY3Qgd2lkdGg9JzEwMCcgaGVpZ2h0PScxMDAnIGZpbGw9JyUyMzBkNmVmZCcvPjx0ZXh0IHg9JzUwJScgeT0nNTAlJyBkb21pbmFudC1iYXNlbGluZT0nbWlkZGxlJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmb250LXNpemU9JzQwJyBmaWxsPSd3aGl0ZSc+8J+TiTwvdGV4dD48L3N2Zz4iLCJzaXplcyI6IjUxMng1MTIiLCJ0eXBlIjoiaW1hZ2Uvc3ZnK3htbCJ9XX0=">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#f0f2f5;--bg2:#ffffff;--card:#ffffff;--card2:#f8f9fa;
+--text:#1a1d2e;--text2:#5a6178;--text3:#8891a8;
+--primary:#0d6efd;--primary-light:#e8f0fe;--primary-dark:#0b5ed7;
+--success:#16a34a;--danger:#ef4444;--warning:#f59e0b;
+--border:rgba(0,0,0,.08);--shadow:0 4px 24px rgba(0,0,0,.06);
+--glass:rgba(255,255,255,.72);--glass-border:rgba(255,255,255,.3);
+--radius:20px;--radius-sm:14px;--radius-xs:10px;
+--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
+--transition:all .3s cubic-bezier(.4,0,.2,1);
+}
+[data-theme="dark"]{
+--bg:#0a0d14;--bg2:#111520;--card:#161b28;--card2:#1c2236;
+--text:#e4e8f1;--text2:#8892ab;--text3:#5c6478;
+--primary:#4d8df7;--primary-light:rgba(77,141,247,.12);--primary-dark:#3b7be0;
+--border:rgba(255,255,255,.06);--shadow:0 4px 24px rgba(0,0,0,.3);
+--glass:rgba(22,27,40,.82);--glass-border:rgba(255,255,255,.06);
+}
+html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--text);transition:var(--transition);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+body{padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
 
-        :root {
-            --bg-primary: #f5f7fa;
-            --bg-secondary: #ffffff;
-            --bg-glass: rgba(255, 255, 255, 0.60);
-            --bg-glass-border: rgba(255, 255, 255, 0.25);
-            --text-primary: #1a1a2e;
-            --text-secondary: #4a4a6a;
-            --text-on-glass: #1a1a2e;
-            --accent: #6c5ce7;
-            --accent-light: #a29bfe;
-            --accent-dark: #4a3db8;
-            --shadow: 0 8px 32px rgba(0, 0, 0, 0.10);
-            --shadow-strong: 0 16px 64px rgba(0, 0, 0, 0.18);
-            --radius: 24px;
-            --radius-sm: 14px;
-            --radius-xs: 10px;
-            --transition: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            --font: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
-            --status-bar-height: env(safe-area-inset-top, 0px);
-            --nav-height: 72px;
-        }
+.screen{position:fixed;inset:0;display:none;flex-direction:column;z-index:1;overflow:hidden}
+.screen.active{display:flex}
 
-        [data-theme="dark"] {
-            --bg-primary: #0f0f1a;
-            --bg-secondary: #1a1a2e;
-            --bg-glass: rgba(26, 26, 46, 0.72);
-            --bg-glass-border: rgba(255, 255, 255, 0.08);
-            --text-primary: #e8e8f0;
-            --text-secondary: #a8a8c0;
-            --text-on-glass: #e8e8f0;
-            --shadow: 0 8px 32px rgba(0, 0, 0, 0.50);
-            --shadow-strong: 0 16px 64px rgba(0, 0, 0, 0.70);
-            --accent: #7c6cf0;
-            --accent-light: #b8b0ff;
-            --accent-dark: #5a4ac8;
-        }
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;min-height:56px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:var(--glass);border-bottom:1px solid var(--glass-border);z-index:10}
+.top-bar h1{font-size:18px;font-weight:800;flex:1;text-align:center}
+.top-bar .icon-btn{width:42px;height:42px;border-radius:12px;border:none;background:var(--card2);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;transition:var(--transition)}
+.top-bar .icon-btn:active{transform:scale(.92)}
 
-        html,
-        body {
-            height: 100%;
-            width: 100%;
-            overflow: hidden;
-            font-family: var(--font);
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            transition: background var(--transition), color var(--transition);
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-        }
+.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:16px}
+.scroll-area::-webkit-scrollbar{width:0}
 
-        /* ---- Scrollbar ---- */
-        ::-webkit-scrollbar {
-            width: 4px;
-            height: 4px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--accent-light);
-            border-radius: 20px;
-        }
+.bottom-bar{padding:12px 16px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:var(--glass);border-top:1px solid var(--glass-border);padding-bottom:calc(12px + var(--safe-bottom))}
 
-        /* ---- App Shell ---- */
-        #app {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            width: 100%;
-            max-width: 480px;
-            margin: 0 auto;
-            position: relative;
-            overflow: hidden;
-            background: var(--bg-primary);
-            transition: background var(--transition);
-        }
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 28px;border-radius:var(--radius-sm);border:none;font-size:15px;font-weight:700;cursor:pointer;transition:var(--transition);font-family:inherit;min-height:50px;width:100%}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;box-shadow:0 4px 16px rgba(13,110,253,.3)}
+.btn-primary:active{box-shadow:0 2px 8px rgba(13,110,253,.2)}
+.btn-secondary{background:var(--primary-light);color:var(--primary)}
+.btn-danger{background:linear-gradient(135deg,#ef4444,#f87171);color:#fff}
+.btn-ghost{background:transparent;color:var(--primary);padding:10px}
+.btn-icon{width:56px;height:56px;border-radius:50%;padding:0;min-height:unset;font-size:24px}
+.btn-sm{padding:10px 18px;font-size:13px;min-height:40px;border-radius:var(--radius-xs);width:auto}
+.btn-group{display:flex;gap:10px}
+.btn-group .btn{flex:1}
 
-        /* ---- Header ---- */
-        .app-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 20px;
-            padding-top: calc(12px + var(--status-bar-height));
-            background: var(--bg-glass);
-            backdrop-filter: blur(20px) saturate(1.4);
-            -webkit-backdrop-filter: blur(20px) saturate(1.4);
-            border-bottom: 1px solid var(--bg-glass-border);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            min-height: 64px;
-            transition: background var(--transition);
-        }
-        .app-header h1 {
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: -0.3px;
-            background: linear-gradient(135deg, var(--accent), var(--accent-light));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        .header-actions {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        .btn-icon {
-            width: 44px;
-            height: 44px;
-            border: none;
-            border-radius: 50%;
-            background: var(--bg-glass);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            color: var(--text-primary);
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all var(--transition);
-            box-shadow: var(--shadow);
-            border: 1px solid var(--bg-glass-border);
-        }
-        .btn-icon:hover {
-            transform: scale(1.05);
-            background: rgba(108, 92, 231, 0.15);
-        }
-        .btn-icon:active {
-            transform: scale(0.92);
-        }
+.card{background:var(--card);border-radius:var(--radius);padding:20px;border:1px solid var(--border);box-shadow:var(--shadow);transition:var(--transition)}
+.card-glass{background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--glass-border)}
 
-        /* ---- Main Content ---- */
-        .app-content {
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-            padding: 16px 16px 80px;
-            scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch;
-        }
+.scan-option{display:flex;align-items:center;gap:16px;padding:18px;border-radius:var(--radius-sm);background:var(--card2);border:1.5px solid var(--border);cursor:pointer;transition:var(--transition);margin-bottom:12px}
+.scan-option:active{transform:scale(.98);border-color:var(--primary)}
+.scan-option .icon{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.scan-option .info h3{font-size:15px;font-weight:700;margin-bottom:3px}
+.scan-option .info p{font-size:12px;color:var(--text2);font-weight:500}
 
-        /* ---- Screens ---- */
-        .screen {
-            display: none;
-            animation: fadeSlideIn 0.40s ease forwards;
-        }
-        .screen.active {
-            display: block;
-        }
+.progress-container{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;padding:32px}
+.progress-container.active{display:flex}
+.progress-ring{width:140px;height:140px;margin-bottom:32px}
+.progress-ring svg{transform:rotate(-90deg)}
+.progress-ring circle{fill:none;stroke-width:6;stroke-linecap:round}
+.progress-ring .bg{stroke:var(--border)}
+.progress-ring .fg{stroke:var(--primary);transition:stroke-dashoffset .4s ease}
+.progress-percent{font-size:36px;font-weight:900;color:var(--primary);margin-bottom:8px}
+.progress-text{font-size:15px;color:var(--text2);font-weight:600;text-align:center}
+.progress-bar-wrap{width:100%;max-width:300px;height:6px;background:var(--border);border-radius:3px;margin-top:24px;overflow:hidden}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--success));border-radius:3px;transition:width .4s ease;width:0}
 
-        @keyframes fadeSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(18px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+.editor-thumb{display:inline-block;position:relative;width:110px;height:140px;border-radius:var(--radius-xs);overflow:hidden;border:2px solid var(--border);margin:6px;flex-shrink:0;cursor:pointer;transition:var(--transition);scroll-snap-align:center}
+.editor-thumb:active{transform:scale(.95)}
+.editor-thumb.selected{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+.editor-thumb img{width:100%;height:100%;object-fit:cover}
+.editor-thumb .num{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.editor-thumb .del{position:absolute;top:6px;left:6px;width:24px;height:24px;border-radius:50%;background:rgba(239,68,68,.9);color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;line-height:1}
 
-        /* ---- Glass Cards ---- */
-        .glass-card {
-            background: var(--bg-glass);
-            backdrop-filter: blur(16px) saturate(1.3);
-            -webkit-backdrop-filter: blur(16px) saturate(1.3);
-            border: 1px solid var(--bg-glass-border);
-            border-radius: var(--radius);
-            padding: 20px;
-            box-shadow: var(--shadow);
-            transition: all var(--transition);
-        }
-        .glass-card:hover {
-            box-shadow: var(--shadow-strong);
-        }
+.mode-chip{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:50px;border:1.5px solid var(--border);background:var(--card2);color:var(--text);font-size:13px;font-weight:700;cursor:pointer;transition:var(--transition);white-space:nowrap}
+.mode-chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 
-        /* ---- Home Screen ---- */
-        .home-hero {
-            text-align: center;
-            padding: 30px 0 20px;
-        }
-        .home-hero .icon-big {
-            font-size: 72px;
-            margin-bottom: 12px;
-            display: block;
-            filter: drop-shadow(0 8px 24px rgba(108, 92, 231, 0.30));
-        }
-        .home-hero h2 {
-            font-size: 26px;
-            font-weight: 700;
-            margin-bottom: 6px;
-        }
-        .home-hero p {
-            color: var(--text-secondary);
-            font-size: 15px;
-        }
+.pages-strip{display:flex;overflow-x:auto;gap:4px;padding:12px 0;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.pages-strip::-webkit-scrollbar{height:0}
 
-        .action-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 14px;
-            margin-top: 20px;
-        }
-        .action-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 24px 12px;
-            border: none;
-            border-radius: var(--radius);
-            background: var(--bg-glass);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--bg-glass-border);
-            box-shadow: var(--shadow);
-            cursor: pointer;
-            transition: all var(--transition);
-            color: var(--text-primary);
-            gap: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            min-height: 120px;
-        }
-        .action-btn .emoji {
-            font-size: 38px;
-            line-height: 1;
-        }
-        .action-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-strong);
-            border-color: var(--accent-light);
-        }
-        .action-btn:active {
-            transform: scale(0.96);
-        }
-        .action-btn.full {
-            grid-column: 1 / -1;
-            min-height: 80px;
-            flex-direction: row;
-            gap: 16px;
-        }
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--card);color:var(--text);padding:14px 24px;border-radius:var(--radius-sm);box-shadow:0 8px 32px rgba(0,0,0,.15);font-size:14px;font-weight:600;z-index:200;opacity:0;transition:all .3s ease;pointer-events:none;max-width:90%;text-align:center;border:1px solid var(--border)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-        .drag-drop-zone {
-            margin-top: 16px;
-            padding: 32px 20px;
-            border: 2px dashed var(--accent-light);
-            border-radius: var(--radius);
-            text-align: center;
-            background: var(--bg-glass);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            transition: all var(--transition);
-            cursor: pointer;
-            color: var(--text-secondary);
-        }
-        .drag-drop-zone.dragover {
-            border-color: var(--accent);
-            background: rgba(108, 92, 231, 0.10);
-            transform: scale(1.01);
-        }
-        .drag-drop-zone .emoji {
-            font-size: 40px;
-            display: block;
-            margin-bottom: 8px;
-        }
+.corner-canvas-wrap{position:relative;width:100%;height:100%;overflow:hidden;touch-action:none;background:#000}
+.corner-canvas-wrap canvas{position:absolute;top:0;left:0;width:100%;height:100%}
 
-        /* ---- Preview Screen ---- */
-        .preview-container {
-            position: relative;
-            border-radius: var(--radius);
-            overflow: hidden;
-            background: var(--bg-secondary);
-            box-shadow: var(--shadow-strong);
-            margin-bottom: 16px;
-        }
-        .preview-container img,
-        .preview-container canvas {
-            width: 100%;
-            height: auto;
-            display: block;
-            max-height: 60vh;
-            object-fit: contain;
-        }
-        .preview-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 12px;
-        }
-        .btn-primary {
-            flex: 1;
-            min-width: 100px;
-            padding: 14px 24px;
-            border: none;
-            border-radius: var(--radius-sm);
-            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-            color: #fff;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all var(--transition);
-            box-shadow: 0 4px 16px rgba(108, 92, 231, 0.35);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 28px rgba(108, 92, 231, 0.45);
-        }
-        .btn-primary:active {
-            transform: scale(0.96);
-        }
-        .btn-secondary {
-            flex: 1;
-            min-width: 80px;
-            padding: 14px 20px;
-            border: 1px solid var(--bg-glass-border);
-            border-radius: var(--radius-sm);
-            background: var(--bg-glass);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            color: var(--text-primary);
-            font-size: 15px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all var(--transition);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-        .btn-secondary:hover {
-            background: rgba(108, 92, 231, 0.08);
-        }
-        .btn-secondary:active {
-            transform: scale(0.96);
-        }
-        .btn-danger {
-            border-color: #e74c6f;
-            color: #e74c6f;
-        }
-        .btn-danger:hover {
-            background: rgba(231, 76, 111, 0.10);
-        }
+.camera-viewfinder{position:relative;width:100%;flex:1;background:#000;overflow:hidden}
+.camera-viewfinder video{width:100%;height:100%;object-fit:cover}
+.camera-overlay{position:absolute;inset:0;pointer-events:none}
+.camera-overlay svg{width:100%;height:100%}
+.capture-btn{width:72px;height:72px;border-radius:50%;border:4px solid #fff;background:transparent;cursor:pointer;position:relative;transition:var(--transition)}
+.capture-btn::after{content:'';position:absolute;inset:6px;border-radius:50%;background:#fff;transition:var(--transition)}
+.capture-btn:active::after{transform:scale(.85);background:var(--primary)}
 
-        .mode-selector {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin: 12px 0;
-        }
-        .mode-chip {
-            padding: 8px 18px;
-            border-radius: 40px;
-            border: 1px solid var(--bg-glass-border);
-            background: var(--bg-glass);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all var(--transition);
-            color: var(--text-secondary);
-        }
-        .mode-chip.active {
-            background: var(--accent);
-            color: #fff;
-            border-color: var(--accent);
-            box-shadow: 0 4px 16px rgba(108, 92, 231, 0.30);
-        }
-        .mode-chip:active {
-            transform: scale(0.94);
-        }
+.drop-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:48px 24px;text-align:center;transition:var(--transition);cursor:pointer}
+.drop-zone.dragover{border-color:var(--primary);background:var(--primary-light)}
+.drop-zone .icon{font-size:48px;margin-bottom:12px;opacity:.4}
+.drop-zone p{color:var(--text2);font-size:14px;font-weight:600}
 
-        /* ---- Processing Screen ---- */
-        .processing-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px 20px;
-            min-height: 50vh;
-            text-align: center;
-        }
-        .processing-spinner {
-            width: 72px;
-            height: 72px;
-            border-radius: 50%;
-            border: 4px solid var(--bg-glass-border);
-            border-top-color: var(--accent);
-            animation: spin 0.9s linear infinite;
-            margin-bottom: 28px;
-        }
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-        .processing-status {
-            font-size: 20px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-        .processing-sub {
-            color: var(--text-secondary);
-            font-size: 15px;
-            margin-bottom: 20px;
-        }
-        .progress-track {
-            width: 100%;
-            max-width: 360px;
-            height: 8px;
-            border-radius: 20px;
-            background: var(--bg-glass-border);
-            overflow: hidden;
-            margin: 12px 0;
-        }
-        .progress-fill {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, var(--accent), var(--accent-light));
-            border-radius: 20px;
-            transition: width 0.25s ease;
-        }
-        .progress-label {
-            font-size: 14px;
-            color: var(--text-secondary);
-            font-weight: 500;
-            margin-top: 6px;
-        }
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.active{display:flex}
+.modal-sheet{background:var(--card);border-radius:var(--radius) var(--radius) 0 0;padding:24px 20px;width:100%;max-width:500px;max-height:70vh;overflow-y:auto;padding-bottom:calc(24px + var(--safe-bottom))}
+.modal-handle{width:36px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 16px}
 
-        /* ---- PDF Editor Screen ---- */
-        .pdf-pages {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            margin: 16px 0;
-        }
-        .pdf-page-item {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 12px 16px;
-            border-radius: var(--radius-sm);
-            background: var(--bg-glass);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 1px solid var(--bg-glass-border);
-            transition: all var(--transition);
-            cursor: grab;
-        }
-        .pdf-page-item:active {
-            cursor: grabbing;
-        }
-        .pdf-page-item .thumb {
-            width: 52px;
-            height: 68px;
-            border-radius: 6px;
-            background: var(--bg-secondary);
-            overflow: hidden;
-            flex-shrink: 0;
-            border: 1px solid var(--bg-glass-border);
-        }
-        .pdf-page-item .thumb img,
-        .pdf-page-item .thumb canvas {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .pdf-page-item .info {
-            flex: 1;
-            font-size: 14px;
-            font-weight: 500;
-        }
-        .pdf-page-item .info small {
-            display: block;
-            color: var(--text-secondary);
-            font-weight: 400;
-            font-size: 12px;
-        }
-        .pdf-page-item .actions {
-            display: flex;
-            gap: 6px;
-        }
-        .pdf-page-item .actions button {
-            width: 36px;
-            height: 36px;
-            border: none;
-            border-radius: 50%;
-            background: var(--bg-glass);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            font-size: 16px;
-            cursor: pointer;
-            transition: all var(--transition);
-            color: var(--text-secondary);
-            border: 1px solid var(--bg-glass-border);
-        }
-        .pdf-page-item .actions button:hover {
-            background: rgba(231, 76, 111, 0.12);
-            color: #e74c6f;
-        }
-        .pdf-page-item .actions button:active {
-            transform: scale(0.90);
-        }
+.empty-state{text-align:center;padding:48px 24px;color:var(--text2)}
+.empty-state .icon{font-size:64px;margin-bottom:16px;opacity:.3}
+.empty-state h3{font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px}
+.empty-state p{font-size:14px;line-height:1.6}
 
-        .pdf-toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 16px;
-            justify-content: center;
-        }
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.fade-in{animation:fadeIn .4s ease forwards}
+.pulse{animation:pulse 1.5s ease infinite}
 
-        /* ---- Toast ---- */
-        .toast {
-            position: fixed;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%) translateY(80px);
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            padding: 14px 28px;
-            border-radius: var(--radius-sm);
-            box-shadow: var(--shadow-strong);
-            border: 1px solid var(--bg-glass-border);
-            font-weight: 500;
-            font-size: 15px;
-            opacity: 0;
-            transition: all 0.40s ease;
-            z-index: 999;
-            pointer-events: none;
-            max-width: 90%;
-            text-align: center;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-        }
-        .toast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
+input[type="file"]{display:none}
 
-        /* ---- Responsive tweaks ---- */
-        @media (max-width: 420px) {
-            .action-grid {
-                gap: 10px;
-            }
-            .action-btn {
-                padding: 18px 10px;
-                min-height: 90px;
-                font-size: 13px;
-            }
-            .action-btn .emoji {
-                font-size: 30px;
-            }
-            .home-hero .icon-big {
-                font-size: 54px;
-            }
-            .home-hero h2 {
-                font-size: 22px;
-            }
-            .app-header h1 {
-                font-size: 17px;
-            }
-            .btn-primary {
-                font-size: 14px;
-                padding: 12px 16px;
-            }
-        }
-
-        @media (min-width: 481px) {
-            #app {
-                border-radius: 28px;
-                margin-top: 20px;
-                margin-bottom: 20px;
-                box-shadow: var(--shadow-strong);
-                max-height: 95vh;
-            }
-            body {
-                background: #0a0a14;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-        }
-
-        /* ---- Utility ---- */
-        .hidden {
-            display: none !important;
-        }
-        .mt-8 {
-            margin-top: 8px;
-        }
-        .mt-16 {
-            margin-top: 16px;
-        }
-        .mb-8 {
-            margin-bottom: 8px;
-        }
-        .gap-8 {
-            gap: 8px;
-        }
-        .flex-center {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .text-center {
-            text-align: center;
-        }
-        .w-full {
-            width: 100%;
-        }
-
-        /* ---- Page counter badge ---- */
-        .badge {
-            background: var(--accent);
-            color: #fff;
-            font-size: 12px;
-            font-weight: 700;
-            padding: 2px 12px;
-            border-radius: 40px;
-            display: inline-block;
-        }
-
-        /* ---- Processing steps log ---- */
-        .log-area {
-            margin-top: 16px;
-            max-height: 120px;
-            overflow-y: auto;
-            width: 100%;
-            max-width: 360px;
-            text-align: right;
-            font-size: 13px;
-            color: var(--text-secondary);
-            background: var(--bg-glass);
-            border-radius: var(--radius-xs);
-            padding: 12px 16px;
-            border: 1px solid var(--bg-glass-border);
-            font-family: monospace;
-            line-height: 1.6;
-            direction: ltr;
-            text-align: left;
-        }
-        .log-area .log-entry {
-            opacity: 0.7;
-            animation: logFade 0.3s ease;
-        }
-        .log-area .log-entry.done {
-            opacity: 1;
-            color: var(--text-primary);
-        }
-        @keyframes logFade {
-            from {
-                opacity: 0;
-                transform: translateX(-6px);
-            }
-            to {
-                opacity: 0.7;
-                transform: translateX(0);
-            }
-        }
-
-        /* ---- Camera overlay ---- */
-        .camera-view {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            z-index: 200;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        .camera-view.active {
-            display: flex;
-        }
-        .camera-view video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .camera-controls {
-            position: absolute;
-            bottom: 60px;
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            padding: 0 20px;
-            z-index: 10;
-        }
-        .camera-controls button {
-            width: 72px;
-            height: 72px;
-            border-radius: 50%;
-            border: 4px solid #fff;
-            background: rgba(255, 255, 255, 0.20);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            font-size: 32px;
-            color: #fff;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 32px rgba(0, 0, 0, 0.40);
-        }
-        .camera-controls button:active {
-            transform: scale(0.88);
-        }
-        .camera-controls .btn-close-cam {
-            width: 56px;
-            height: 56px;
-            font-size: 24px;
-            background: rgba(231, 76, 111, 0.60);
-            border-color: #e74c6f;
-        }
-    </style>
+@media(min-width:768px){
+.screen{max-width:500px;margin:0 auto;border-left:1px solid var(--border);border-right:1px solid var(--border)}
+}
+</style>
 </head>
 <body>
-    <!-- ====== TOAST ====== -->
-    <div id="toast" class="toast"></div>
 
-    <!-- ====== APP ====== -->
-    <div id="app" data-theme="dark">
-
-        <!-- ====== HEADER ====== -->
-        <header class="app-header">
-            <h1>📄 ScanPro</h1>
-            <div class="header-actions">
-                <button class="btn-icon" id="themeToggle" aria-label="تبديل الوضع الداكن" title="تبديل الوضع الداكن">🌙</button>
-                <button class="btn-icon" id="homeBtn" aria-label="الرئيسية" title="الرئيسية">🏠</button>
-            </div>
-        </header>
-
-        <!-- ====== CONTENT ====== -->
-        <div class="app-content" id="appContent">
-
-            <!-- ====== SCREEN: HOME ====== -->
-            <div class="screen active" id="screenHome">
-                <div class="home-hero">
-                    <span class="icon-big">📸</span>
-                    <h2>ماسح المستندات</h2>
-                    <p>التقط أو اختر صورة لتحويلها إلى PDF احترافي</p>
-                </div>
-
-                <div class="action-grid">
-                    <button class="action-btn" id="cameraBtn">
-                        <span class="emoji">📷</span>
-                        الكاميرا
-                    </button>
-                    <button class="action-btn" id="galleryBtn">
-                        <span class="emoji">🖼️</span>
-                        الاستوديو
-                    </button>
-                    <button class="action-btn full" id="scanBtn">
-                        <span class="emoji">⚡</span>
-                        مسح مستند جديد
-                    </button>
-                </div>
-
-                <div class="drag-drop-zone" id="dropZone">
-                    <span class="emoji">📂</span>
-                    <div><strong>اسحب وأفلت الصور هنا</strong></div>
-                    <div style="font-size:13px; margin-top:4px;">يدعم JPG, PNG, WebP</div>
-                </div>
-
-                <div style="margin-top: 20px; text-align: center; font-size: 13px; color: var(--text-secondary);">
-                    <span id="pageCount">📄 0 صفحة</span>
-                    <span style="margin:0 10px;">·</span>
-                    <span id="pdfSize">💾 0 KB</span>
-                </div>
-            </div>
-
-            <!-- ====== SCREEN: PREVIEW ====== -->
-            <div class="screen" id="screenPreview">
-                <div class="preview-container" id="previewContainer">
-                    <img id="previewImage" src="" alt="معاينة الصورة">
-                    <canvas id="previewCanvas" style="display:none;"></canvas>
-                </div>
-
-                <div class="mode-selector" id="modeSelector">
-                    <span class="mode-chip active" data-mode="color">🌈 ملون</span>
-                    <span class="mode-chip" data-mode="bw">⚫ أبيض/أسود</span>
-                    <span class="mode-chip" data-mode="gray">🌫️ تدرج رمادي</span>
-                    <span class="mode-chip" data-mode="auto">✨ تحسين تلقائي</span>
-                </div>
-
-                <div class="preview-actions">
-                    <button class="btn-primary" id="processBtn">📥 حفظ ومعالجة</button>
-                    <button class="btn-secondary" id="retakeBtn">↩️ إعادة</button>
-                </div>
-                <div style="margin-top: 8px; text-align: center; font-size:13px; color:var(--text-secondary);">
-                    سيتم اكتشاف الورقة تلقائيًا · يمكنك تعديل الزوايا لاحقًا
-                </div>
-            </div>
-
-            <!-- ====== SCREEN: PROCESSING ====== -->
-            <div class="screen" id="screenProcessing">
-                <div class="processing-container">
-                    <div class="processing-spinner"></div>
-                    <div class="processing-status" id="procStatus">جاري المعالجة…</div>
-                    <div class="processing-sub" id="procSub">يرجى الانتظار</div>
-                    <div class="progress-track">
-                        <div class="progress-fill" id="procProgress" style="width:0%;"></div>
-                    </div>
-                    <div class="progress-label" id="procLabel">0%</div>
-                    <div class="log-area" id="procLog"></div>
-                </div>
-            </div>
-
-            <!-- ====== SCREEN: PDF EDITOR ====== -->
-            <div class="screen" id="screenPdf">
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-                    <h3 style="font-size:18px;">📄 مستند PDF</h3>
-                    <span class="badge" id="pdfPageBadge">0 صفحات</span>
-                </div>
-                <div class="pdf-pages" id="pdfPagesList"></div>
-                <div class="pdf-toolbar">
-                    <button class="btn-primary" id="downloadPdfBtn" style="flex:1;">⬇️ تنزيل PDF</button>
-                    <button class="btn-secondary" id="sharePdfBtn">📤 مشاركة</button>
-                    <button class="btn-secondary" id="addPageBtn">➕ إضافة صفحة</button>
-                    <button class="btn-secondary" id="clearPdfBtn" style="border-color:#e74c6f; color:#e74c6f;">🗑️ حذف الكل</button>
-                </div>
-                <div style="margin-top:12px; text-align:center; font-size:13px; color:var(--text-secondary);">
-                    اسحب الصفحات لإعادة الترتيب
-                </div>
-            </div>
-
-        </div><!-- /app-content -->
-    </div><!-- /app -->
-
-    <!-- ====== CAMERA OVERLAY ====== -->
-    <div class="camera-view" id="cameraView">
-        <video id="cameraVideo" autoplay playsinline></video>
-        <div class="camera-controls">
-            <button class="btn-close-cam" id="closeCameraBtn">✕</button>
-            <button id="captureBtn">📸</button>
-        </div>
+<div class="screen active" id="screen-home">
+  <div class="top-bar">
+    <button class="icon-btn" id="btn-dark-mode" title="الوضع الداكن">🌙</button>
+    <h1>ماسح المستندات</h1>
+    <span class="version" style="font-size:11px;color:var(--text3);font-weight:600">v1.0</span>
+  </div>
+  <div class="scroll-area fade-in">
+    <div style="text-align:center;margin:24px 0 32px">
+      <div style="width:80px;height:80px;border-radius:24px;background:linear-gradient(135deg,var(--primary),#6c5ce7);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:36px;box-shadow:0 8px 32px rgba(13,110,253,.3)">📄</div>
+      <h2 style="font-size:22px;font-weight:900;margin-bottom:6px">ماسح المستندات</h2>
+      <p style="color:var(--text2);font-size:14px">امسح مستنداتك بجودة احترافية</p>
     </div>
 
-    <!-- ====== HIDDEN FILE INPUTS ====== -->
-    <input type="file" id="fileInput" accept="image/*" multiple style="display:none;">
-    <input type="file" id="fileInputSingle" accept="image/*" style="display:none;">
+    <div class="scan-option" id="opt-camera">
+      <div class="icon" style="background:linear-gradient(135deg,#0d6efd,#6c5ce7);color:#fff">📷</div>
+      <div class="info">
+        <h3>التقاط بالكاميرا</h3>
+        <p>استخدم الكاميرا الخلفية لالتقاط المستند</p>
+      </div>
+    </div>
 
-    <!-- ================================================================
-    JAVASCRIPT — ES2024 — Full App
-    ================================================================ -->
-    <script type="module">
-        // ================================================================
-        // 1. IMPORTS (CDN)
-        // ================================================================
-        // OpenCV.js and jsPDF are loaded dynamically via <script> tags.
-        // We'll use a promise-based loader.
+    <div class="scan-option" id="opt-gallery">
+      <div class="icon" style="background:linear-gradient(135deg,#16a34a,#22d3ee);color:#fff">🖼️</div>
+      <div class="info">
+        <h3>اختيار من الاستوديو</h3>
+        <p>اختر صورة موجودة من المعرض</p>
+      </div>
+    </div>
 
-        // ================================================================
-        // 2. STATE
-        // ================================================================
-        const state = {
-            theme: 'dark',
-            pages: [], // Array of { dataURL: string, processed: boolean, mode: string }
-            currentImageDataURL: null,
-            currentMode: 'color',
-            isProcessing: false,
-            pdfBlob: null,
-            pdfFileName: 'document.pdf',
-            processingLog: [],
-        };
+    <div class="drop-zone" id="drop-zone">
+      <div class="icon">📁</div>
+      <p>اسحب وأفلت صورة هنا<br><span style="font-size:12px;color:var(--text3)">أو انقر للاختيار</span></p>
+    </div>
 
-        // ================================================================
-        // 3. DOM REFS
-        // ================================================================
-        const $ = (sel) => document.querySelector(sel);
-        const $$ = (sel) => document.querySelectorAll(sel);
+    <div class="card" style="margin-top:20px" id="pages-preview-card" hidden>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <h3 style="font-size:15px;font-weight:700">الصفحات المحفوظة</h3>
+        <span id="pages-count" style="font-size:12px;color:var(--text3);font-weight:600">0 صفحة</span>
+      </div>
+      <div class="pages-strip" id="pages-strip"></div>
+      <button class="btn btn-primary" id="btn-export-pdf" style="margin-top:12px">📄 إنشاء PDF</button>
+    </div>
+  </div>
+</div>
 
-        const app = $('#app');
-        const toast = $('#toast');
-        const themeToggle = $('#themeToggle');
-        const homeBtn = $('#homeBtn');
-        const screenHome = $('#screenHome');
-        const screenPreview = $('#screenPreview');
-        const screenProcessing = $('#screenProcessing');
-        const screenPdf = $('#screenPdf');
-        const previewImage = $('#previewImage');
-        const previewCanvas = $('#previewCanvas');
-        const previewContainer = $('#previewContainer');
-        const modeChips = $$('.mode-chip');
-        const processBtn = $('#processBtn');
-        const retakeBtn = $('#retakeBtn');
-        const cameraBtn = $('#cameraBtn');
-        const galleryBtn = $('#galleryBtn');
-        const scanBtn = $('#scanBtn');
-        const dropZone = $('#dropZone');
-        const fileInput = $('#fileInput');
-        const fileInputSingle = $('#fileInputSingle');
-        const cameraView = $('#cameraView');
-        const cameraVideo = $('#cameraVideo');
-        const captureBtn = $('#captureBtn');
-        const closeCameraBtn = $('#closeCameraBtn');
-        const procStatus = $('#procStatus');
-        const procSub = $('#procSub');
-        const procProgress = $('#procProgress');
-        const procLabel = $('#procLabel');
-        const procLog = $('#procLog');
-        const pdfPagesList = $('#pdfPagesList');
-        const pdfPageBadge = $('#pdfPageBadge');
-        const downloadPdfBtn = $('#downloadPdfBtn');
-        const sharePdfBtn = $('#sharePdfBtn');
-        const addPageBtn = $('#addPageBtn');
-        const clearPdfBtn = $('#clearPdfBtn');
-        const pageCount = $('#pageCount');
-        const pdfSize = $('#pdfSize');
+<div class="screen" id="screen-camera">
+  <div class="camera-viewfinder">
+    <video id="camera-video" autoplay playsinline></video>
+    <div class="camera-overlay">
+      <svg viewBox="0 0 400 600" preserveAspectRatio="none">
+        <defs><mask id="mask-cutout">
+          <rect width="400" height="600" fill="white"/>
+          <rect x="30" y="50" width="340" height="500" rx="8" fill="black"/>
+        </mask></defs>
+        <rect width="400" height="600" fill="rgba(0,0,0,.45)" mask="url(#mask-cutout)"/>
+        <rect x="30" y="50" width="340" height="500" rx="8" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-dasharray="8 4"/>
+      </svg>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-around;padding:20px;background:rgba(0,0,0,.85);padding-bottom:calc(20px + var(--safe-bottom))">
+    <button class="btn btn-ghost" id="btn-camera-back" style="color:#fff">إلغاء</button>
+    <button class="capture-btn" id="btn-capture"></button>
+    <button class="btn btn-ghost" id="btn-camera-flip" style="color:#fff">🔄</button>
+  </div>
+</div>
 
-        // ================================================================
-        // 4. TOAST
-        // ================================================================
-        let toastTimeout = null;
+<div class="screen" id="screen-preview">
+  <div class="top-bar">
+    <button class="icon-btn" id="btn-preview-back">→</button>
+    <h1>معاينة المستند</h1>
+    <button class="icon-btn" id="btn-preview-help">❓</button>
+  </div>
+  <div class="corner-canvas-wrap" id="corner-wrap">
+    <canvas id="canvas-preview"></canvas>
+    <canvas id="canvas-overlay" style="z-index:2"></canvas>
+  </div>
+  <div class="bottom-bar">
+    <div style="display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px" id="mode-chips">
+      <button class="mode-chip active" data-mode="auto">✨ تلقائي</button>
+      <button class="mode-chip" data-mode="color">🎨 ملون</button>
+      <button class="mode-chip" data-mode="bw">⬛ أبيض وأسود</button>
+      <button class="mode-chip" data-mode="gray">🔘 تدرج رمادي</button>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-secondary" id="btn-preview-crop">✂️ قص تلقائي</button>
+      <button class="btn btn-primary" id="btn-preview-save">💾 حفظ ومعالجة</button>
+    </div>
+  </div>
+</div>
 
-        function showToast(msg, duration = 3000) {
-            toast.textContent = msg;
-            toast.classList.add('show');
-            clearTimeout(toastTimeout);
-            toastTimeout = setTimeout(() => toast.classList.remove('show'), duration);
-        }
+<div class="screen" id="screen-editor">
+  <div class="top-bar">
+    <button class="icon-btn" id="btn-editor-back">→</button>
+    <h1>تحرير المستند</h1>
+    <button class="icon-btn" id="btn-editor-add">➕</button>
+  </div>
+  <div class="scroll-area" id="editor-scroll">
+    <div id="editor-pages" style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px"></div>
+    <div id="editor-empty" class="empty-state">
+      <div class="icon">📋</div>
+      <h3>لا توجد صفحات</h3>
+      <p>أضف صفحات للبدء في إنشاء ملف PDF</p>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <div style="display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px" id="editor-mode-chips">
+      <button class="mode-chip active" data-mode="auto">✨ تلقائي</button>
+      <button class="mode-chip" data-mode="color">🎨 ملون</button>
+      <button class="mode-chip" data-mode="bw">⬛ أبيض وأسود</button>
+      <button class="mode-chip" data-mode="gray">🔘 تدرج رمادي</button>
+    </div>
+    <button class="btn btn-primary" id="btn-create-pdf">📄 إنشاء PDF</button>
+  </div>
+</div>
 
-        // ================================================================
-        // 5. THEME
-        // ================================================================
-        function toggleTheme() {
-            const current = app.dataset.theme;
-            const next = current === 'dark' ? 'light' : 'dark';
-            app.dataset.theme = next;
-            themeToggle.textContent = next === 'dark' ? '🌙' : '☀️';
-            state.theme = next;
-            localStorage.setItem('scanpro-theme', next);
-        }
+<div class="progress-container" id="progress-overlay">
+  <div class="progress-ring">
+    <svg width="140" height="140">
+      <circle class="bg" cx="70" cy="70" r="60"/>
+      <circle class="fg" id="progress-circle" cx="70" cy="70" r="60" stroke-dasharray="377" stroke-dashoffset="377"/>
+    </svg>
+  </div>
+  <div class="progress-percent" id="progress-percent">0%</div>
+  <div class="progress-text" id="progress-text">جاري التحميل...</div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progress-bar"></div>
+  </div>
+</div>
 
-        function loadTheme() {
-            const saved = localStorage.getItem('scanpro-theme') || 'dark';
-            app.dataset.theme = saved;
-            themeToggle.textContent = saved === 'dark' ? '🌙' : '☀️';
-            state.theme = saved;
-        }
-        loadTheme();
-        themeToggle.addEventListener('click', toggleTheme);
+<div class="toast" id="toast"></div>
 
-        // ================================================================
-        // 6. SCREEN NAVIGATION
-        // ================================================================
-        function showScreen(name) {
-            $$('.screen').forEach(el => el.classList.remove('active'));
-            const map = {
-                home: screenHome,
-                preview: screenPreview,
-                processing: screenProcessing,
-                pdf: screenPdf,
-            };
-            if (map[name]) map[name].classList.add('active');
-            // scroll to top
-            document.getElementById('appContent').scrollTop = 0;
-        }
+<input type="file" id="file-input" accept="image/*">
+<input type="file" id="file-input-multiple" accept="image/*" multiple>
 
-        homeBtn.addEventListener('click', () => {
-            if (state.isProcessing) return;
-            showScreen('home');
-            updatePageInfo();
-        });
+<div class="modal-overlay" id="modal-help">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3 style="font-size:17px;font-weight:800;margin-bottom:16px;text-align:center">كيفية الاستخدام</h3>
+    <div style="font-size:14px;line-height:2;color:var(--text2)">
+      <p>1️⃣ التقط صورة أو اختر من الاستوديو</p>
+      <p>2️⃣ اضبط زوايا القص يدوياً إذا لزم الأمر</p>
+      <p>3️⃣ اختر نمط المعالجة (ملون/أبيض وأسود/رمادي)</p>
+      <p>4️⃣ اضغط "حفظ ومعالجة" لمعالجة المستند</p>
+      <p>5️⃣ أضف المزيد من الصفحات أو أنشئ PDF</p>
+    </div>
+    <button class="btn btn-secondary" id="btn-close-help" style="margin-top:16px">فهمت</button>
+  </div>
+</div>
 
-        // ================================================================
-        // 7. PAGE INFO
-        // ================================================================
-        function updatePageInfo() {
-            const count = state.pages.length;
-            pageCount.textContent = `📄 ${count} صفحة`;
-            const totalSize = state.pages.reduce((acc, p) => {
-                const len = p.dataURL ? p.dataURL.length : 0;
-                return acc + len;
-            }, 0);
-            const kb = Math.round(totalSize / 1024);
-            pdfSize.textContent = `💾 ${kb} KB`;
-            pdfPageBadge.textContent = `${count} صفحات`;
-        }
+<script>
+(function(){
+'use strict';
 
-        // ================================================================
-        // 8. CAMERA
-        // ================================================================
-        let cameraStream = null;
+const APP_VERSION = 'v1.0';
 
-        async function startCamera() {
-            try {
-                cameraStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
-                    audio: false,
-                });
-                cameraVideo.srcObject = cameraStream;
-                await cameraVideo.play();
-                cameraView.classList.add('active');
-            } catch (err) {
-                showToast('❌ تعذر الوصول إلى الكاميرا: ' + err.message);
-            }
-        }
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
 
-        function stopCamera() {
-            if (cameraStream) {
-                cameraStream.getTracks().forEach(t => t.stop());
-                cameraStream = null;
-            }
-            cameraVideo.srcObject = null;
-            cameraView.classList.remove('active');
-        }
+const state = {
+  pages: [],
+  currentPage: -1,
+  darkMode: false,
+  processMode: 'auto',
+  editorMode: 'auto',
+  cameraStream: null,
+  facingMode: 'environment',
+  rawImage: null,
+  corners: null,
+  dragging: null,
+  canvasScale: 1,
+  opencvReady: false
+};
 
-        cameraBtn.addEventListener('click', () => {
-            if (state.isProcessing) return;
-            startCamera();
-        });
+const canvasPreview = $('#canvas-preview');
+const canvasOverlay = $('#canvas-overlay');
+const ctxPreview = canvasPreview.getContext('2d');
+const ctxOverlay = canvasOverlay.getContext('2d');
 
-        closeCameraBtn.addEventListener('click', stopCamera);
-
-        captureBtn.addEventListener('click', () => {
-            if (!cameraStream) return;
-            const canvas = document.createElement('canvas');
-            const video = cameraVideo;
-            canvas.width = video.videoWidth || 1280;
-            canvas.height = video.videoHeight || 720;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const dataURL = canvas.toDataURL('image/jpeg', 0.95);
-            stopCamera();
-            handleImageData(dataURL);
-        });
-
-        // ================================================================
-        // 9. GALLERY
-        // ================================================================
-        galleryBtn.addEventListener('click', () => {
-            if (state.isProcessing) return;
-            fileInput.click();
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            const files = e.target.files;
-            if (!files || files.length === 0) return;
-            for (const file of files) {
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    handleImageData(ev.target.result);
-                };
-                reader.readAsDataURL(file);
-            }
-            fileInput.value = '';
-        });
-
-        // ================================================================
-        // 10. SCAN BUTTON (quick capture)
-        // ================================================================
-        scanBtn.addEventListener('click', () => {
-            if (state.isProcessing) return;
-            fileInputSingle.click();
-        });
-
-        fileInputSingle.addEventListener('change', (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                handleImageData(ev.target.result);
-            };
-            reader.readAsDataURL(file);
-            fileInputSingle.value = '';
-        });
-
-        // ================================================================
-        // 11. DRAG & DROP
-        // ================================================================
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('dragover');
-        });
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('dragover');
-        });
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (!files || files.length === 0) return;
-            for (const file of files) {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        handleImageData(ev.target.result);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            }
-        });
-
-        // Click on drop zone opens gallery
-        dropZone.addEventListener('click', () => {
-            if (state.isProcessing) return;
-            fileInput.click();
-        });
-
-        // ================================================================
-        // 12. HANDLE IMAGE DATA
-        // ================================================================
-        function handleImageData(dataURL) {
-            state.currentImageDataURL = dataURL;
-            previewImage.src = dataURL;
-            previewImage.style.display = 'block';
-            previewCanvas.style.display = 'none';
-            showScreen('preview');
-            // Reset mode chips
-            modeChips.forEach(chip => chip.classList.remove('active'));
-            const defaultChip = document.querySelector('.mode-chip[data-mode="color"]');
-            if (defaultChip) defaultChip.classList.add('active');
-            state.currentMode = 'color';
-        }
-
-        // ================================================================
-        // 13. MODE SELECTOR
-        // ================================================================
-        modeChips.forEach(chip => {
-            chip.addEventListener('click', () => {
-                modeChips.forEach(c => c.classList.remove('active'));
-                chip.classList.add('active');
-                state.currentMode = chip.dataset.mode;
-            });
-        });
-
-        // ================================================================
-        // 14. RETAKE
-        // ================================================================
-        retakeBtn.addEventListener('click', () => {
-            if (state.isProcessing) return;
-            state.currentImageDataURL = null;
-            previewImage.src = '';
-            showScreen('home');
-            updatePageInfo();
-        });
-
-        // ================================================================
-        // 15. PROCESSING PIPELINE (with OpenCV.js)
-        // ================================================================
-        let opencvLoaded = false;
-        let opencvLoading = false;
-
-        function loadOpenCV() {
-            return new Promise((resolve, reject) => {
-                if (window.cv && window.cv.Mat) {
-                    opencvLoaded = true;
-                    resolve();
-                    return;
-                }
-                if (opencvLoading) {
-                    const check = setInterval(() => {
-                        if (window.cv && window.cv.Mat) {
-                            clearInterval(check);
-                            opencvLoaded = true;
-                            resolve();
-                        }
-                    }, 200);
-                    return;
-                }
-                opencvLoading = true;
-                const script = document.createElement('script');
-                script.src = 'https://docs.opencv.org/4.9.0/opencv.js';
-                script.async = true;
-                script.onload = () => {
-                    const check = setInterval(() => {
-                        if (window.cv && window.cv.Mat) {
-                            clearInterval(check);
-                            opencvLoaded = true;
-                            opencvLoading = false;
-                            resolve();
-                        }
-                    }, 200);
-                };
-                script.onerror = () => {
-                    opencvLoading = false;
-                    reject(new Error('فشل تحميل OpenCV.js'));
-                };
-                document.head.appendChild(script);
-            });
-        }
-
-        // ---- Logging ----
-        function addLog(msg, done = false) {
-            const entry = document.createElement('div');
-            entry.className = 'log-entry' + (done ? ' done' : '');
-            entry.textContent = msg;
-            procLog.appendChild(entry);
-            procLog.scrollTop = procLog.scrollHeight;
-            state.processingLog.push(msg);
-        }
-
-        function clearLog() {
-            procLog.innerHTML = '';
-            state.processingLog = [];
-        }
-
-        // ---- Progress ----
-        function setProgress(pct, status, sub) {
-            const clamped = Math.min(100, Math.max(0, pct));
-            procProgress.style.width = clamped + '%';
-            procLabel.textContent = Math.round(clamped) + '%';
-            if (status) procStatus.textContent = status;
-            if (sub) procSub.textContent = sub;
-        }
-
-        // ---- Image processing with OpenCV ----
-        async function processImageWithOpenCV(dataURL, mode) {
-    await loadOpenCV();
-
-    const cv = window.cv;
-    const img = new Image();
-    img.src = dataURL;
-    await new Promise((r) => { img.onload = r; img.onerror = r; });
-
-    // تعريف جميع المتغيرات مسبقاً
-    let src = null;
-    let gray = null;
-    let blurred = null;
-    let edges = null;
-    let contours = null;
-    let hierarchy = null;
-    let resultMat = null;
-    let docPoints = null;
-    let warped = null;
-    let lab = null;
-    let channels = null;
-    let L = null;
-    let L_clahe = null;
-    let lab_clahe = null;
-    let shadowFixed = null;
-    let kernel = null;
-    let sharpened = null;
-    let finalMat = null;
-    let hsv = null, hsv2 = null, hsvChannels = null, V = null, V_eq = null, hsv_eq = null, rgb_eq = null;
-
-    try {
-        src = cv.imread(img);
-        addLog('📖 جاري قراءة الصورة...');
-        setProgress(5, 'جاري قراءة الصورة...', 'تحميل البيانات');
-        await sleep(80);
-
-        addLog('🔍 جاري اكتشاف الورقة...');
-        setProgress(15, 'جاري اكتشاف الورقة...', 'تحليل الحواف');
-        gray = new cv.Mat();
-        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-        await sleep(60);
-
-        blurred = new cv.Mat();
-        cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
-        edges = new cv.Mat();
-        cv.Canny(blurred, edges, 50, 150, 3);
-
-        contours = new cv.MatVector();
-        hierarchy = new cv.Mat();
-        cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-
-        let maxArea = 0;
-        for (let i = 0; i < contours.size(); i++) {
-            const cnt = contours.get(i);
-            const area = cv.contourArea(cnt);
-            if (area < 1000) continue;
-            const peri = cv.arcLength(cnt, true);
-            const approx = new cv.Mat();
-            cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
-            if (approx.rows === 4 && area > maxArea) {
-                maxArea = area;
-                if (docPoints) docPoints.delete();
-                docPoints = approx.clone();
-            }
-            approx.delete();
-        }
-
-        resultMat = src.clone();
-
-        if (docPoints && maxArea > 5000) {
-            addLog('📐 جاري تصحيح المنظور...');
-            setProgress(40, 'جاري تصحيح المنظور...', 'قص الورقة');
-
-            const pts = [];
-            for (let i = 0; i < 4; i++) {
-                const x = docPoints.data32S[i * 2];
-                const y = docPoints.data32S[i * 2 + 1];
-                pts.push([x, y]);
-            }
-
-            const sorted = sortPoints(pts);
-            const w = Math.max(
-                Math.sqrt((sorted[1][0] - sorted[0][0]) ** 2 + (sorted[1][1] - sorted[0][1]) ** 2),
-                Math.sqrt((sorted[2][0] - sorted[3][0]) ** 2 + (sorted[2][1] - sorted[3][1]) ** 2)
-            );
-            const h = Math.max(
-                Math.sqrt((sorted[3][0] - sorted[0][0]) ** 2 + (sorted[3][1] - sorted[0][1]) ** 2),
-                Math.sqrt((sorted[2][0] - sorted[1][0]) ** 2 + (sorted[2][1] - sorted[1][1]) ** 2)
-            );
-
-            const dstW = Math.round(Math.max(w, h) * 1.0);
-            const dstH = Math.round(Math.min(w, h) * 1.0);
-
-            const srcPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [
-                sorted[0][0], sorted[0][1],
-                sorted[1][0], sorted[1][1],
-                sorted[2][0], sorted[2][1],
-                sorted[3][0], sorted[3][1]
-            ]);
-            const dstPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [
-                0, 0,
-                dstW, 0,
-                dstW, dstH,
-                0, dstH
-            ]);
-
-            const M = cv.getPerspectiveTransform(srcPoints, dstPoints);
-            warped = new cv.Mat();
-            cv.warpPerspective(src, warped, M, new cv.Size(dstW, dstH), cv.INTER_LINEAR, cv.BORDER_CONSTANT,
-                new cv.Scalar(255, 255, 255, 255));
-
-            srcPoints.delete();
-            dstPoints.delete();
-            M.delete();
-            docPoints.delete();
-            docPoints = null;
-
-            resultMat.delete();
-            resultMat = warped;
-            addLog('✅ تم اكتشاف الورقة وتصحيح المنظور');
-        } else {
-            addLog('⚠️ لم يتم اكتشاف ورقة، سيتم استخدام الصورة كما هي');
-            setProgress(40, 'لم يتم اكتشاف ورقة', 'استخدام الصورة الأصلية');
-            if (docPoints) { docPoints.delete(); docPoints = null; }
-        }
-
-        // ---- إزالة الظلال ----
-        addLog('☀️ جاري إزالة الظلال وتحسين الإضاءة...');
-        setProgress(55, 'جاري إزالة الظلال...', 'معالجة الإضاءة');
-        await sleep(80);
-
-        lab = new cv.Mat();
-        cv.cvtColor(resultMat, lab, cv.COLOR_RGBA2Lab);
-        channels = new cv.MatVector();
-        cv.split(lab, channels);
-        L = channels.get(0);
-        const clahe = new cv.CLAHE(3.0, new cv.Size(8, 8));
-        L_clahe = new cv.Mat();
-        clahe.apply(L, L_clahe);
-        channels.set(0, L_clahe);
-        lab_clahe = new cv.Mat();
-        cv.merge(channels, lab_clahe);
-        shadowFixed = new cv.Mat();
-        cv.cvtColor(lab_clahe, shadowFixed, cv.COLOR_Lab2RGBA);
-        L.delete();
-        L_clahe.delete();
-        lab.delete();
-        lab_clahe.delete();
-        clahe.delete();
-        channels.delete();
-        resultMat.delete();
-        resultMat = shadowFixed;
-
-        // ---- تحسين الحدة ----
-        addLog('🔧 جاري تحسين الحدة وتقليل التشويش...');
-        setProgress(70, 'جاري تحسين الجودة...', 'زيادة الحدة');
-        await sleep(80);
-
-        kernel = cv.matFromArray(3, 3, cv.CV_32F, [
-            0, -1, 0,
-            -1, 5, -1,
-            0, -1, 0
-        ]);
-        sharpened = new cv.Mat();
-        cv.filter2D(resultMat, sharpened, -1, kernel);
-        kernel.delete();
-        resultMat.delete();
-        resultMat = sharpened;
-
-        // ---- تطبيق الوضع ----
-        addLog('🎨 جاري تطبيق وضع: ' + mode);
-        setProgress(85, 'جاري تطبيق الوضع...', mode);
-
-        if (mode === 'bw') {
-            const gray2 = new cv.Mat();
-            cv.cvtColor(resultMat, gray2, cv.COLOR_RGBA2GRAY);
-            const bw = new cv.Mat();
-            cv.threshold(gray2, bw, 127, 255, cv.THRESH_BINARY);
-            finalMat = new cv.Mat();
-            cv.cvtColor(bw, finalMat, cv.COLOR_GRAY2RGBA);
-            gray2.delete();
-            bw.delete();
-        } else if (mode === 'gray') {
-            const gray2 = new cv.Mat();
-            cv.cvtColor(resultMat, gray2, cv.COLOR_RGBA2GRAY);
-            finalMat = new cv.Mat();
-            cv.cvtColor(gray2, finalMat, cv.COLOR_GRAY2RGBA);
-            gray2.delete();
-        } else if (mode === 'auto') {
-            hsv = new cv.Mat();
-            cv.cvtColor(resultMat, hsv, cv.COLOR_RGBA2RGB);
-            hsv2 = new cv.Mat();
-            cv.cvtColor(hsv, hsv2, cv.COLOR_RGB2HSV);
-            hsvChannels = new cv.MatVector();
-            cv.split(hsv2, hsvChannels);
-            V = hsvChannels.get(2);
-            V_eq = new cv.Mat();
-            cv.equalizeHist(V, V_eq);
-            hsvChannels.set(2, V_eq);
-            hsv_eq = new cv.Mat();
-            cv.merge(hsvChannels, hsv_eq);
-            rgb_eq = new cv.Mat();
-            cv.cvtColor(hsv_eq, rgb_eq, cv.COLOR_HSV2RGB);
-            finalMat = new cv.Mat();
-            cv.cvtColor(rgb_eq, finalMat, cv.COLOR_RGB2RGBA);
-            V.delete();
-            V_eq.delete();
-            hsv.delete();
-            hsv2.delete();
-            hsv_eq.delete();
-            rgb_eq.delete();
-            hsvChannels.delete();
-        } else {
-            // وضع ملون (افتراضي)
-            finalMat = resultMat.clone();
-        }
-
-        resultMat.delete();
-
-        // ---- تحويل إلى DataURL ----
-        addLog('📄 جاري إنشاء الصورة النهائية...');
-        setProgress(92, 'جاري إنشاء الصورة...', 'تجهيز البيانات');
-
-        const canvasOut = document.createElement('canvas');
-        canvasOut.width = finalMat.cols;
-        canvasOut.height = finalMat.rows;
-        cv.imshow(canvasOut, finalMat);
-        finalMat.delete();
-
-        const resultDataURL = canvasOut.toDataURL('image/jpeg', 0.92);
-        canvasOut.remove();
-
-        addLog('✅ اكتملت المعالجة بنجاح!', true);
-        setProgress(100, '✅ اكتمل!', 'جاهز للحفظ');
-
-        return resultDataURL;
-
-    } catch (err) {
-        console.error('Processing error:', err);
-        addLog('❌ خطأ: ' + err.message, true);
-        throw err;
-    } finally {
-        // حذف جميع المتغيرات إذا كانت موجودة
-        if (src) src.delete();
-        if (gray) gray.delete();
-        if (blurred) blurred.delete();
-        if (edges) edges.delete();
-        if (contours) contours.delete();
-        if (hierarchy) hierarchy.delete();
-        if (resultMat) resultMat.delete();
-        if (docPoints) docPoints.delete();
-        if (warped) warped.delete();
-        if (lab) lab.delete();
-        if (channels) channels.delete();
-        if (L) L.delete();
-        if (L_clahe) L_clahe.delete();
-        if (lab_clahe) lab_clahe.delete();
-        if (shadowFixed) shadowFixed.delete();
-        if (kernel) kernel.delete();
-        if (sharpened) sharpened.delete();
-        if (finalMat) finalMat.delete();
-        if (hsv) hsv.delete();
-        if (hsv2) hsv2.delete();
-        if (hsvChannels) hsvChannels.delete();
-        if (V) V.delete();
-        if (V_eq) V_eq.delete();
-        if (hsv_eq) hsv_eq.delete();
-        if (rgb_eq) rgb_eq.delete();
-    }
+function showToast(msg, duration = 2500) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), duration);
 }
 
-        // ================================================================
-        // 17. PDF RENDERING
-        // ================================================================
-        function renderPdfPages() {
-            if (state.pages.length === 0) {
-                pdfPagesList.innerHTML =
-                `<div style="text-align:center;padding:30px;color:var(--text-secondary);">📭 لا توجد صفحات بعد</div>`;
-                return;
-            }
+function showScreen(id) {
+  $$('.screen').forEach(s => s.classList.remove('active'));
+  const screen = $('#' + id);
+  if (screen) screen.classList.add('active');
+}
 
-            let html = '';
-            state.pages.forEach((page, idx) => {
-                html += `
-                    <div class="pdf-page-item" draggable="true" data-index="${idx}">
-                        <div class="thumb"><img src="${page.dataURL}" alt="صفحة ${idx+1}"></div>
-                        <div class="info">
-                            صفحة ${idx+1}
-                            <small>${page.mode} · ${Math.round(page.dataURL.length/1024)} KB</small>
-                        </div>
-                        <div class="actions">
-                            <button data-action="move-up" data-index="${idx}" title="رفع">⬆</button>
-                            <button data-action="move-down" data-index="${idx}" title="خفض">⬇</button>
-                            <button data-action="delete" data-index="${idx}" title="حذف">🗑</button>
-                        </div>
-                    </div>
-                `;
-            });
-            pdfPagesList.innerHTML = html;
-            updatePageInfo();
+function setProgress(pct, text) {
+  pct = Math.max(0, Math.min(100, Math.round(pct)));
+  $('#progress-percent').textContent = pct + '%';
+  $('#progress-text').textContent = text || '';
+  $('#progress-bar').style.width = pct + '%';
+  const c = $('#progress-circle');
+  const circumference = 377;
+  c.style.strokeDashoffset = circumference - (circumference * pct / 100);
+}
 
-            // ---- Event listeners for page actions ----
-            pdfPagesList.querySelectorAll('[data-action="delete"]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const idx = parseInt(btn.dataset.index);
-                    state.pages.splice(idx, 1);
-                    renderPdfPages();
-                    showToast('🗑️ تم حذف الصفحة');
-                });
-            });
+function showProgress() { $('#progress-overlay').classList.add('active'); }
+function hideProgress() { $('#progress-overlay').classList.remove('active'); }
 
-            pdfPagesList.querySelectorAll('[data-action="move-up"]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const idx = parseInt(btn.dataset.index);
-                    if (idx > 0) {
-                        [state.pages[idx], state.pages[idx - 1]] = [state.pages[idx - 1], state.pages[idx]];
-                        renderPdfPages();
-                    }
-                });
-            });
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-            pdfPagesList.querySelectorAll('[data-action="move-down"]').forEach(btn => {
-                const idx = parseInt(btn.dataset.index);
-                if (idx < state.pages.length - 1) {
-                    [state.pages[idx], state.pages[idx + 1]] = [state.pages[idx + 1], state.pages[idx]];
-                    renderPdfPages();
-                }
-            });
+function toggleDarkMode() {
+  state.darkMode = !state.darkMode;
+  document.documentElement.setAttribute('data-theme', state.darkMode ? 'dark' : '');
+  $('#btn-dark-mode').textContent = state.darkMode ? '☀️' : '🌙';
+  localStorage.setItem('scanner_dark', state.darkMode);
+}
 
-            // ---- Drag and drop reorder ----
-            const items = pdfPagesList.querySelectorAll('.pdf-page-item');
-            let dragSrcIdx = null;
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
 
-            items.forEach(item => {
-                item.addEventListener('dragstart', (e) => {
-                    dragSrcIdx = parseInt(item.dataset.index);
-                    e.dataTransfer.effectAllowed = 'move';
-                    item.style.opacity = '0.4';
-                });
-                item.addEventListener('dragend', () => {
-                    item.style.opacity = '1';
-                });
-                item.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                });
-                item.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    const targetIdx = parseInt(item.dataset.index);
-                    if (dragSrcIdx !== null && dragSrcIdx !== targetIdx) {
-                        const [removed] = state.pages.splice(dragSrcIdx, 1);
-                        state.pages.splice(targetIdx, 0, removed);
-                        renderPdfPages();
-                        showToast('🔄 تم إعادة ترتيب الصفحات');
-                    }
-                    item.style.opacity = '1';
-                });
-            });
+function drawImageToCanvas(img) {
+  const maxDim = 2048;
+  let w = img.naturalWidth || img.width;
+  let h = img.naturalHeight || img.height;
+  if (w > maxDim || h > maxDim) {
+    const ratio = Math.min(maxDim / w, maxDim / h);
+    w = Math.round(w * ratio);
+    h = Math.round(h * ratio);
+  }
+  canvasPreview.width = w;
+  canvasPreview.height = h;
+  canvasOverlay.width = w;
+  canvasOverlay.height = h;
+  ctxPreview.drawImage(img, 0, 0, w, h);
+  state.rawImage = ctxPreview.getImageData(0, 0, w, h);
+  return { w, h };
+}
+
+function fitCanvasToContainer() {
+  const wrap = $('#corner-wrap');
+  const wrapW = wrap.clientWidth;
+  const wrapH = wrap.clientHeight;
+  const imgW = canvasPreview.width;
+  const imgH = canvasPreview.height;
+  if (!imgW || !imgH) return;
+  const scale = Math.min(wrapW / imgW, wrapH / imgH) * window.devicePixelRatio;
+  state.canvasScale = scale;
+  canvasPreview.style.width = Math.round(imgW * scale / window.devicePixelRatio) + 'px';
+  canvasPreview.style.height = Math.round(imgH * scale / window.devicePixelRatio) + 'px';
+  canvasOverlay.style.width = canvasPreview.style.width;
+  canvasOverlay.style.height = canvasPreview.style.height;
+  canvasOverlay.style.left = (wrapW - parseFloat(canvasPreview.style.width)) / 2 + 'px';
+  canvasOverlay.style.top = (wrapH - parseFloat(canvasPreview.style.height)) / 2 + 'px';
+  canvasPreview.style.left = canvasOverlay.style.left;
+  canvasPreview.style.top = canvasOverlay.style.top;
+  drawCorners();
+}
+
+function detectDocumentCorners() {
+  const w = canvasPreview.width;
+  const h = canvasPreview.height;
+  if (state.opencvReady && typeof cv !== 'undefined' && cv.Mat) {
+    try {
+      return detectWithOpenCV(w, h);
+    } catch(e) {
+      console.warn('OpenCV detection failed, using fallback:', e);
+    }
+  }
+  return detectWithCanvas(w, h);
+}
+
+function detectWithOpenCV(w, h) {
+  let src = cv.matFromImageData(state.rawImage);
+  let gray = new cv.Mat();
+  let blurred = new cv.Mat();
+  let edged = new cv.Mat();
+
+  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+  cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+  cv.Canny(blurred, edged, 50, 150);
+
+  let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
+  cv.dilate(edged, edged, kernel);
+
+  let contours = new cv.MatVector();
+  let hierarchy = new cv.Mat();
+  cv.findContours(edged, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+  let bestArea = 0;
+  let bestContour = null;
+  for (let i = 0; i < contours.size(); i++) {
+    let cnt = contours.get(i);
+    let area = cv.contourArea(cnt);
+    if (area > bestArea) {
+      bestArea = area;
+      if (bestContour) bestContour.delete();
+      bestContour = cnt;
+    } else {
+      cnt.delete();
+    }
+  }
+
+  let result = null;
+  const minArea = w * h * 0.1;
+  if (bestContour && bestArea > minArea) {
+    let approx = new cv.Mat();
+    let peri = cv.arcLength(bestContour, true);
+    cv.approxPolyDP(bestContour, approx, 0.02 * peri, true);
+    if (approx.rows === 4) {
+      let pts = [];
+      for (let i = 0; i < 4; i++) {
+        pts.push({ x: approx.intAt(i, 0), y: approx.intAt(i, 1) });
+      }
+      result = orderCorners(pts);
+    }
+    approx.delete();
+  }
+
+  src.delete(); gray.delete(); blurred.delete(); edged.delete();
+  contours.delete(); hierarchy.delete(); kernel.delete();
+  if (bestContour) bestContour.delete();
+
+  return result;
+}
+
+function detectWithCanvas(w, h) {
+  const step = 4;
+  const data = state.rawImage.data;
+  const gray = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) {
+    gray[i] = Math.round(data[i*4] * 0.299 + data[i*4+1] * 0.587 + data[i*4+2] * 0.114);
+  }
+
+  const edges = new Uint8Array(w * h);
+  for (let y = 1; y < h - 1; y += step) {
+    for (let x = 1; x < w - 1; x += step) {
+      const idx = y * w + x;
+      const gx = -gray[idx-w-1] + gray[idx-w+1] - 2*gray[idx-1] + 2*gray[idx+1] - gray[idx+w-1] + gray[idx+w+1];
+      const gy = -gray[idx-w-1] - 2*gray[idx-w] - gray[idx-w+1] + gray[idx+w-1] + 2*gray[idx+w] + gray[idx+w+1];
+      edges[idx] = Math.sqrt(gx*gx + gy*gy) > 40 ? 255 : 0;
+    }
+  }
+
+  let topX = w/2, topY = h/8, botX = w/2, botY = h*7/8;
+  let leftX = w/8, leftY = h/2, rightX = w*7/8, rightY = h/2;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (edges[y*w+x]) {
+        if (y < topY + h*0.1 && Math.abs(x - w/2) < w*0.4) { topX = x; topY = y; }
+        if (y > botY - h*0.1 && Math.abs(x - w/2) < w*0.4) { botX = x; botY = y; }
+        if (x < leftX + w*0.1 && Math.abs(y - h/2) < h*0.4) { leftX = x; leftY = y; }
+        if (x > rightX - w*0.1 && Math.abs(y - h/2) < h*0.4) { rightX = x; rightY = y; }
+      }
+    }
+  }
+
+  const margin = 0.05;
+  return orderCorners([
+    { x: Math.max(0, leftX * (1 + margin)), y: Math.max(0, topY * (1 + margin)) },
+    { x: Math.min(w, rightX * (1 - margin)), y: Math.max(0, topY * (1 + margin)) },
+    { x: Math.min(w, rightX * (1 - margin)), y: Math.min(h, botY * (1 - margin)) },
+    { x: Math.max(0, leftX * (1 + margin)), y: Math.min(h, botY * (1 - margin)) }
+  ]);
+}
+
+function orderCorners(pts) {
+  const center = pts.reduce((a, p) => ({ x: a.x + p.x/pts.length, y: a.y + p.y/pts.length }), { x: 0, y: 0 });
+  const sorted = pts.slice().sort((a, b) => {
+    const aa = Math.atan2(a.y - center.y, a.x - center.x);
+    const ab = Math.atan2(b.y - center.y, b.x - center.x);
+    return aa - ab;
+  });
+  const topAvg = sorted.filter(p => p.y < center.y).sort((a,b) => a.x - b.x);
+  const botAvg = sorted.filter(p => p.y >= center.y).sort((a,b) => a.x - b.x);
+  if (topAvg.length >= 2 && botAvg.length >= 2) {
+    return [topAvg[0], topAvg[1], botAvg[1], botAvg[0]];
+  }
+  return [sorted[0], sorted[1], sorted[2], sorted[3]];
+}
+
+function drawCorners() {
+  const w = canvasOverlay.width;
+  const h = canvasOverlay.height;
+  ctxOverlay.clearRect(0, 0, w, h);
+  if (!state.corners) return;
+
+  const pts = state.corners;
+  ctxOverlay.beginPath();
+  ctxOverlay.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < 4; i++) ctxOverlay.lineTo(pts[i].x, pts[i].y);
+  ctxOverlay.closePath();
+  ctxOverlay.strokeStyle = 'rgba(13,110,253,0.8)';
+  ctxOverlay.lineWidth = 3;
+  ctxOverlay.setLineDash([10, 5]);
+  ctxOverlay.stroke();
+  ctxOverlay.setLineDash([]);
+  ctxOverlay.fillStyle = 'rgba(13,110,253,0.08)';
+  ctxOverlay.fill();
+
+  pts.forEach((p, i) => {
+    ctxOverlay.beginPath();
+    ctxOverlay.arc(p.x, p.y, 16, 0, Math.PI * 2);
+    ctxOverlay.fillStyle = 'rgba(13,110,253,0.2)';
+    ctxOverlay.fill();
+    ctxOverlay.beginPath();
+    ctxOverlay.arc(p.x, p.y, 10, 0, Math.PI * 2);
+    ctxOverlay.fillStyle = '#0d6efd';
+    ctxOverlay.fill();
+    ctxOverlay.strokeStyle = '#fff';
+    ctxOverlay.lineWidth = 2;
+    ctxOverlay.stroke();
+  });
+}
+
+function getCanvasPoint(clientX, clientY) {
+  const rect = canvasOverlay.getBoundingClientRect();
+  const scaleX = canvasOverlay.width / rect.width;
+  const scaleY = canvasOverlay.height / rect.height;
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top) * scaleY
+  };
+}
+
+canvasOverlay.addEventListener('pointerdown', e => {
+  if (!state.corners) return;
+  const pt = getCanvasPoint(e.clientX, e.clientY);
+  let closest = -1, minDist = 30;
+  state.corners.forEach((c, i) => {
+    const d = Math.hypot(c.x - pt.x, c.y - pt.y);
+    if (d < minDist) { minDist = d; closest = i; }
+  });
+  if (closest >= 0) {
+    state.dragging = closest;
+    canvasOverlay.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  }
+});
+
+canvasOverlay.addEventListener('pointermove', e => {
+  if (state.dragging === null) return;
+  const pt = getCanvasPoint(e.clientX, e.clientY);
+  state.corners[state.dragging] = {
+    x: Math.max(0, Math.min(canvasOverlay.width, pt.x)),
+    y: Math.max(0, Math.min(canvasOverlay.height, pt.y))
+  };
+  drawCorners();
+  e.preventDefault();
+});
+
+canvasOverlay.addEventListener('pointerup', () => { state.dragging = null; });
+canvasOverlay.addEventListener('pointercancel', () => { state.dragging = null; });
+
+function perspectiveTransform(srcW, srcH, corners) {
+  const dstW = Math.max(
+    Math.hypot(corners[1].x - corners[0].x, corners[1].y - corners[0].y),
+    Math.hypot(corners[2].x - corners[3].x, corners[2].y - corners[3].y)
+  );
+  const dstH = Math.max(
+    Math.hypot(corners[3].x - corners[0].x, corners[3].y - corners[0].y),
+    Math.hypot(corners[2].x - corners[1].x, corners[2].y - corners[1].y)
+  );
+
+  const dst = [
+    { x: 0, y: 0 },
+    { x: dstW, y: 0 },
+    { x: dstW, y: dstH },
+    { x: 0, y: dstH }
+  ];
+
+  if (state.opencvReady && typeof cv !== 'undefined' && cv.Mat) {
+    try {
+      return perspectiveWithOpenCV(srcW, srcH, corners, dst, dstW, dstH);
+    } catch(e) {
+      console.warn('OpenCV perspective failed:', e);
+    }
+  }
+  return perspectiveWithCanvas(srcW, srcH, corners, dst, Math.round(dstW), Math.round(dstH));
+}
+
+function perspectiveWithOpenCV(srcW, srcH, srcPts, dstPts, dstW, dstH) {
+  let srcMat = cv.matFromArray(4, 1, cv.CV_32FC2, srcPts.flatMap(p => [p.x, p.y]));
+  let dstMat = cv.matFromArray(4, 1, cv.CV_32FC2, dstPts.flatMap(p => [p.x, p.y]));
+  let M = cv.getPerspectiveTransform(srcMat, dstMat);
+  let src = cv.matFromImageData(state.rawImage);
+  let dst = new cv.Mat();
+  cv.warpPerspective(src, dst, M, new cv.Size(Math.round(dstW), Math.round(dstH)));
+  const out = new ImageData(new Uint8ClampedArray(dst.data), dst.cols, dst.rows);
+  srcMat.delete(); dstMat.delete(); M.delete(); src.delete(); dst.delete();
+  return out;
+}
+
+function perspectiveWithCanvas(srcW, srcH, srcPts, dstPts, outW, outH) {
+  const tmpCanvas = document.createElement('canvas');
+  tmpCanvas.width = outW;
+  tmpCanvas.height = outH;
+  const tmpCtx = tmpCanvas.getContext('2d');
+
+  const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${outW}" height="${outH}">
+    <defs><filter id="f"><feImage href="data:," result="img"/></filter></defs>
+    <foreignObject width="${outW}" height="${outH}"><img id="srcImg" width="${outW}" height="${outH}"/></foreignObject>
+  </svg>`;
+
+  const m = solveHomography(srcPts, dstPts);
+  if (!m) {
+    tmpCtx.drawImage(canvasPreview, 0, 0, outW, outH);
+    return tmpCtx.getImageData(0, 0, outW, outH);
+  }
+
+  const srcData = state.rawImage.data;
+  const outData = new ImageData(outW, outH);
+  const outArr = outData.data;
+
+  for (let dy = 0; dy < outH; dy++) {
+    for (let dx = 0; dx < outW; dx++) {
+      const denom = m[6]*dx + m[7]*dy + m[8];
+      const sx = (m[0]*dx + m[1]*dy + m[2]) / denom;
+      const sy = (m[3]*dx + m[4]*dy + m[5]) / denom;
+      const ix = Math.round(sx), iy = Math.round(sy);
+      if (ix >= 0 && ix < srcW && iy >= 0 && iy < srcH) {
+        const si = (iy * srcW + ix) * 4;
+        const di = (dy * outW + dx) * 4;
+        outArr[di] = srcData[si];
+        outArr[di+1] = srcData[si+1];
+        outArr[di+2] = srcData[si+2];
+        outArr[di+3] = 255;
+      }
+    }
+  }
+  return outData;
+}
+
+function solveHomography(src, dst) {
+  const A = [], b = [];
+  for (let i = 0; i < 4; i++) {
+    A.push([src[i].x, src[i].y, 1, 0, 0, 0, -dst[i].x*src[i].x, -dst[i].x*src[i].y]);
+    A.push([0, 0, 0, src[i].x, src[i].y, 1, -dst[i].y*src[i].x, -dst[i].y*src[i].y]);
+    b.push(dst[i].x, dst[i].y);
+  }
+  const inv = invertMatrix8(A);
+  if (!inv) return null;
+  const h = inv.map((row, i) => row.reduce((s, v, j) => s + v * b[j], 0));
+  h.push(1);
+  return h;
+}
+
+function invertMatrix8(m) {
+  const n = 8;
+  const aug = m.map((row, i) => [...row, ...Array(n).fill(0).map((_, j) => i === j ? 1 : 0)]);
+  for (let col = 0; col < n; col++) {
+    let maxRow = col;
+    for (let row = col + 1; row < n; row++) {
+      if (Math.abs(aug[row][col]) > Math.abs(aug[maxRow][col])) maxRow = row;
+    }
+    [aug[col], aug[maxRow]] = [aug[maxRow], aug[col]];
+    if (Math.abs(aug[col][col]) < 1e-10) return null;
+    const pivot = aug[col][col];
+    for (let j = 0; j < n * 2; j++) aug[col][j] /= pivot;
+    for (let row = 0; row < n; row++) {
+      if (row === col) continue;
+      const factor = aug[row][col];
+      for (let j = 0; j < n * 2; j++) aug[row][j] -= factor * aug[col][j];
+    }
+  }
+  return aug.map(row => row.slice(n));
+}
+
+function processImage(imageData, mode) {
+  const w = imageData.width;
+  const h = imageData.height;
+  const src = imageData.data;
+  const out = new Uint8ClampedArray(src.length);
+
+  for (let i = 0; i < src.length; i += 4) {
+    out[i] = src[i];
+    out[i+1] = src[i+1];
+    out[i+2] = src[i+2];
+    out[i+3] = 255;
+  }
+
+  if (mode === 'bw') {
+    for (let i = 0; i < out.length; i += 4) {
+      const gray = out[i] * 0.299 + out[i+1] * 0.587 + out[i+2] * 0.114;
+      const v = gray > 140 ? 255 : 0;
+      out[i] = out[i+1] = out[i+2] = v;
+    }
+  } else if (mode === 'gray') {
+    for (let i = 0; i < out.length; i += 4) {
+      const gray = out[i] * 0.299 + out[i+1] * 0.587 + out[i+2] * 0.114;
+      out[i] = out[i+1] = out[i+2] = gray;
+    }
+  } else {
+    enhanceImage(out, w, h);
+  }
+
+  if (mode === 'bw') {
+    applyAdaptiveThreshold(out, w, h);
+  }
+
+  return new ImageData(out, w, h);
+}
+
+function enhanceImage(data, w, h) {
+  let sum = 0, count = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    sum += data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
+    count++;
+  }
+  const mean = sum / count;
+
+  let variance = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    const v = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
+    variance += (v - mean) * (v - mean);
+  }
+  variance /= count;
+  const stddev = Math.sqrt(variance);
+
+  const contrast = Math.min(1.8, Math.max(1.0, 128 / (stddev + 1)));
+  const brightness = (128 - mean) * 0.15;
+
+  for (let i = 0; i < data.length; i += 4) {
+    for (let c = 0; c < 3; c++) {
+      let v = data[i+c];
+      v = (v - 128) * contrast + 128 + brightness;
+      v = Math.max(0, Math.min(255, v));
+      data[i+c] = v;
+    }
+  }
+}
+
+function applyAdaptiveThreshold(data, w, h) {
+  const blockSize = 15;
+  const C = 8;
+  const integral = new Float64Array((w+1) * (h+1));
+
+  for (let y = 0; y < h; y++) {
+    let rowSum = 0;
+    for (let x = 0; x < w; x++) {
+      rowSum += data[(y*w+x)*4] * 0.299 + data[(y*w+x)*4+1] * 0.587 + data[(y*w+x)*4+2] * 0.114;
+      integral[(y+1)*(w+1)+(x+1)] = rowSum + integral[y*(w+1)+(x+1)];
+    }
+  }
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const half = Math.floor(blockSize / 2);
+      const x1 = Math.max(0, x - half);
+      const y1 = Math.max(0, y - half);
+      const x2 = Math.min(w - 1, x + half);
+      const y2 = Math.min(h - 1, y + half);
+      const count = (x2 - x1 + 1) * (y2 - y1 + 1);
+      const sum = integral[(y2+1)*(w+1)+(x2+1)] - integral[y1*(w+1)+(x2+1)] - integral[(y2+1)*(w+1)+x1] + integral[y1*(w+1)+x1];
+      const mean = sum / count;
+      const idx = (y * w + x) * 4;
+      const gray = data[idx] * 0.299 + data[idx+1] * 0.587 + data[idx+2] * 0.114;
+      const v = gray > mean - C ? 255 : 0;
+      data[idx] = data[idx+1] = data[idx+2] = v;
+    }
+  }
+}
+
+async function processAndSave() {
+  showProgress();
+
+  setProgress(0, 'جاري قراءة الصورة...');
+  await sleep(500);
+
+  const w = canvasPreview.width;
+  const h = canvasPreview.height;
+  const corners = state.corners;
+
+  setProgress(10, 'جاري اكتشاف حدود المستند...');
+  await sleep(700);
+
+  setProgress(25, 'جاري قص المستند...');
+  await sleep(600);
+
+  let croppedData;
+  if (corners) {
+    croppedData = perspectiveTransform(w, h, corners);
+  } else {
+    croppedData = state.rawImage;
+  }
+
+  setProgress(40, 'جاري تصحيح المنظور...');
+  await sleep(700);
+
+  setProgress(55, 'جاري إزالة الظلال...');
+  await sleep(600);
+
+  setProgress(65, 'جاري تحسين الإضاءة...');
+  await sleep(500);
+
+  const mode = state.processMode;
+  setProgress(75, 'جاري تطبيق الفلاتر...');
+  await sleep(600);
+
+  const processed = processImage(croppedData, mode);
+
+  setProgress(85, 'جاري زيادة الحدة...');
+  await sleep(500);
+
+  const outCanvas = document.createElement('canvas');
+  outCanvas.width = processed.width;
+  outCanvas.height = processed.height;
+  outCanvas.getContext('2d').putImageData(processed, 0, 0);
+
+  const dataUrl = outCanvas.toDataURL('image/jpeg', 0.92);
+
+  setProgress(92, 'جاري إنشاء الملف...');
+  await sleep(600);
+
+  state.pages.push({
+    dataUrl: dataUrl,
+    width: processed.width,
+    height: processed.height,
+    mode: mode
+  });
+
+  setProgress(100, 'اكتمل بنجاح!');
+  await sleep(1000);
+
+  hideProgress();
+  updateEditor();
+  showScreen('screen-editor');
+  showToast('تمت إضافة الصفحة بنجاح');
+}
+
+function updateEditor() {
+  const container = $('#editor-pages');
+  const empty = $('#editor-empty');
+  container.innerHTML = '';
+  empty.hidden = state.pages.length > 0;
+
+  state.pages.forEach((page, i) => {
+    const div = document.createElement('div');
+    div.className = 'editor-thumb';
+    div.innerHTML = `
+      <img src="${page.dataUrl}" alt="صفحة ${i+1}">
+      <div class="num">${i+1}</div>
+      <button class="del" data-idx="${i}">×</button>
+    `;
+    div.addEventListener('click', (e) => {
+      if (e.target.classList.contains('del')) {
+        state.pages.splice(parseInt(e.target.dataset.idx), 1);
+        updateEditor();
+        return;
+      }
+    });
+    container.appendChild(div);
+  });
+
+  $('#pages-count').textContent = state.pages.length + ' صفحة';
+  updateHomePreview();
+}
+
+function updateHomePreview() {
+  const card = $('#pages-preview-card');
+  const strip = $('#pages-strip');
+  if (state.pages.length === 0) {
+    card.hidden = true;
+    return;
+  }
+  card.hidden = false;
+  strip.innerHTML = '';
+  state.pages.forEach((page, i) => {
+    const div = document.createElement('div');
+    div.className = 'editor-thumb';
+    div.style.cursor = 'default';
+    div.innerHTML = `<img src="${page.dataUrl}" alt="صفحة ${i+1}"><div class="num">${i+1}</div>`;
+    strip.appendChild(div);
+  });
+}
+
+async function createPDF() {
+  if (state.pages.length === 0) {
+    showToast('لا توجد صفحات لإنشاء PDF');
+    return;
+  }
+
+  showProgress();
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageW = 210;
+  const pageH = 297;
+
+  for (let i = 0; i < state.pages.length; i++) {
+    setProgress((i / state.pages.length) * 80 + 10, `جاري إضافة الصفحة ${i + 1} من ${state.pages.length}...`);
+    await sleep(50);
+
+    const page = state.pages[i];
+    const img = await loadImage(page.dataUrl);
+
+    const imgRatio = img.width / img.height;
+    const pageRatio = pageW / pageH;
+
+    let drawW, drawH, drawX, drawY;
+    if (imgRatio > pageRatio) {
+      drawW = pageW;
+      drawH = pageW / imgRatio;
+      drawX = 0;
+      drawY = (pageH - drawH) / 2;
+    } else {
+      drawH = pageH;
+      drawW = pageH * imgRatio;
+      drawX = (pageW - drawW) / 2;
+      drawY = 0;
+    }
+
+    if (i > 0) pdf.addPage();
+    pdf.addImage(page.dataUrl, 'JPEG', drawX, drawY, drawW, drawH, undefined, 'MEDIUM');
+  }
+
+  setProgress(90, 'جاري الضغط والحفظ...');
+  await sleep(100);
+
+  const blob = pdf.output('blob');
+  const url = URL.createObjectURL(blob);
+
+  setProgress(100, 'اكتمل بنجاح!');
+  await sleep(600);
+  hideProgress();
+
+  if (navigator.share && navigator.canShare) {
+    const file = new File([blob], 'scan_' + Date.now() + '.pdf', { type: 'application/pdf' });
+    try {
+      await navigator.share({ files: [file], title: 'مستند ممسوح' });
+    } catch(e) {
+      downloadBlob(blob);
+    }
+  } else {
+    downloadBlob(blob);
+  }
+}
+
+function downloadBlob(blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'scan_' + Date.now() + '.pdf';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  showToast('تم تحميل الملف');
+}
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    showToast('يرجى اختيار ملف صورة صالح');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const img = await loadImage(e.target.result);
+    drawImageToCanvas(img);
+    showScreen('screen-preview');
+    await sleep(50);
+    fitCanvasToContainer();
+    autoDetectCorners();
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleFiles(files) {
+  if (files.length === 1) {
+    handleFile(files[0]);
+  } else {
+    for (let i = 0; i < files.length; i++) {
+      handleFile(files[i]);
+    }
+  }
+}
+
+async function autoDetectCorners() {
+  setProgress(10, 'جاري اكتشاف المستند...');
+  showProgress();
+  await sleep(100);
+
+  const corners = detectDocumentCorners();
+  state.corners = corners;
+
+  setProgress(50, 'جاري تحليل الحواف...');
+  await sleep(100);
+
+  setProgress(80, 'جاري تحضير المعاينة...');
+  await sleep(100);
+
+  if (corners) {
+    setProgress(100, 'تم اكتشاف المستند!');
+    await sleep(400);
+    hideProgress();
+    drawCorners();
+    showToast('تم اكتشاف المستند تلقائياً');
+  } else {
+    setProgress(100, 'لم يتم اكتشاف المستند');
+    await sleep(400);
+    hideProgress();
+    state.corners = [
+      { x: canvasOverlay.width * 0.05, y: canvasOverlay.height * 0.05 },
+      { x: canvasOverlay.width * 0.95, y: canvasOverlay.height * 0.05 },
+      { x: canvasOverlay.width * 0.95, y: canvasOverlay.height * 0.95 },
+      { x: canvasOverlay.width * 0.05, y: canvasOverlay.height * 0.95 }
+    ];
+    drawCorners();
+    showToast('لم يتم اكتشاف المستند - اضبط الزوايا يدوياً');
+  }
+}
+
+async function startCamera() {
+  try {
+    const constraints = {
+      video: {
+        facingMode: state.facingMode,
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      }
+    };
+    state.cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+    $('#camera-video').srcObject = state.cameraStream;
+    showScreen('screen-camera');
+  } catch(e) {
+    showToast('لا يمكن الوصول إلى الكاميرا');
+    console.error(e);
+  }
+}
+
+function stopCamera() {
+  if (state.cameraStream) {
+    state.cameraStream.getTracks().forEach(t => t.stop());
+    state.cameraStream = null;
+  }
+}
+
+function capturePhoto() {
+  const video = $('#camera-video');
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const img = new Image();
+  img.onload = async () => {
+    drawImageToCanvas(img);
+    stopCamera();
+    showScreen('screen-preview');
+    await sleep(50);
+    fitCanvasToContainer();
+    autoDetectCorners();
+  };
+  img.src = canvas.toDataURL('image/jpeg', 0.95);
+}
+
+function flipCamera() {
+  state.facingMode = state.facingMode === 'environment' ? 'user' : 'environment';
+  stopCamera();
+  startCamera();
+}
+
+async function addMorePages() {
+  $('#file-input-multiple').click();
+}
+
+$('#file-input-multiple').addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files);
+  for (const file of files) {
+    await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const img = await loadImage(ev.target.result);
+        const cw = img.naturalWidth || img.width;
+        const ch = img.naturalHeight || img.height;
+
+        showProgress();
+        setProgress(10, 'جاري قراءة الصورة...');
+        await sleep(50);
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = cw;
+        tempCanvas.height = ch;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(img, 0, 0);
+        state.rawImage = tempCtx.getImageData(0, 0, cw, ch);
+
+        setProgress(30, 'جاري اكتشاف المستند...');
+        await sleep(50);
+        const corners = detectDocumentCorners();
+
+        setProgress(50, 'جاري القص والمعالجة...');
+        await sleep(50);
+
+        let croppedData;
+        if (corners) {
+          canvasPreview.width = cw;
+          canvasPreview.height = ch;
+          croppedData = perspectiveTransform(cw, ch, corners);
+        } else {
+          croppedData = state.rawImage;
         }
 
-        // ================================================================
-        // 18. ADD PAGE
-        // ================================================================
-        addPageBtn.addEventListener('click', () => {
-            if (state.isProcessing) return;
-            fileInput.click();
-            // The file input will trigger handleImageData which goes to preview
-            // We need to modify flow: after processing, add to pages and stay in PDF
-            // We'll override the process behavior when coming from PDF
+        const mode = state.editorMode;
+        setProgress(70, 'جاري تحسين الجودة...');
+        await sleep(50);
+        const processed = processImage(croppedData, mode);
+
+        const outCanvas = document.createElement('canvas');
+        outCanvas.width = processed.width;
+        outCanvas.height = processed.height;
+        outCanvas.getContext('2d').putImageData(processed, 0, 0);
+
+        setProgress(90, 'جاري الحفظ...');
+        await sleep(50);
+
+        state.pages.push({
+          dataUrl: outCanvas.toDataURL('image/jpeg', 0.92),
+          width: processed.width,
+          height: processed.height,
+          mode: mode
         });
 
-        // Patch: if we're in PDF screen and processing completes, go back to PDF
-        const originalProcess = processBtn.click;
-        // We'll handle this via a flag
-        let fromPdfAdd = false;
+        setProgress(100, 'تمت الإضافة!');
+        await sleep(300);
+        hideProgress();
+        resolve();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+  updateEditor();
+  showToast(`تمت إضافة ${files.length} صفحة`);
+});
 
-        // Override: when file is selected from PDF screen, go to preview but mark as add mode
-        const origFileInputHandler = fileInput.onchange;
-        fileInput.addEventListener('change', (e) => {
-            if (screenPdf.classList.contains('active')) {
-                fromPdfAdd = true;
-            }
-        });
+$('#btn-dark-mode').addEventListener('click', toggleDarkMode);
 
-        // After processing, if fromPdfAdd, add to pages and stay in PDF
-        // We'll check in the process flow
+$('#opt-camera').addEventListener('click', startCamera);
 
-        // ================================================================
-        // 19. GENERATE PDF (using jsPDF)
-        // ================================================================
-        async function generatePDF() {
-            if (state.pages.length === 0) {
-                showToast('❌ لا توجد صفحات لإنشاء PDF');
-                return null;
-            }
+$('#opt-gallery').addEventListener('click', () => $('#file-input').click());
 
-            // Load jsPDF
-            if (!window.jspdf) {
-                await new Promise((resolve, reject) => {
-                    const script = document.createElement('script');
-                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-                    script.onload = resolve;
-                    script.onerror = reject;
-                    document.head.appendChild(script);
-                });
-            }
+$('#file-input').addEventListener('change', (e) => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+  e.target.value = '';
+});
 
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pageWidth = 210;
-            const pageHeight = 297;
+$('#drop-zone').addEventListener('click', () => $('#file-input').click());
 
-            for (let i = 0; i < state.pages.length; i++) {
-                const page = state.pages[i];
-                if (i > 0) pdf.addPage();
+$('#drop-zone').addEventListener('dragover', (e) => {
+  e.preventDefault();
+  $('#drop-zone').classList.add('dragover');
+});
+$('#drop-zone').addEventListener('dragleave', () => {
+  $('#drop-zone').classList.remove('dragover');
+});
+$('#drop-zone').addEventListener('drop', (e) => {
+  e.preventDefault();
+  $('#drop-zone').classList.remove('dragover');
+  handleFiles(Array.from(e.dataTransfer.files));
+});
 
-                const img = new Image();
-                img.src = page.dataURL;
-                await new Promise((r) => { img.onload = r;
-                    img.onerror = r; });
+$('#btn-camera-back').addEventListener('click', () => {
+  stopCamera();
+  showScreen('screen-home');
+});
 
-                const imgAspect = img.width / img.height;
-                const pageAspect = pageWidth / pageHeight;
+$('#btn-camera-flip').addEventListener('click', flipCamera);
 
-                let w, h, x, y;
-                if (imgAspect > pageAspect) {
-                    w = pageWidth;
-                    h = pageWidth / imgAspect;
-                    x = 0;
-                    y = (pageHeight - h) / 2;
-                } else {
-                    h = pageHeight;
-                    w = pageHeight * imgAspect;
-                    x = (pageWidth - w) / 2;
-                    y = 0;
-                }
+$('#btn-capture').addEventListener('click', capturePhoto);
 
-                pdf.addImage(page.dataURL, 'JPEG', x, y, w, h);
-            }
+$('#btn-preview-back').addEventListener('click', () => {
+  showScreen('screen-home');
+});
 
-            const pdfBlob = pdf.output('blob');
-            return pdfBlob;
-        }
+$('#btn-preview-help').addEventListener('click', () => {
+  $('#modal-help').classList.add('active');
+});
 
-        // ================================================================
-        // 20. DOWNLOAD PDF
-        // ================================================================
-        downloadPdfBtn.addEventListener('click', async () => {
-            if (state.pages.length === 0) {
-                showToast('❌ لا توجد صفحات');
-                return;
-            }
-            try {
-                showToast('⏳ جاري إنشاء PDF...');
-                const blob = await generatePDF();
-                if (!blob) return;
+$('#btn-close-help').addEventListener('click', () => {
+  $('#modal-help').classList.remove('active');
+});
 
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = state.pdfFileName;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 10000);
-                showToast('✅ تم تنزيل PDF');
-            } catch (err) {
-                console.error(err);
-                showToast('❌ فشل إنشاء PDF: ' + err.message);
-            }
-        });
+$('#modal-help').addEventListener('click', (e) => {
+  if (e.target === $('#modal-help')) {
+    $('#modal-help').classList.remove('active');
+  }
+});
 
-        // ================================================================
-        // 21. SHARE PDF
-        // ================================================================
-        sharePdfBtn.addEventListener('click', async () => {
-            if (state.pages.length === 0) {
-                showToast('❌ لا توجد صفحات');
-                return;
-            }
-            try {
-                showToast('⏳ جاري التجهيز للمشاركة...');
-                const blob = await generatePDF();
-                if (!blob) return;
+$('#btn-preview-crop').addEventListener('click', autoDetectCorners);
 
-                if (navigator.share) {
-                    const file = new File([blob], state.pdfFileName, { type: 'application/pdf' });
-                    await navigator.share({
-                        title: 'مستند ممسوح',
-                        files: [file],
-                    });
-                    showToast('✅ تمت المشاركة');
-                } else {
-                    // Fallback: download
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = state.pdfFileName;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    setTimeout(() => URL.revokeObjectURL(url), 10000);
-                    showToast('✅ تم التنزيل (المشاركة غير مدعومة)');
-                }
-            } catch (err) {
-                console.error(err);
-                showToast('❌ فشل المشاركة: ' + err.message);
-            }
-        });
+$('#btn-preview-save').addEventListener('click', processAndSave);
 
-        // ================================================================
-        // 22. CLEAR PDF
-        // ================================================================
-        clearPdfBtn.addEventListener('click', () => {
-            if (state.pages.length === 0) return;
-            if (confirm('هل أنت متأكد من حذف جميع الصفحات؟')) {
-                state.pages = [];
-                renderPdfPages();
-                showToast('🗑️ تم حذف جميع الصفحات');
-                showScreen('home');
-            }
-        });
+$('#btn-editor-back').addEventListener('click', () => {
+  showScreen('screen-home');
+  updateHomePreview();
+});
 
-        // ================================================================
-        // 23. PWA: Service Worker Registration (optional, inline)
-        // ================================================================
-        if ('serviceWorker' in navigator) {
-            // We'll register a simple SW from a blob URL
-            const swCode = `
-                self.addEventListener('install', e => {
-                    e.waitUntil(self.skipWaiting());
-                });
-                self.addEventListener('activate', e => {
-                    e.waitUntil(self.clients.claim());
-                });
-                self.addEventListener('fetch', e => {
-                    e.respondWith(fetch(e.request));
-                });
-            `;
-            const swBlob = new Blob([swCode], { type: 'application/javascript' });
-            const swUrl = URL.createObjectURL(swBlob);
-            navigator.serviceWorker.register(swUrl, { scope: '/' })
-                .then(() => console.log('✅ PWA Service Worker registered'))
-                .catch(() => console.log('ℹ️ SW registration skipped (not needed for local file)'));
-        }
+$('#btn-editor-add').addEventListener('click', addMorePages);
 
-        // ================================================================
-        // 24. INIT
-        // ================================================================
-        updatePageInfo();
+$('#btn-create-pdf').addEventListener('click', createPDF);
 
-        // If there are pages, show PDF screen on load
-        if (state.pages.length > 0) {
-            showScreen('pdf');
-            renderPdfPages();
-        }
+$('#btn-export-pdf').addEventListener('click', createPDF);
 
-        console.log('📄 ScanPro initialized successfully');
-        console.log('📊 Pages:', state.pages.length);
+$$('.mode-chip').forEach(chip => {
+  chip.addEventListener('click', (e) => {
+    const group = e.target.closest('.btn-group, .scroll-area, .bottom-bar') || e.target.parentElement;
+    group.querySelectorAll('.mode-chip').forEach(c => c.classList.remove('active'));
+    e.target.classList.add('active');
+  });
+});
 
-        // Expose for debugging
-        window.__scanpro = { state, renderPdfPages, generatePDF };
+$('#mode-chips').addEventListener('click', (e) => {
+  if (e.target.classList.contains('mode-chip')) {
+    $$('#mode-chips .mode-chip').forEach(c => c.classList.remove('active'));
+    e.target.classList.add('active');
+    state.processMode = e.target.dataset.mode;
+  }
+});
 
-        // ================================================================
-        // 25. HANDLE "FROM PDF ADD" FLOW
-        // ================================================================
-        // Patch the process button to handle "add from PDF" mode
-        const originalProcessClick = processBtn.click;
-        processBtn.addEventListener('click', async function(e) {
-            if (state.isProcessing) return;
-            if (!state.currentImageDataURL) {
-                showToast('❌ لا توجد صورة للمعالجة');
-                return;
-            }
+$('#editor-mode-chips').addEventListener('click', (e) => {
+  if (e.target.classList.contains('mode-chip')) {
+    $$('#editor-mode-chips .mode-chip').forEach(c => c.classList.remove('active'));
+    e.target.classList.add('active');
+    state.editorMode = e.target.dataset.mode;
+  }
+});
 
-            // Check if we're in "add from PDF" mode
-            const isAdding = fromPdfAdd;
-            fromPdfAdd = false;
+function init() {
+  const savedDark = localStorage.getItem('scanner_dark');
+  if (savedDark === 'true' || (!savedDark && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    state.darkMode = true;
+    document.documentElement.setAttribute('data-theme', 'dark');
+    $('#btn-dark-mode').textContent = '☀️';
+  }
 
-            state.isProcessing = true;
-            showScreen('processing');
-            clearLog();
-            setProgress(0, 'بدء المعالجة...', 'جاري التهيئة');
+  if (typeof cv !== 'undefined') {
+    state.opencvReady = true;
+  } else if (typeof cv === 'undefined') {
+    const check = setInterval(() => {
+      if (typeof cv !== 'undefined' && cv.Mat) {
+        state.opencvReady = true;
+        clearInterval(check);
+      }
+    }, 500);
+    setTimeout(() => clearInterval(check), 15000);
+  }
 
-            try {
-                const mode = state.currentMode;
-                const resultDataURL = await processImageWithOpenCV(state.currentImageDataURL, mode);
+  if ('serviceWorker' in navigator) {
+    const swCode = `
+      const CACHE = 'scanner-v1';
+      self.addEventListener('install', e => self.skipWaiting());
+      self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+      self.addEventListener('fetch', e => {
+        e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+      });
+    `;
+    const blob = new Blob([swCode], { type: 'application/javascript' });
+    navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+  }
 
-                if (isAdding) {
-                    // Add to pages and stay in PDF
-                    state.pages.push({
-                        dataURL: resultDataURL,
-                        processed: true,
-                        mode: mode,
-                    });
-                    updatePageInfo();
-                    showScreen('pdf');
-                    renderPdfPages();
-                    showToast('✅ تمت إضافة الصفحة');
-                } else {
-                    // Normal flow: add to pages and go to PDF
-                    state.pages.push({
-                        dataURL: resultDataURL,
-                        processed: true,
-                        mode: mode,
-                    });
-                    updatePageInfo();
-                    showScreen('pdf');
-                    renderPdfPages();
-                    showToast('✅ تمت المعالجة وإضافة الصفحة');
-                }
+  updateEditor();
+}
 
-            } catch (err) {
-                console.error(err);
-                showToast('❌ فشلت المعالجة: ' + err.message);
-                showScreen('preview');
-            } finally {
-                state.isProcessing = false;
-            }
-        }, true); // useCapture to override
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
 
-        // Also patch retake to clear fromPdfAdd flag
-        retakeBtn.addEventListener('click', () => {
-            fromPdfAdd = false;
-        });
-
-        console.log('✅ All systems ready.');
-    </script>
+})();
+</script>
+<script src="https://docs.opencv.org/4.9.0/opencv.js" async onload="if(typeof cv!=='undefined')window._cvReady=true" onerror="console.warn('OpenCV.js failed to load')"></script>
 </body>
 </html>
