@@ -1,4 +1,4 @@
-<!-- scanner v1.0 -->
+<!-- scanner v1.2 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -140,7 +140,7 @@ input[type="file"]{display:none}
   <div class="top-bar">
     <button class="icon-btn" id="btn-dark-mode" title="الوضع الداكن">🌙</button>
     <h1>ماسح المستندات</h1>
-    <span class="version" style="font-size:11px;color:var(--text3);font-weight:600">v1.0</span>
+    <span class="version" style="font-size:11px;color:var(--text3);font-weight:600">v1.2</span>
   </div>
   <div class="scroll-area fade-in">
     <div style="text-align:center;margin:24px 0 32px">
@@ -305,7 +305,7 @@ input[type="file"]{display:none}
 (function(){
 'use strict';
 
-const APP_VERSION = 'v1.0';
+const APP_VERSION = 'v1.2';
 
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
@@ -650,18 +650,12 @@ function perspectiveWithOpenCV(srcW, srcH, srcPts, dstPts, dstW, dstH) {
 }
 
 function perspectiveWithCanvas(srcW, srcH, srcPts, dstPts, outW, outH) {
-  const tmpCanvas = document.createElement('canvas');
-  tmpCanvas.width = outW;
-  tmpCanvas.height = outH;
-  const tmpCtx = tmpCanvas.getContext('2d');
-
-  const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${outW}" height="${outH}">
-    <defs><filter id="f"><feImage href="data:," result="img"/></filter></defs>
-    <foreignObject width="${outW}" height="${outH}"><img id="srcImg" width="${outW}" height="${outH}"/></foreignObject>
-  </svg>`;
-
   const m = solveHomography(srcPts, dstPts);
   if (!m) {
+    const tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = outW;
+    tmpCanvas.height = outH;
+    const tmpCtx = tmpCanvas.getContext('2d');
     tmpCtx.drawImage(canvasPreview, 0, 0, outW, outH);
     return tmpCtx.getImageData(0, 0, outW, outH);
   }
@@ -981,8 +975,10 @@ async function createPDF() {
   await sleep(600);
   hideProgress();
 
+  if (state.lastPDFUrl) URL.revokeObjectURL(state.lastPDFUrl);
   state.lastPDFBlob = blob;
   state.lastPDFName = fileName;
+  state.lastPDFUrl = URL.createObjectURL(blob);
   $('#result-info').textContent = fileName + ' (' + (blob.size / 1024).toFixed(0) + ' KB)';
   $('#modal-result').classList.add('active');
 }
@@ -994,10 +990,14 @@ $('#btn-result-share').addEventListener('click', async () => {
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: 'مستند ممسوح' });
       } else {
-        showToast('المشاركة غير مدعومة في هذا المتصفح');
+        downloadBlob(state.lastPDFBlob, state.lastPDFName);
+        showToast('تم تحميل الملف');
       }
     } catch(e) {
-      if (e.name !== 'AbortError') showToast('فشلت المشاركة');
+      if (e.name !== 'AbortError') {
+        downloadBlob(state.lastPDFBlob, state.lastPDFName);
+        showToast('تم تحميل الملف');
+      }
     }
   }
 });
@@ -1005,7 +1005,7 @@ $('#btn-result-share').addEventListener('click', async () => {
 $('#btn-result-download').addEventListener('click', () => {
   if (state.lastPDFBlob) {
     downloadBlob(state.lastPDFBlob, state.lastPDFName);
-    showToast('تم تحميل الملف → افتح تطبيق الملفات > Downloads');
+    showToast('تم تحميل الملف');
   }
 });
 
@@ -1051,10 +1051,64 @@ function handleFiles(files) {
   if (files.length === 1) {
     handleFile(files[0]);
   } else {
-    for (let i = 0; i < files.length; i++) {
-      handleFile(files[i]);
-    }
+    handleMultipleFiles(Array.from(files));
   }
+}
+
+async function handleMultipleFiles(files) {
+  showProgress();
+  let added = 0;
+  for (const file of files) {
+    if (!file.type.startsWith('image/')) continue;
+    setProgress((added / files.length) * 90, `جاري معالجة الصورة ${added + 1} من ${files.length}...`);
+    await sleep(100);
+    const dataUrl = await readFileAsDataURL(file);
+    const img = await loadImage(dataUrl);
+    const cw = img.naturalWidth || img.width;
+    const ch = img.naturalHeight || img.height;
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = cw;
+    tempCanvas.height = ch;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.drawImage(img, 0, 0);
+    const imgData = tempCtx.getImageData(0, 0, cw, ch);
+    canvasPreview.width = cw;
+    canvasPreview.height = ch;
+    state.rawImage = imgData;
+    const corners = detectDocumentCorners();
+    let croppedData;
+    if (corners) {
+      croppedData = perspectiveTransform(cw, ch, corners);
+    } else {
+      croppedData = imgData;
+    }
+    const processed = processImage(croppedData, state.editorMode);
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = processed.width;
+    outCanvas.height = processed.height;
+    outCanvas.getContext('2d').putImageData(processed, 0, 0);
+    state.pages.push({
+      dataUrl: outCanvas.toDataURL('image/jpeg', 0.92),
+      width: processed.width,
+      height: processed.height,
+      mode: state.editorMode
+    });
+    added++;
+  }
+  setProgress(100, 'اكتمل!');
+  await sleep(500);
+  hideProgress();
+  updateEditor();
+  showToast(`تمت إضافة ${added} صفحة`);
+}
+
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 async function autoDetectCorners() {
@@ -1281,14 +1335,6 @@ $('#btn-editor-add').addEventListener('click', addMorePages);
 $('#btn-create-pdf').addEventListener('click', createPDF);
 
 $('#btn-export-pdf').addEventListener('click', createPDF);
-
-$$('.mode-chip').forEach(chip => {
-  chip.addEventListener('click', (e) => {
-    const group = e.target.closest('.btn-group, .scroll-area, .bottom-bar') || e.target.parentElement;
-    group.querySelectorAll('.mode-chip').forEach(c => c.classList.remove('active'));
-    e.target.classList.add('active');
-  });
-});
 
 $('#mode-chips').addEventListener('click', (e) => {
   if (e.target.classList.contains('mode-chip')) {
