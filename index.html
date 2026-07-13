@@ -796,26 +796,43 @@ function updateHomePreview() {
 async function createPDF() {
   if (state.pages.length===0) { showToast('لا توجد صفحات'); return; }
   showProgress();
+  setProgress(5,'جاري التحضير...');
+  await yieldToUI();
   const {jsPDF}=window.jspdf;
   const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-  for (let i=0;i<state.pages.length;i++) {
-    setProgress((i/state.pages.length)*70+10,`جاري إضافة الصفحة ${i+1} من ${state.pages.length}...`);
-    await sleep(400);
+  const totalPages=state.pages.length;
+  const pdfMaxPx=1600;
+  for (let i=0;i<totalPages;i++) {
+    setProgress((i/totalPages)*60+10,`جاري تحضير الصفحة ${i+1} من ${totalPages}...`);
+    await yieldToUI();
     const page=state.pages[i];
     const img=await loadImage(page.dataUrl);
-    const imgRatio=img.width/img.height, pageRatio=210/297;
+    let iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height;
+    if (iw>pdfMaxPx||ih>pdfMaxPx) {
+      const ratio=Math.min(pdfMaxPx/iw,pdfMaxPx/ih);
+      iw=Math.round(iw*ratio); ih=Math.round(ih*ratio);
+    }
+    const tc=document.createElement('canvas');
+    tc.width=iw; tc.height=ih;
+    const tx=tc.getContext('2d');
+    tx.drawImage(img,0,0,iw,ih);
+    const smallUrl=tc.toDataURL('image/jpeg',0.85);
+    await yieldToUI();
+    const imgRatio=iw/ih, pageRatio=210/297;
     let drawW,drawH,drawX,drawY;
     if (imgRatio>pageRatio) { drawW=210; drawH=210/imgRatio; drawX=0; drawY=(297-drawH)/2; }
     else { drawH=297; drawW=297*imgRatio; drawX=(210-drawW)/2; drawY=0; }
     if (i>0) pdf.addPage();
-    pdf.addImage(page.dataUrl,'JPEG',drawX,drawY,drawW,drawH,undefined,'MEDIUM');
+    pdf.addImage(smallUrl,'JPEG',drawX,drawY,drawW,drawH,undefined,'FAST');
+    setProgress((i/totalPages)*60+10+5,`تمت الصفحة ${i+1}`);
+    await yieldToUI();
   }
-  setProgress(85,'جاري ضغط الصفحة...');
-  await sleep(600);
+  setProgress(80,'جاري الضغط...');
+  await yieldToUI();
   const blob=pdf.output('blob');
   const fileName='scan_'+new Date().toISOString().slice(0,10)+'_'+Date.now()+'.pdf';
   setProgress(100,'اكتمل بنجاح!');
-  await sleep(800);
+  await sleep(600);
   hideProgress();
   if (state.lastPDFUrl) URL.revokeObjectURL(state.lastPDFUrl);
   state.lastPDFBlob=blob; state.lastPDFName=fileName;
@@ -823,6 +840,8 @@ async function createPDF() {
   $('#result-info').textContent=fileName+' ('+(blob.size/1024).toFixed(0)+' KB)';
   $('#modal-result').classList.add('active');
 }
+
+function yieldToUI() { return new Promise(r => setTimeout(r, 0)); }
 
 $('#btn-result-share').addEventListener('click', async () => {
   if (!state.lastPDFBlob) return;
