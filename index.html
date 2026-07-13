@@ -1,4 +1,4 @@
-<!-- scanner v1.2 -->
+<!-- scanner v1.4 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -95,7 +95,7 @@ body{padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
 .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--card);color:var(--text);padding:14px 24px;border-radius:var(--radius-sm);box-shadow:0 8px 32px rgba(0,0,0,.15);font-size:14px;font-weight:600;z-index:200;opacity:0;transition:all .3s ease;pointer-events:none;max-width:90%;text-align:center;border:1px solid var(--border)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-.corner-canvas-wrap{position:relative;width:100%;height:100%;overflow:hidden;touch-action:none;background:#000}
+.corner-canvas-wrap{position:relative;width:100%;flex:1;overflow:hidden;touch-action:none;background:#000}
 .corner-canvas-wrap canvas{position:absolute;top:0;left:0;width:100%;height:100%}
 
 .camera-viewfinder{position:relative;width:100%;flex:1;background:#000;overflow:hidden}
@@ -132,6 +132,30 @@ input[type="file"]{display:none}
 @media(min-width:768px){
 .screen{max-width:500px;margin:0 auto;border-left:1px solid var(--border);border-right:1px solid var(--border)}
 }
+@media(max-width:430px){
+.top-bar{padding:10px 14px;min-height:50px}
+.top-bar h1{font-size:16px}
+.top-bar .icon-btn{width:38px;height:38px;font-size:18px}
+.scroll-area{padding:14px}
+.btn{padding:13px 24px;font-size:14px;min-height:48px;border-radius:12px}
+.btn-sm{padding:9px 16px;font-size:12px;min-height:38px}
+.card{padding:16px;border-radius:16px}
+.scan-option{padding:14px;border-radius:12px;gap:12px}
+.scan-option .icon{width:46px;height:46px;border-radius:14px;font-size:22px}
+.scan-option .info h3{font-size:14px}
+.scan-option .info p{font-size:11px}
+.drop-zone{padding:36px 20px}
+.drop-zone .icon{font-size:40px}
+.mode-chip{padding:8px 14px;font-size:12px}
+.editor-thumb{width:90px;height:120px;margin:4px}
+.progress-ring{width:120px;height:120px;margin-bottom:24px}
+.progress-ring svg{width:120px;height:120px}
+.progress-percent{font-size:30px}
+.progress-text{font-size:13px}
+.capture-btn{width:64px;height:64px}
+.bottom-bar{padding:10px 14px;padding-bottom:calc(10px + var(--safe-bottom))}
+.modal-sheet{padding:20px 16px;padding-bottom:calc(20px + var(--safe-bottom))}
+}
 </style>
 </head>
 <body>
@@ -140,13 +164,13 @@ input[type="file"]{display:none}
   <div class="top-bar">
     <button class="icon-btn" id="btn-dark-mode" title="الوضع الداكن">🌙</button>
     <h1>ماسح المستندات</h1>
-    <span class="version" style="font-size:11px;color:var(--text3);font-weight:600">v1.2</span>
+    <span class="version" style="font-size:11px;color:var(--text3);font-weight:600">v1.4</span>
   </div>
   <div class="scroll-area fade-in">
-    <div style="text-align:center;margin:24px 0 32px">
-      <div style="width:80px;height:80px;border-radius:24px;background:linear-gradient(135deg,var(--primary),#6c5ce7);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:36px;box-shadow:0 8px 32px rgba(13,110,253,.3)">📄</div>
-      <h2 style="font-size:22px;font-weight:900;margin-bottom:6px">ماسح المستندات</h2>
-      <p style="color:var(--text2);font-size:14px">امسح مستنداتك بجودة احترافية</p>
+    <div style="text-align:center;margin:16px 0 24px">
+      <div style="width:64px;height:64px;border-radius:20px;background:linear-gradient(135deg,var(--primary),#6c5ce7);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 8px 32px rgba(13,110,253,.3)">📄</div>
+      <h2 style="font-size:20px;font-weight:900;margin-bottom:4px">ماسح المستندات</h2>
+      <p style="color:var(--text2);font-size:13px">امسح مستنداتك بجودة احترافية</p>
     </div>
 
     <div class="scan-option" id="opt-camera">
@@ -305,7 +329,7 @@ input[type="file"]{display:none}
 (function(){
 'use strict';
 
-const APP_VERSION = 'v1.2';
+const APP_VERSION = 'v1.4';
 
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
