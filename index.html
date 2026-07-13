@@ -1293,4 +1293,63 @@ $$('.mode-chip').forEach(chip => {
 $('#mode-chips').addEventListener('click', (e) => {
   if (e.target.classList.contains('mode-chip')) {
     $$('#mode-chips .mode-chip').forEach(c => c.classList.remove('active'));
-    e.target.classList.add(
+    e.target.classList.add('active');
+    state.processMode = e.target.dataset.mode;
+  }
+});
+
+$('#editor-mode-chips').addEventListener('click', (e) => {
+  if (e.target.classList.contains('mode-chip')) {
+    $$('#editor-mode-chips .mode-chip').forEach(c => c.classList.remove('active'));
+    e.target.classList.add('active');
+    state.editorMode = e.target.dataset.mode;
+  }
+});
+
+function init() {
+  const savedDark = localStorage.getItem('scanner_dark');
+  if (savedDark === 'true' || (!savedDark && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    state.darkMode = true;
+    document.documentElement.setAttribute('data-theme', 'dark');
+    $('#btn-dark-mode').textContent = '☀️';
+  }
+
+  if (typeof cv !== 'undefined') {
+    state.opencvReady = true;
+  } else if (typeof cv === 'undefined') {
+    const check = setInterval(() => {
+      if (typeof cv !== 'undefined' && cv.Mat) {
+        state.opencvReady = true;
+        clearInterval(check);
+      }
+    }, 500);
+    setTimeout(() => clearInterval(check), 15000);
+  }
+
+  if ('serviceWorker' in navigator) {
+    const swCode = `
+      const CACHE = 'scanner-v1';
+      self.addEventListener('install', e => self.skipWaiting());
+      self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+      self.addEventListener('fetch', e => {
+        e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+      });
+    `;
+    const blob = new Blob([swCode], { type: 'application/javascript' });
+    navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+  }
+
+  updateEditor();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+})();
+</script>
+<script src="https://docs.opencv.org/4.9.0/opencv.js" async onload="if(typeof cv!=='undefined')window._cvReady=true" onerror="console.warn('OpenCV.js failed to load')"></script>
+</body>
+</html>
