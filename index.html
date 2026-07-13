@@ -790,8 +790,11 @@ function fitCanvasToContainer() {
 
 function detectDocumentCorners() {
   const w=canvasPreview.width, h=canvasPreview.height;
-  if(state.opencvReady&&typeof cv!=='undefined'&&cv.Mat){try{return detectWithOpenCV(w,h);}catch(e){}}
-  return detectWithCanvas(w,h);
+  if(state.opencvReady&&typeof cv!=='undefined'&&cv.Mat){try{const r=detectWithOpenCV(w,h);if(r)return r;}catch(e){}}
+  const r1=detectWithCanvas(w,h);
+  if(r1)return r1;
+  const r2=detectByBrightness(w,h);
+  return r2;
 }
 
 function detectWithOpenCV(w,h) {
@@ -901,6 +904,78 @@ function detectWithCanvas(w,h) {
   return null;
 }
 
+function detectByBrightness(w,h) {
+  const maxDim=600,sc=Math.min(1,maxDim/Math.max(w,h));
+  const sw=Math.round(w*sc),sh=Math.round(h*sc);
+  const data=state.rawImage.data;
+  const bright=new Float32Array(sw*sh);
+  for(let y=0;y<sh;y++){for(let x=0;x<sw;x++){
+    const sx=Math.min(w-1,Math.round(x/sc)),sy=Math.min(h-1,Math.round(y/sc));
+    const i=(sy*w+sx)*4; bright[y*sw+x]=(data[i]*0.299+data[i+1]*0.587+data[i+2]*0.114)/255;
+  }}
+  let sum=0;for(let i=0;i<bright.length;i++)sum+=bright[i];
+  const globalMean=sum/bright.length;
+  const bw=Math.ceil(sw/40),bh=Math.ceil(sh/40);
+  const grid=new Float32Array(Math.ceil(sw/bw)*Math.ceil(sh/bh));
+  const gw=Math.ceil(sw/bw),gh=Math.ceil(sh/bh);
+  for(let gy=0;gy<gh;gy++){for(let gx=0;gx<gw;gx++){
+    let s=0,cnt=0;
+    for(let y=gy*bh;y<Math.min(sh,(gy+1)*bh);y++){for(let x=gx*bw;x<Math.min(sw,(gx+1)*bw);x++){s+=bright[y*sw+x];cnt++;}}
+    grid[gy*gw+gx]=s/cnt;
+  }}
+  const thresh=globalMean*0.85;
+  const mask=new Uint8Array(gw*gh);
+  for(let i=0;i<grid.length;i++) mask[i]=grid[i]>thresh?1:0;
+  let bestCx=-1,bestCy=-1,bestCw=0,bestCh=0,bestArea=0;
+  for(let sy=0;sy<gh;sy++){for(let sx=0;sx<gw;sx++){
+    if(!mask[sy*gw+sx])continue;
+    let ex=sx,ey=sy;
+    while(ex<gw-1&&mask[sy*gw+ex+1])ex++;
+    let canExtend=true;
+    while(ey<gh-1&&canExtend){
+      for(let xx=sx;xx<=ex;xx++){if(!mask[(ey+1)*gw+xx]){canExtend=false;break;}}
+      if(canExtend)ey++;
+    }
+    const cw=(ex-sx+1)*bw,ch=(ey-sy+1)*bh,area=cw*ch;
+    if(area>bestArea){bestArea=area;bestCx=sx*bw;bestCy=sy*bh;bestCw=cw;bestCh=ch;}
+    for(let y=sy;y<=ey;y++)for(let x=sx;x<=ex;x++)mask[y*gw+x]=0;
+  }}
+  if(bestArea>sw*sh*0.08){
+    const pad=2;
+    return orderCorners([
+      {x:Math.max(0,(bestCx-pad)/sc),y:Math.max(0,(bestCy-pad)/sc)},
+      {x:Math.min(w,(bestCx+bestCw+pad)/sc),y:Math.max(0,(bestCy-pad)/sc)},
+      {x:Math.min(w,(bestCx+bestCw+pad)/sc),y:Math.min(h,(bestCy+bestCh+pad)/sc)},
+      {x:Math.max(0,(bestCx-pad)/sc),y:Math.min(h,(bestCy+bestCh+pad)/sc)}
+    ]);
+  }
+  return null;
+}
+
+function refineCorners(corners,w,h) {
+  if(!corners)return corners;
+  const data=state.rawImage.data;
+  const refined=corners.map(p=>({...p}));
+  const searchR=Math.max(15,Math.round(w*0.02));
+  for(let i=0;i<4;i++){
+    const p=refined[i];
+    let bestX=Math.round(p.x),bestY=Math.round(p.y),bestScore=0;
+    for(let dy=-searchR;dy<=searchR;dy+=2){
+      for(let dx=-searchR;dx<=searchR;dx+=2){
+        const nx=Math.round(p.x)+dx,ny=Math.round(p.y)+dy;
+        if(nx<2||nx>=w-2||ny<2||ny>=h-2)continue;
+        const idx=(ny*w+nx)*4;
+        const gx=-data[((ny-1)*w+nx-1)*4]+data[((ny-1)*w+nx+1)*4]-2*data[(ny*w+nx-1)*4]+2*data[(ny*w+nx+1)*4]+data[((ny+1)*w+nx-1)*4]+data[((ny+1)*w+nx+1)*4];
+        const gy=-data[((ny-1)*w+nx-1)*4]-2*data[((ny-1)*w+nx)*4]-data[((ny-1)*w+nx+1)*4]+data[((ny+1)*w+nx-1)*4]+2*data[((ny+1)*w+nx)*4]+data[((ny+1)*w+nx+1)*4];
+        const mag=Math.sqrt(gx*gx+gy*gy);
+        if(mag>bestScore){bestScore=mag;bestX=nx;bestY=ny;}
+      }
+    }
+    if(bestScore>20){refined[i]={x:bestX,y:bestY};}
+  }
+  return refined;
+}
+
 function orderCorners(pts) {
   const center=pts.reduce((a,p)=>({x:a.x+p.x/pts.length,y:a.y+p.y/pts.length}),{x:0,y:0});
   const sorted=pts.slice().sort((a,b)=>Math.atan2(a.y-center.y,a.x-center.x)-Math.atan2(b.y-center.y,b.x-center.x));
@@ -1001,30 +1076,40 @@ function showCornerPulse(pts){
 
 async function smartCrop(){
   if(!state.rawImage){showToast('اختر صورة أولاً');return;}
-  const w=canvasOverlay.width,h=canvasOverlay.height;
+  const w=canvasOverlay.width,h=canvasOverlay.height,origRaw=state.rawImage;
   showProgress();setProgress(5,'جاري التحليل...');await yieldToUI();
   const scanP=showScanLine();
-  setProgress(20,'جاري اكتشاف المستند...');await yieldToUI();
+  setProgress(15,'محاولة 1/3 — كشف الحواف...');await yieldToUI();
   let corners=detectDocumentCorners();
   if(!corners){
-    setProgress(45,'محاولة ثانية بتأثيرات مختلفة...');await yieldToUI();
-    const iw=state.rawImage.width,ih=state.rawImage.height;
-    const enhanced=new ImageData(new Uint8ClampedArray(state.rawImage.data),iw,ih);
+    setProgress(35,'محاولة 2/3 — تحسين التباين...');await yieldToUI();
+    const iw=origRaw.width,ih=origRaw.height;
+    const enhanced=new ImageData(new Uint8ClampedArray(origRaw.data),iw,ih);
     const ed=enhanced.data;
     let sum=0,cnt=0;for(let i=0;i<ed.length;i+=4){sum+=ed[i]*0.299+ed[i+1]*0.587+ed[i+2]*0.114;cnt++;}
     const mean=sum/cnt;let v=0;for(let i=0;i<ed.length;i+=4){const g=ed[i]*0.299+ed[i+1]*0.587+ed[i+2]*0.114;v+=(g-mean)*(g-mean);}
-    const contrast=Math.min(2.5,Math.max(1.2,200/(Math.sqrt(v/cnt)+1)));
+    const contrast=Math.min(3,Math.max(1.5,200/(Math.sqrt(v/cnt)+1)));
     for(let i=0;i<ed.length;i+=4){for(let c=0;c<3;c++){ed[i+c]=Math.max(0,Math.min(255,((ed[i+c]-128)*contrast+128)));}}
-    const prevRaw=state.rawImage;
     state.rawImage=enhanced;
     corners=detectDocumentCorners();
-    if(!corners)state.rawImage=prevRaw;
+    state.rawImage=origRaw;
   }
-  setProgress(70,'جاري حساب الزوايا...');await yieldToUI();
-  await scanP;
+  if(!corners){
+    setProgress(55,'محاولة 3/3 — ألوان معكوسة...');await yieldToUI();
+    const iw=origRaw.width,ih=origRaw.height;
+    const inverted=new ImageData(new Uint8ClampedArray(origRaw.data),iw,ih);
+    const id=inverted.data;
+    for(let i=0;i<id.length;i+=4){id[i]=255-id[i];id[i+1]=255-id[i+1];id[i+2]=255-id[i+2];}
+    state.rawImage=inverted;
+    corners=detectDocumentCorners();
+    state.rawImage=origRaw;
+  }
   if(corners){
+    setProgress(75,'جاري تحسين الزوايا...');await yieldToUI();
+    corners=refineCorners(corners,w,h);
     const oldCorners=state.corners?state.corners.map(p=>({...p})):corners.map(p=>({x:p.x,y:p.y}));
     state.corners=corners;
+    await scanP;
     setProgress(85,'جاري تعديل الزوايا...');await yieldToUI();
     await animateCorners(oldCorners,corners,450);
     showCornerPulse(corners);
@@ -1035,6 +1120,7 @@ async function smartCrop(){
       {x:w*0.05,y:h*0.05},{x:w*0.95,y:h*0.05},
       {x:w*0.95,y:h*0.95},{x:w*0.05,y:h*0.95}
     ];
+    await scanP;
     drawCorners();
     setProgress(100,'لم يتم الاكتشاف');await sleep(600);hideProgress();
     showToast('لم يتم اكتشاف المستند — اضبط الزوايا يدوياً');
@@ -1177,35 +1263,47 @@ async function handleMultipleFiles(files){showProgress();let added=0;for(const f
 function readFileAsDataURL(file){return new Promise((r,j)=>{const reader=new FileReader();reader.onload=e=>r(e.target.result);reader.onerror=j;reader.readAsDataURL(file);});}
 
 async function autoDetectCorners(){
-  showProgress();setProgress(10,'جاري تحليل الصورة...');await yieldToUI();
+  showProgress();setProgress(5,'جاري تحليل الصورة...');await yieldToUI();
   const scanP=showScanLine();
-  setProgress(30,'جاري اكتشاف المستند...');await yieldToUI();
+  setProgress(15,'محاولة 1/3 — كشف الحواف...');await yieldToUI();
   let corners=detectDocumentCorners();
-  if(!corners&&state.rawImage){
-    setProgress(50,'محاولة ثانية بتأثيرات مختلفة...');await yieldToUI();
-    const w=state.rawImage.width,h=state.rawImage.height;
-    const enhanced=new ImageData(new Uint8ClampedArray(state.rawImage.data),w,h);
+  const w=canvasPreview.width,h=canvasPreview.height;
+  const origRaw=state.rawImage;
+  if(!corners&&origRaw){
+    setProgress(35,'محاولة 2/3 — تحسين التباين...');await yieldToUI();
+    const iw=origRaw.width,ih=origRaw.height;
+    const enhanced=new ImageData(new Uint8ClampedArray(origRaw.data),iw,ih);
     const ed=enhanced.data;
     let sum=0,cnt=0;for(let i=0;i<ed.length;i+=4){sum+=ed[i]*0.299+ed[i+1]*0.587+ed[i+2]*0.114;cnt++;}
     const mean=sum/cnt;let v=0;for(let i=0;i<ed.length;i+=4){const g=ed[i]*0.299+ed[i+1]*0.587+ed[i+2]*0.114;v+=(g-mean)*(g-mean);}
-    const contrast=Math.min(2.5,Math.max(1.2,200/(Math.sqrt(v/cnt)+1)));
+    const contrast=Math.min(3,Math.max(1.5,200/(Math.sqrt(v/cnt)+1)));
     for(let i=0;i<ed.length;i+=4){for(let c=0;c<3;c++){ed[i+c]=Math.max(0,Math.min(255,((ed[i+c]-128)*contrast+128)));}}
-    const prevRaw=state.rawImage;
     state.rawImage=enhanced;
     corners=detectDocumentCorners();
-    if(!corners)state.rawImage=prevRaw;else prevRaw=null;
+    state.rawImage=origRaw;
   }
-  setProgress(75,'جاري حساب الزوايا...');await yieldToUI();
-  await scanP;
+  if(!corners&&origRaw){
+    setProgress(55,'محاولة 3/3 — ألوان معكوسة...');await yieldToUI();
+    const iw=origRaw.width,ih=origRaw.height;
+    const inverted=new ImageData(new Uint8ClampedArray(origRaw.data),iw,ih);
+    const id=inverted.data;
+    for(let i=0;i<id.length;i+=4){id[i]=255-id[i];id[i+1]=255-id[i+1];id[i+2]=255-id[i+2];}
+    state.rawImage=inverted;
+    corners=detectDocumentCorners();
+    state.rawImage=origRaw;
+  }
   if(corners){
+    setProgress(75,'جاري تحسين الزوايا...');await yieldToUI();
+    corners=refineCorners(corners,w,h);
     state.corners=corners;
+    await scanP;
     setProgress(100,'تم الاكتشاف!');await sleep(400);hideProgress();
     drawCorners();showCornerPulse(corners);showToast('تم اكتشاف المستند');
   }else{
-    const w=canvasOverlay.width,h=canvasOverlay.height;
     state.corners=[{x:w*0.05,y:h*0.05},{x:w*0.95,y:h*0.05},{x:w*0.95,y:h*0.95},{x:w*0.05,y:h*0.95}];
+    await scanP;
     setProgress(100,'لم يتم الاكتشاف');await sleep(400);hideProgress();
-    drawCorners();showToast('اضبط الزوايا يدوياً — اضغط ✂ لإعادة المحاولة');
+    drawCorners();showToast('اضبط الزوايا يدوياً');
   }
 }
 
