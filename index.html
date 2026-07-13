@@ -270,6 +270,22 @@ input[type="file"]{display:none}
 <input type="file" id="file-input" accept="image/*">
 <input type="file" id="file-input-multiple" accept="image/*" multiple>
 
+<div class="modal-overlay" id="modal-result">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#16a34a,#22d3ee);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:32px">✅</div>
+      <h3 style="font-size:18px;font-weight:800;margin-bottom:4px">تم إنشاء PDF بنجاح</h3>
+      <p id="result-info" style="font-size:13px;color:var(--text2)">scan_2026.pdf</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-primary" id="btn-result-share">📤 مشاركة</button>
+      <button class="btn btn-secondary" id="btn-result-download">⬇️ تحميل PDF</button>
+      <button class="btn btn-ghost" id="btn-result-close">إغلاق</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-help">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
@@ -959,32 +975,59 @@ async function createPDF() {
   await sleep(100);
 
   const blob = pdf.output('blob');
-  const url = URL.createObjectURL(blob);
+  const fileName = 'scan_' + new Date().toISOString().slice(0,10) + '_' + Date.now() + '.pdf';
 
   setProgress(100, 'اكتمل بنجاح!');
   await sleep(600);
   hideProgress();
 
-  if (navigator.share && navigator.canShare) {
-    const file = new File([blob], 'scan_' + Date.now() + '.pdf', { type: 'application/pdf' });
-    try {
-      await navigator.share({ files: [file], title: 'مستند ممسوح' });
-    } catch(e) {
-      downloadBlob(blob);
-    }
-  } else {
-    downloadBlob(blob);
-  }
+  state.lastPDFBlob = blob;
+  state.lastPDFName = fileName;
+  $('#result-info').textContent = fileName + ' (' + (blob.size / 1024).toFixed(0) + ' KB)';
+  $('#modal-result').classList.add('active');
 }
 
-function downloadBlob(blob) {
+$('#btn-result-share').addEventListener('click', async () => {
+  if (state.lastPDFBlob) {
+    const file = new File([state.lastPDFBlob], state.lastPDFName, { type: 'application/pdf' });
+    try {
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'مستند ممسوح' });
+      } else {
+        showToast('المشاركة غير مدعومة في هذا المتصفح');
+      }
+    } catch(e) {
+      if (e.name !== 'AbortError') showToast('فشلت المشاركة');
+    }
+  }
+});
+
+$('#btn-result-download').addEventListener('click', () => {
+  if (state.lastPDFBlob) {
+    downloadBlob(state.lastPDFBlob, state.lastPDFName);
+    showToast('تم تحميل الملف → افتح تطبيق الملفات > Downloads');
+  }
+});
+
+$('#btn-result-close').addEventListener('click', () => {
+  $('#modal-result').classList.remove('active');
+});
+
+$('#modal-result').addEventListener('click', (e) => {
+  if (e.target === $('#modal-result')) {
+    $('#modal-result').classList.remove('active');
+  }
+});
+
+function downloadBlob(blob, name) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'scan_' + Date.now() + '.pdf';
+  a.download = name || ('scan_' + Date.now() + '.pdf');
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 5000);
-  showToast('تم تحميل الملف');
 }
 
 function handleFile(file) {
@@ -1250,63 +1293,4 @@ $$('.mode-chip').forEach(chip => {
 $('#mode-chips').addEventListener('click', (e) => {
   if (e.target.classList.contains('mode-chip')) {
     $$('#mode-chips .mode-chip').forEach(c => c.classList.remove('active'));
-    e.target.classList.add('active');
-    state.processMode = e.target.dataset.mode;
-  }
-});
-
-$('#editor-mode-chips').addEventListener('click', (e) => {
-  if (e.target.classList.contains('mode-chip')) {
-    $$('#editor-mode-chips .mode-chip').forEach(c => c.classList.remove('active'));
-    e.target.classList.add('active');
-    state.editorMode = e.target.dataset.mode;
-  }
-});
-
-function init() {
-  const savedDark = localStorage.getItem('scanner_dark');
-  if (savedDark === 'true' || (!savedDark && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-    state.darkMode = true;
-    document.documentElement.setAttribute('data-theme', 'dark');
-    $('#btn-dark-mode').textContent = '☀️';
-  }
-
-  if (typeof cv !== 'undefined') {
-    state.opencvReady = true;
-  } else if (typeof cv === 'undefined') {
-    const check = setInterval(() => {
-      if (typeof cv !== 'undefined' && cv.Mat) {
-        state.opencvReady = true;
-        clearInterval(check);
-      }
-    }, 500);
-    setTimeout(() => clearInterval(check), 15000);
-  }
-
-  if ('serviceWorker' in navigator) {
-    const swCode = `
-      const CACHE = 'scanner-v1';
-      self.addEventListener('install', e => self.skipWaiting());
-      self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
-      self.addEventListener('fetch', e => {
-        e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
-      });
-    `;
-    const blob = new Blob([swCode], { type: 'application/javascript' });
-    navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
-  }
-
-  updateEditor();
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
-
-})();
-</script>
-<script src="https://docs.opencv.org/4.9.0/opencv.js" async onload="if(typeof cv!=='undefined')window._cvReady=true" onerror="console.warn('OpenCV.js failed to load')"></script>
-</body>
-</html>
+    e.target.classList.add(
