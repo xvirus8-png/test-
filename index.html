@@ -796,67 +796,109 @@ function detectDocumentCorners() {
 
 function detectWithOpenCV(w,h) {
   let src=cv.matFromImageData(state.rawImage), gray=new cv.Mat(), blurred=new cv.Mat(), edged=new cv.Mat();
-  cv.cvtColor(src,gray,cv.COLOR_RGBA2GRAY); cv.GaussianBlur(gray,blurred,new cv.Size(5,5),0);
-  cv.Canny(blurred,edged,50,150);
-  let kernel=cv.getStructuringElement(cv.MORPH_RECT,new cv.Size(3,3)); cv.dilate(edged,edged,kernel);
-  let contours=new cv.MatVector(), hierarchy=new cv.Mat();
-  cv.findContours(edged,contours,hierarchy,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE);
-  let bestArea=0, bestContour=null;
-  for(let i=0;i<contours.size();i++){let cnt=contours.get(i),area=cv.contourArea(cnt);if(area>bestArea){bestArea=area;if(bestContour)bestContour.delete();bestContour=cnt;}else{cnt.delete();}}
-  let result=null;
-  if(bestContour&&bestArea>w*h*0.1){let approx=new cv.Mat(),peri=cv.arcLength(bestContour,true);cv.approxPolyDP(bestContour,approx,0.02*peri,true);if(approx.rows===4){let pts=[];for(let i=0;i<4;i++)pts.push({x:approx.intAt(i,0),y:approx.intAt(i,1)});result=orderCorners(pts);}approx.delete();}
-  src.delete();gray.delete();blurred.delete();edged.delete();contours.delete();hierarchy.delete();kernel.delete();if(bestContour)bestContour.delete();
-  return result;
+  cv.cvtColor(src,gray,cv.COLOR_RGBA2GRAY); cv.GaussianBlur(gray,blurred,new cv.Size(7,7),0);
+  let bestResult=null, bestArea=0;
+  const thresholds=[[30,100],[50,150],[20,80],[40,120]];
+  for(const [lo,hi] of thresholds){
+    try{
+      cv.Canny(blurred,edged,lo,hi);
+      let kernel=cv.getStructuringElement(cv.MORPH_RECT,new cv.Size(5,5)); cv.dilate(edged,edged,kernel); cv.dilate(edged,edged,kernel);
+      let contours=new cv.MatVector(), hierarchy=new cv.Mat();
+      cv.findContours(edged,contours,hierarchy,cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE);
+      for(let i=0;i<contours.size();i++){
+        let cnt=contours.get(i),area=cv.contourArea(cnt);
+        if(area>w*h*0.05&&area>bestArea){
+          let peri=cv.arcLength(cnt,true),approx=new cv.Mat();
+          cv.approxPolyDP(cnt,approx,0.02*peri,true);
+          if(approx.rows===4){
+            let pts=[];
+            for(let j=0;j<4;j++)pts.push({x:approx.intAt(j,0),y:approx.intAt(j,1)});
+            const ordered=orderCorners(pts);
+            const oArea=(ordered[2].x-ordered[0].x)*(ordered[2].y-ordered[0].y);
+            if(oArea>bestArea){bestArea=oArea;if(bestResult)bestResult=null;bestResult=ordered;}
+          }
+          approx.delete();
+        }
+        cnt.delete();
+      }
+      contours.delete();hierarchy.delete();kernel.delete();
+    }catch(e){}
+  }
+  src.delete();gray.delete();blurred.delete();edged.delete();
+  return bestResult;
 }
 
 function detectWithCanvas(w,h) {
-  const step=2, data=state.rawImage.data, gray=new Uint8Array(w*h);
-  for(let i=0;i<w*h;i++) gray[i]=Math.round(data[i*4]*0.299+data[i*4+1]*0.587+data[i*4+2]*0.114);
-  const blurred=new Uint8Array(w*h);
-  const k=[1,4,7,4,1,4,16,26,16,4,7,26,41,26,7,4,16,26,16,4,1,4,7,4,1],ks=273;
-  for(let y=2;y<h-2;y+=step){for(let x=2;x<w-2;x+=step){let s=0,ki=0;for(let ky=-2;ky<=2;ky++){for(let kx=-2;kx<=2;kx++){s+=gray[(y+ky)*w+(x+kx)]*k[ki++];}}blurred[y*w+x]=s/ks;}}
-  const edges=new Uint8Array(w*h);
-  for(let y=2;y<h-2;y+=step){for(let x=2;x<w-2;x+=step){const idx=y*w+x;const gx=-blurred[idx-w-1]+blurred[idx-w+1]-2*blurred[idx-1]+2*blurred[idx+1]-blurred[idx+w-1]+blurred[idx+w+1];const gy=-blurred[idx-w-1]-2*blurred[idx-w]-blurred[idx-w+1]+blurred[idx+w-1]+2*blurred[idx+w]+blurred[idx+w+1];const mag=Math.sqrt(gx*gx+gy*gy);edges[idx]=mag>30?255:0;}}
-  const candidates=[];
-  for(let angle=0;angle<180;angle+=5){
-    const rad=angle*Math.PI/180,cos=Math.cos(rad),sin=Math.sin(rad);
-    let topSum=0,topCount=0,botSum=0,botCount=0,leftSum=0,leftCount=0,rightSum=0,rightCount=0;
-    for(let y=0;y<h;y+=step){for(let x=0;x<w;x+=step){
-      if(!edges[y*w+x])continue;
-      const proj=cos*x+sin*y;
-      const perp=-sin*x+cos*y;
-      const pRange=h*0.6;
-      if(perp<-pRange*0.3){topSum+=proj;topCount++;}
-      else if(perp>pRange*0.3){botSum+=proj;botCount++;}
-      if(proj<-pRange*0.3){leftSum+=perp;leftCount++;}
-      else if(proj>pRange*0.3){rightSum+=perp;rightCount++;}
-    }}
-    if(topCount>10&&botCount>10&&leftCount>10&&rightCount>10){
-      const topAvg=topSum/topCount,botAvg=botSum/botCount,leftAvg=leftSum/leftCount,rightAvg=rightSum/rightCount;
-      const score=Math.min(topCount,botCount,leftCount,rightCount);
-      const area=(botAvg-topAvg)*(rightAvg-leftAvg);
-      if(area>w*h*0.08) candidates.push({angle,topAvg,botAvg,leftAvg,rightAvg,score,area,cos,sin});
+  const maxDim=800,sc=Math.min(1,maxDim/Math.max(w,h));
+  const sw=Math.round(w*sc),sh=Math.round(h*sc);
+  const data=state.rawImage.data;
+  const gray=new Float32Array(sw*sh);
+  for(let y=0;y<sh;y++){for(let x=0;x<sw;x++){
+    const sx=Math.min(w-1,Math.round(x/sc)),sy=Math.min(h-1,Math.round(y/sc));
+    const i=(sy*w+sx)*4; gray[y*sw+x]=data[i]*0.299+data[i+1]*0.587+data[i+2]*0.114;
+  }}
+  const blurred=new Float32Array(sw*sh);
+  const gk=[1,4,7,4,1,4,16,26,16,4,7,26,41,26,7,4,16,26,16,4,1,4,7,4,1],gks=273;
+  for(let y=2;y<sh-2;y++){for(let x=2;x<sw-2;x++){let s=0,ki=0;for(let ky=-2;ky<=2;ky++){for(let kx=-2;kx<=2;kx++){s+=gray[(y+ky)*sw+(x+kx)]*gk[ki++];}}blurred[y*sw+x]=s/gks;}}
+  const mag=new Float32Array(sw*sh);
+  for(let y=1;y<sh-1;y++){for(let x=1;x<sw-1;x++){
+    const idx=y*sw+x;
+    const gx=-blurred[idx-sw-1]+blurred[idx-sw+1]-2*blurred[idx-1]+2*blurred[idx+1]-blurred[idx+sw-1]+blurred[idx+sw+1];
+    const gy=-blurred[idx-sw-1]-2*blurred[idx-sw]-blurred[idx-sw+1]+blurred[idx+sw-1]+2*blurred[idx+sw]+blurred[idx+sw+1];
+    mag[idx]=Math.sqrt(gx*gx+gy*gy);
+  }}
+  let tSum=0,tCnt=0;for(let i=0;i<mag.length;i++){if(mag[i]>0){tSum+=mag[i];tCnt++;}}
+  const mean=tCnt?tSum/tCnt:0;
+  let vSum=0;for(let i=0;i<mag.length;i++){if(mag[i]>0){const d=mag[i]-mean;vSum+=d*d;}}
+  const stddev=Math.sqrt(vSum/Math.max(1,tCnt));
+  const thresh=Math.max(20,mean+stddev*0.4);
+  const strong=new Uint8Array(sw*sh);
+  for(let i=0;i<mag.length;i++) if(mag[i]>thresh) strong[i]=1;
+  const hLines=[],vLines=[];
+  for(let y=1;y<sh-1;y++){let run=0;for(let x=0;x<sw;x++){if(strong[y*sw+x]){run++;}else{if(run>sw*0.15)hLines.push({y,count:run});run=0;}}}
+  for(let x=1;x<sw-1;x++){let run=0;for(let y=0;y<sh;y++){if(strong[y*sw+x]){run++;}else{if(run>sh*0.15)vLines.push({x,count:run});run=0;}}}
+  hLines.sort((a,b)=>b.count-a.count);
+  vLines.sort((a,b)=>b.count-a.count);
+  const bestH=hLines.slice(0,Math.min(6,hLines.length));
+  const bestV=vLines.slice(0,Math.min(6,vLines.length));
+  if(bestH.length>=2&&bestV.length>=2){
+    const top=bestH[0].y,bot=bestH.find(l=>Math.abs(l.y-top)>sh*0.2);
+    const left=bestV[0].x,right=bestV.find(l=>Math.abs(l.x-left)>sw*0.2);
+    if(bot&&right){
+      const pad=3;
+      const pts=orderCorners([
+        {x:Math.max(0,left-pad)/sc,y:Math.max(0,top-pad)/sc},
+        {x:Math.min(sw,right+pad)/sc,y:Math.max(0,top-pad)/sc},
+        {x:Math.min(sw,right+pad)/sc,y:Math.min(sh,bot+pad)/sc},
+        {x:Math.max(0,left-pad)/sc,y:Math.min(sh,bot+pad)/sc}
+      ]);
+      const area=(pts[2].x-pts[0].x)*(pts[2].y-pts[0].y);
+      if(area>w*h*0.05) return pts;
     }
   }
-  candidates.sort((a,b)=>b.score*b.area-a.score*a.area);
-  if(candidates.length>0){
-    const c=candidates[0],rad=c.angle*Math.PI/180,cos=c.cos,sin=c.sin;
-    const toXY=(proj,perp)=>({x:Math.round(cos*proj-sin*perp),y:Math.round(sin*proj+cos*perp)});
-    const m=0.02;
-    const pts=[
-      toXY(c.topAvg,c.leftAvg*(1-m)),
-      toXY(c.topAvg,c.rightAvg*(1-m)),
-      toXY(c.botAvg,c.rightAvg*(1+m)),
-      toXY(c.botAvg,c.leftAvg*(1+m))
-    ];
-    let valid=true;
-    for(const p of pts){if(p.x<0||p.x>w||p.y<0||p.y>h){valid=false;break;}}
-    if(valid){return orderCorners(pts);}
+  let topE=sh,botE=0,leftE=sw,rightE=0,eCnt=0;
+  const border=sh*0.1;
+  for(let y=0;y<sh;y++){for(let x=0;x<sw;x++){
+    if(!strong[y*sw+x])continue;
+    const bx=x<sw*0.15||x>sw*0.85,by=y<sh*0.15||y>sh*0.85;
+    if(bx||by){
+      if(y<topE+border&&Math.abs(x-sw/2)<sw*0.45){if(y<topE)topE=y;}
+      if(y>botE-border&&Math.abs(x-sw/2)<sw*0.45){if(y>botE)botE=y;}
+      if(x<leftE+border&&Math.abs(y-sh/2)<sh*0.45){if(x<leftE)leftE=x;}
+      if(x>rightE-border&&Math.abs(y-sh/2)<sh*0.45){if(x>rightE)rightE=x;}
+      eCnt++;
+    }
+  }}
+  if(eCnt>50){
+    const pad=5;
+    return orderCorners([
+      {x:Math.max(0,(leftE-pad)/sc),y:Math.max(0,(topE-pad)/sc)},
+      {x:Math.min(w,(rightE+pad)/sc),y:Math.max(0,(topE-pad)/sc)},
+      {x:Math.min(w,(rightE+pad)/sc),y:Math.min(h,(botE+pad)/sc)},
+      {x:Math.max(0,(leftE-pad)/sc),y:Math.min(h,(botE+pad)/sc)}
+    ]);
   }
-  let tX=w/2,tY=h/8,bX=w/2,bY=h*7/8,lX=w/8,lY=h/2,rX=w*7/8,rY=h/2;
-  for(let y=0;y<h;y+=step){for(let x=0;x<w;x+=step){if(edges[y*w+x]){if(y<tY+h*0.1&&Math.abs(x-w/2)<w*0.4){tX=x;tY=y;}if(y>bY-h*0.1&&Math.abs(x-w/2)<w*0.4){bX=x;bY=y;}if(x<lX+w*0.1&&Math.abs(y-h/2)<h*0.4){lX=x;lY=y;}if(x>rX-w*0.1&&Math.abs(y-h/2)<h*0.4){rX=x;rY=y;}}}}
-  const m2=0.05;
-  return orderCorners([{x:Math.max(0,lX*(1+m2)),y:Math.max(0,tY*(1+m2))},{x:Math.min(w,rX*(1-m2)),y:Math.max(0,tY*(1+m2))},{x:Math.min(w,rX*(1-m2)),y:Math.min(h,bY*(1-m2))},{x:Math.max(0,lX*(1+m2)),y:Math.min(h,bY*(1-m2))}]);
+  return null;
 }
 
 function orderCorners(pts) {
