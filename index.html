@@ -351,7 +351,7 @@ function toggleDarkMode() {
   document.querySelector('meta[name="theme-color"]').content=state.darkMode?'#0f1117':'#f5f7fa';
 }
 
-function loadImage(src) { return new Promise((r,j)=>{ const img=new Image(); img.crossOrigin='anonymous'; img.onload=()=>r(img); img.onerror=j; img.src=src; }); }
+function loadImage(src) { return new Promise((r,j)=>{ const img=new Image(); if(src && !src.startsWith('data:'))img.crossOrigin='anonymous'; img.onload=()=>r(img); img.onerror=j; img.src=src; }); }
 
 function drawImageToCanvas(img) {
   const maxDim=2048; let w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
@@ -524,6 +524,8 @@ function updateHomePreview() {
 
 async function createPDF() {
   if(state.pages.length===0){showToast('لا توجد صفحات');return;}
+  if(!window.jspdf){showToast('مكتبة PDF لم تُحمّل. تحقق من الإنترنت');return;}
+  try{
   showProgress();setProgress(5,'جاري التحضير...');await yieldToUI();
   const {jsPDF}=window.jspdf,pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   const total=state.pages.length,pdfMaxPx=1600;
@@ -546,6 +548,7 @@ async function createPDF() {
   state.lastPDFBlob=blob;state.lastPDFName=fileName;state.lastPDFUrl=URL.createObjectURL(blob);
   $('#result-info').textContent=fileName+' ('+(blob.size/1024).toFixed(0)+' KB)';
   $('#modal-result').classList.add('active');
+  }catch(e){console.error('PDF error:',e);hideProgress();showToast('خطأ في إنشاء PDF: '+e.message);}
 }
 
 $('#btn-result-share').addEventListener('click',async()=>{if(!state.lastPDFBlob)return;const file=new File([state.lastPDFBlob],state.lastPDFName,{type:'application/pdf'});try{if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'مستند ممسوح'});}else{downloadBlob(state.lastPDFBlob,state.lastPDFName);showToast('تم التحميل');}}catch(e){if(e.name!=='AbortError'){downloadBlob(state.lastPDFBlob,state.lastPDFName);showToast('تم التحميل');}}});
