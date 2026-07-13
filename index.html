@@ -572,7 +572,7 @@ function flipCamera(){state.facingMode=state.facingMode==='environment'?'user':'
 
 $('#btn-dark-mode').addEventListener('click',toggleDarkMode);
 $('#opt-camera').addEventListener('click',startCamera);
-$('#opt-gallery').addEventListener('click',()=>$file-input').click());
+$('#opt-gallery').addEventListener('click',()=>$('#file-input').click());
 $('#file-input').addEventListener('change',e=>{if(e.target.files[0])handleFile(e.target.files[0]);e.target.value='';});
 $('#drop-zone').addEventListener('click',()=>$('#file-input').click());
 $('#drop-zone').addEventListener('dragover',e=>{e.preventDefault();$('#drop-zone').style.borderColor='var(--primary)';});
