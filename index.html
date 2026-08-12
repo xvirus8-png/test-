@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>تطبيق الطلبية - Order Sheet</title>
+<title>فيروز - طلبية</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -60,7 +60,12 @@
     white-space:nowrap;
   }
   .tab-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
-  .search-bar{padding:10px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:108px;z-index:48;}
+  .search-bar{padding:10px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:154px;z-index:48;}
+  .customer-bar{padding:8px 10px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:108px;z-index:48;}
+  .customer-bar input{
+    width:100%;padding:8px 12px;border-radius:8px;border:1.5px solid var(--gold);
+    font-size:14px;font-weight:700;background:#fffaf0;
+  }
   .search-bar input{
     width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--line);
     font-size:14px;background:var(--paper);
@@ -176,7 +181,7 @@
 <body>
 
 <header>
-  <h1>📋 طلبية الماركات</h1>
+  <h1>📋 فيروز</h1>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -185,6 +190,9 @@
 </header>
 
 <div class="tabs" id="tabs"></div>
+<div class="customer-bar">
+  <input id="customerName" placeholder="✏️ اسم الزبون">
+</div>
 <div class="search-bar"><input id="searchBox" placeholder="ابحث بالكود... مثال: LMM, GT, NG"></div>
 
 <main id="main"></main>
@@ -415,6 +423,7 @@ const DEFAULT_DATA = {
 
 const LS_DATA_KEY = "orderapp_data_v1";
 const LS_QTY_KEY  = "orderapp_qty_v1";
+const LS_CUSTOMER_KEY = "orderapp_customer_v1";
 
 let DATA = loadData();
 let QTY  = loadQty(); // QTY[brand][code][item] = number
@@ -593,24 +602,32 @@ function buildEditTable(panel, brand){
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td><input type="text" class="code-input" value="${block.code}"></td>
-      <td><input type="number" class="small-input" value="${small||''}"></td>
-      <td><input type="number" class="big-input" value="${big||''}"></td>
+      <td><input type="text" inputmode="numeric" pattern="[0-9,]*" class="small-input" value="${small?fmt(small):''}"></td>
+      <td><input type="text" inputmode="numeric" pattern="[0-9,]*" class="big-input" value="${big?fmt(big):''}"></td>
       <td><button type="button" class="row-del">🗑</button></td>
     `;
     const codeInput = tr.querySelector(".code-input");
     const smallInput = tr.querySelector(".small-input");
     const bigInput = tr.querySelector(".big-input");
 
+    const parseNum = (val)=> parseFloat(String(val).replace(/,/g,"")) || 0;
+
     const applyRow = ()=>{
       block.code = codeInput.value.trim() || block.code;
-      const s = parseFloat(smallInput.value)||0;
-      const b = parseFloat(bigInput.value)||0;
+      const s = parseNum(smallInput.value);
+      const b = parseNum(bigInput.value);
       block.price = `${b}/${s}`;
       saveData();
+    };
+    const formatOnBlur = (input)=>{
+      const n = parseNum(input.value);
+      input.value = n ? fmt(n) : "";
     };
     codeInput.addEventListener("change", applyRow);
     smallInput.addEventListener("input", applyRow);
     bigInput.addEventListener("input", applyRow);
+    smallInput.addEventListener("blur", ()=>formatOnBlur(smallInput));
+    bigInput.addEventListener("blur", ()=>formatOnBlur(bigInput));
 
     tr.querySelector(".row-del").addEventListener("click", ()=>{
       if(!confirm(`حذف "${block.code}"؟`)) return;
@@ -724,7 +741,11 @@ async function exportOrder(){
   container.style.fontFamily = "Tahoma, sans-serif";
   container.style.direction = "rtl";
 
+  const customerName = document.getElementById("customerName").value.trim();
   let html = `<h2 style="text-align:center;border-bottom:3px solid #b5442e;padding-bottom:10px;">طلبية - ${new Date().toLocaleDateString('ar-IQ')}</h2>`;
+  if(customerName){
+    html += `<h3 style="text-align:center;color:#2f6b52;margin-top:-6px;">الزبون: ${customerName}</h3>`;
+  }
 
   Object.entries(QTY).forEach(([brand, codes])=>{
     const entries = Object.entries(codes).filter(([c,items])=>Object.keys(items).length>0);
@@ -779,12 +800,20 @@ async function exportOrder(){
     heightLeft -= pageHeight;
   }
 
-  pdf.save(`order_${Date.now()}.pdf`);
+  const safeName = customerName ? customerName.replace(/[^a-zA-Z0-9ء-ي_ -]/g,"").trim().replace(/\s+/g,"_") : "";
+  pdf.save(`order_${safeName ? safeName+"_" : ""}${Date.now()}.pdf`);
 }
 
 buildTabs();
 buildPanels();
 updateTotals();
+
+// Customer name persistence
+const customerInput = document.getElementById("customerName");
+customerInput.value = localStorage.getItem(LS_CUSTOMER_KEY) || "";
+customerInput.addEventListener("input", ()=>{
+  localStorage.setItem(LS_CUSTOMER_KEY, customerInput.value);
+});
 
 // Prevent pinch-zoom and double-tap zoom
 document.addEventListener("gesturestart", e => e.preventDefault());
