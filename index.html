@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>تطبيق الطلبية - Order Sheet</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --ink:#1c1c1c;
@@ -132,6 +134,40 @@
   .add-item-btn{background:var(--accent2);color:#fff;}
   .del-block-btn{background:#c0392b;color:#fff;margin-inline-start:6px;}
   body.edit-mode .block{outline:1px dashed var(--gold);}
+  .edit-toolbar{
+    display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+    background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:10px;margin-bottom:14px;
+  }
+  .edit-toolbar .import-btn, .edit-toolbar #exportExcelBtn{
+    background:var(--accent2);color:#fff;border:none;border-radius:8px;
+    padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;
+  }
+  .edit-toolbar #exportExcelBtn{background:var(--gold);}
+  .edit-hint{font-size:12px;color:#888;}
+  table.price-table{
+    width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;
+    margin-bottom:10px;
+  }
+  table.price-table th{
+    background:var(--ink);color:#fff;padding:8px;font-size:13px;text-align:center;
+  }
+  table.price-table td{
+    border-bottom:1px solid var(--line);padding:6px;text-align:center;
+  }
+  table.price-table input{
+    width:100%;border:1px solid var(--line);border-radius:6px;padding:5px 6px;font-size:13px;
+    text-align:center;
+  }
+  table.price-table .code-input{text-align:right;font-weight:700;}
+  table.price-table .row-del{
+    background:#c0392b;color:#fff;border:none;border-radius:6px;
+    width:28px;height:28px;cursor:pointer;font-size:13px;
+  }
+  .add-row-btn{
+    display:block;margin:0 auto 20px;background:var(--accent2);color:#fff;border:none;
+    padding:9px 18px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;
+  }
   #exportCanvas{padding:16px;background:#fff;}
   .exp-block{border:1px solid #333;padding:6px;margin-bottom:8px;border-radius:4px;}
   .exp-header{font-weight:800;border-bottom:2px solid var(--accent);margin-bottom:10px;padding-bottom:6px;}
@@ -406,7 +442,11 @@ function saveQty(){
 
 function parsePrices(priceStr){
   if(!priceStr || priceStr.trim()==="-") return {big:0, small:0};
-  const parts = priceStr.split("/").map(s=>parseFloat(s.trim().replace(/,/g,"")));
+  const parts = priceStr.split("/").map(s=>{
+    // Source sheet uses "." as a THOUSANDS separator (e.g. 15.000 = 15000), not decimal.
+    const clean = s.trim().replace(/,/g,"").replace(/\./g,"");
+    return parseFloat(clean);
+  });
   const valid = parts.filter(n=>!isNaN(n));
   if(!valid.length) return {big:0, small:0};
   return { big: Math.max(...valid), small: Math.min(...valid) };
@@ -447,122 +487,199 @@ function buildPanels(){
   const activeBrand = document.querySelector(".brand-panel.active")?.dataset.brand || Object.keys(DATA)[0];
   const main = document.getElementById("main");
   main.innerHTML = "";
-  Object.entries(DATA).forEach(([brand, blocks], i)=>{
+
+  if(editMode){
+    const toolbar = document.createElement("div");
+    toolbar.className = "edit-toolbar";
+    toolbar.innerHTML = `
+      <label class="import-btn">📥 استيراد اكسل
+        <input type="file" id="importExcelInput" accept=".xlsx,.xls" style="display:none;">
+      </label>
+      <button type="button" id="exportExcelBtn">📤 تصدير اكسل</button>
+      <span class="edit-hint">عدّل الاسم / مبلغ الجملة / مبلغ المفرد مباشرة بالجدول</span>
+    `;
+    main.appendChild(toolbar);
+    toolbar.querySelector("#importExcelInput").addEventListener("change", handleImportExcel);
+    toolbar.querySelector("#exportExcelBtn").addEventListener("click", exportExcel);
+  }
+
+  Object.entries(DATA).forEach(([brand, blocks])=>{
     if(!QTY[brand]) QTY[brand] = {};
     const panel = document.createElement("div");
     panel.className = "brand-panel" + (brand===activeBrand?" active":"");
     panel.dataset.brand = brand;
-    panel.innerHTML = `<div class="brand-title">${brand}</div>
-      ${editMode ? `<button type="button" class="add-block-btn">+ إضافة منتج جديد</button>` : ""}
-      <div class="grid" id="grid-${brand}"></div>`;
     main.appendChild(panel);
+
     if(editMode){
-      panel.querySelector(".add-block-btn").addEventListener("click", ()=>addBlock(brand));
+      buildEditTable(panel, brand);
+    } else {
+      panel.innerHTML = `<div class="brand-title">${brand}</div><div class="grid" id="grid-${brand}"></div>`;
+      buildGrid(panel.querySelector(".grid"), brand, blocks);
     }
-    const grid = panel.querySelector(".grid");
-    blocks.forEach((block, blockIdx)=>{
-      if(!QTY[brand][block.code]) QTY[brand][block.code] = {};
-      const {big, small} = parsePrices(block.price);
-      const el = document.createElement("div");
-      el.className = "block";
-      el.dataset.code = block.code.toLowerCase();
-      el.innerHTML = `
-        <div class="block-head">
-          <div class="code">${block.code}</div>
-          <div class="prices">
-            <span class="price-big">${fmt(big)}</span><span class="price-small">${fmt(small)}</span>
-            ${editMode ? `<button type="button" class="edit-price-btn" title="تعديل السعر">✎</button>` : ""}
-          </div>
-        </div>
-        <div class="rows"></div>
-        ${editMode ? `<button type="button" class="add-item-btn">+ إضافة درجة</button> <button type="button" class="del-block-btn">🗑 حذف المنتج</button>` : ""}
-      `;
-      if(editMode){
-        el.querySelector(".edit-price-btn").addEventListener("click", ()=>editPrice(brand, blockIdx));
-        el.querySelector(".add-item-btn").addEventListener("click", ()=>addItem(brand, blockIdx));
-        el.querySelector(".del-block-btn").addEventListener("click", ()=>deleteBlock(brand, blockIdx));
-      }
-      const rows = el.querySelector(".rows");
-      block.items.forEach(item=>{
-        const row = document.createElement("div");
-        row.className = "row-item";
-        const savedQty = QTY[brand][block.code][item] || 0;
-        row.innerHTML = `<label>${item}</label><div class="qty-ctrl"><button type="button" class="btn-dec">−</button><input type="number" min="0" inputmode="numeric" placeholder="0" value="${savedQty>0?savedQty:''}"><button type="button" class="btn-inc">+</button></div>`;
-        const input = row.querySelector("input");
-        if(savedQty>0) row.classList.add("filled");
-        const applyChange = ()=>{
-          const val = parseInt(input.value)||0;
-          if(val>0){
-            QTY[brand][block.code][item] = val;
-            row.classList.add("filled");
-          } else {
-            delete QTY[brand][block.code][item];
-            row.classList.remove("filled");
-          }
-          el.classList.toggle("has-qty", Object.keys(QTY[brand][block.code]).length>0);
-          saveQty();
-          updateTotals();
-        };
-        input.addEventListener("input", applyChange);
-        row.querySelector(".btn-inc").addEventListener("click", ()=>{
-          input.value = (parseInt(input.value)||0) + 1;
-          applyChange();
-        });
-        row.querySelector(".btn-dec").addEventListener("click", ()=>{
-          const v = (parseInt(input.value)||0) - 1;
-          input.value = v > 0 ? v : "";
-          applyChange();
-        });
-        rows.appendChild(row);
-      });
-      if(el.classList.contains("has-qty") === false && Object.keys(QTY[brand][block.code]).length>0){
-        el.classList.add("has-qty");
-      }
-      grid.appendChild(el);
-    });
   });
   updateTotals();
 }
 
-function editPrice(brand, blockIdx){
-  const block = DATA[brand][blockIdx];
-  const input = prompt(`عدل سعر ${block.code}\nاكتب بالشكل: كبير/صغير (مثال: 15000/11250)`, block.price.replace(/\s/g,""));
-  if(input === null) return;
-  const cleaned = input.trim();
-  if(!cleaned) return;
-  block.price = cleaned;
-  saveData();
-  buildPanels();
+function buildGrid(grid, brand, blocks){
+  blocks.forEach(block=>{
+    if(!QTY[brand][block.code]) QTY[brand][block.code] = {};
+    const {big, small} = parsePrices(block.price);
+    const el = document.createElement("div");
+    el.className = "block";
+    el.dataset.code = block.code.toLowerCase();
+    el.innerHTML = `
+      <div class="block-head">
+        <div class="code">${block.code}</div>
+        <div class="prices"><span class="price-big">${fmt(big)}</span><span class="price-small">${fmt(small)}</span></div>
+      </div>
+      <div class="rows"></div>
+    `;
+    const rows = el.querySelector(".rows");
+    block.items.forEach(item=>{
+      const row = document.createElement("div");
+      row.className = "row-item";
+      const savedQty = QTY[brand][block.code][item] || 0;
+      row.innerHTML = `<label>${item}</label><div class="qty-ctrl"><button type="button" class="btn-dec">−</button><input type="number" min="0" inputmode="numeric" placeholder="0" value="${savedQty>0?savedQty:''}"><button type="button" class="btn-inc">+</button></div>`;
+      const input = row.querySelector("input");
+      if(savedQty>0) row.classList.add("filled");
+      const applyChange = ()=>{
+        const val = parseInt(input.value)||0;
+        if(val>0){
+          QTY[brand][block.code][item] = val;
+          row.classList.add("filled");
+        } else {
+          delete QTY[brand][block.code][item];
+          row.classList.remove("filled");
+        }
+        el.classList.toggle("has-qty", Object.keys(QTY[brand][block.code]).length>0);
+        saveQty();
+        updateTotals();
+      };
+      input.addEventListener("input", applyChange);
+      row.querySelector(".btn-inc").addEventListener("click", ()=>{
+        input.value = (parseInt(input.value)||0) + 1;
+        applyChange();
+      });
+      row.querySelector(".btn-dec").addEventListener("click", ()=>{
+        const v = (parseInt(input.value)||0) - 1;
+        input.value = v > 0 ? v : "";
+        applyChange();
+      });
+      rows.appendChild(row);
+    });
+    if(Object.keys(QTY[brand][block.code]).length>0){
+      el.classList.add("has-qty");
+    }
+    grid.appendChild(el);
+  });
 }
 
-function addItem(brand, blockIdx){
-  const block = DATA[brand][blockIdx];
-  const label = prompt(`اسم/رقم الدرجة الجديدة لـ ${block.code}:`);
-  if(!label) return;
-  block.items.push(label.trim());
-  saveData();
-  buildPanels();
+function buildEditTable(panel, brand){
+  const blocks = DATA[brand];
+  panel.innerHTML = `
+    <div class="brand-title">${brand} — جدول الأسعار</div>
+    <table class="price-table">
+      <thead>
+        <tr><th>اسم المنتج</th><th>مبلغ الجملة</th><th>مبلغ المفرد</th><th></th></tr>
+      </thead>
+      <tbody id="tbody-${brand}"></tbody>
+    </table>
+    <button type="button" class="add-row-btn">+ إضافة منتج</button>
+  `;
+  const tbody = panel.querySelector(`#tbody-${brand}`);
+
+  blocks.forEach((block, idx)=>{
+    const {big, small} = parsePrices(block.price);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input type="text" class="code-input" value="${block.code}"></td>
+      <td><input type="number" class="small-input" value="${small||''}"></td>
+      <td><input type="number" class="big-input" value="${big||''}"></td>
+      <td><button type="button" class="row-del">🗑</button></td>
+    `;
+    const codeInput = tr.querySelector(".code-input");
+    const smallInput = tr.querySelector(".small-input");
+    const bigInput = tr.querySelector(".big-input");
+
+    const applyRow = ()=>{
+      block.code = codeInput.value.trim() || block.code;
+      const s = parseFloat(smallInput.value)||0;
+      const b = parseFloat(bigInput.value)||0;
+      block.price = `${b}/${s}`;
+      saveData();
+    };
+    codeInput.addEventListener("change", applyRow);
+    smallInput.addEventListener("input", applyRow);
+    bigInput.addEventListener("input", applyRow);
+
+    tr.querySelector(".row-del").addEventListener("click", ()=>{
+      if(!confirm(`حذف "${block.code}"؟`)) return;
+      delete QTY[brand]?.[block.code];
+      DATA[brand].splice(idx,1);
+      saveData();
+      saveQty();
+      buildPanels();
+    });
+    tbody.appendChild(tr);
+  });
+
+  panel.querySelector(".add-row-btn").addEventListener("click", ()=>{
+    DATA[brand].push({code:"منتج جديد", price:"0/0", items:["-"]});
+    saveData();
+    buildPanels();
+  });
 }
 
-function deleteBlock(brand, blockIdx){
-  const block = DATA[brand][blockIdx];
-  if(!confirm(`حذف المنتج ${block.code} بالكامل؟`)) return;
-  delete QTY[brand]?.[block.code];
-  DATA[brand].splice(blockIdx,1);
-  saveData();
-  saveQty();
-  buildPanels();
+function handleImportExcel(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    try{
+      const wb = XLSX.read(ev.target.result, {type:"array"});
+      wb.SheetNames.forEach(sheetName=>{
+        const brand = Object.keys(DATA).find(b=>b.toLowerCase()===sheetName.toLowerCase()) || sheetName;
+        if(!DATA[brand]) DATA[brand] = [];
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {header:1});
+        rows.slice(1).forEach(row=>{ // skip header row
+          const [code, jumla, mfrad] = row;
+          if(!code) return;
+          const codeStr = String(code).trim();
+          const s = parseFloat(jumla)||0;
+          const b = parseFloat(mfrad)||0;
+          const existing = DATA[brand].find(bl=>bl.code.toLowerCase()===codeStr.toLowerCase());
+          if(existing){
+            existing.price = `${b}/${s}`;
+          } else {
+            DATA[brand].push({code: codeStr, price:`${b}/${s}`, items:["-"]});
+          }
+        });
+      });
+      saveData();
+      buildTabs();
+      buildPanels();
+      alert("تم الاستيراد بنجاح ✅");
+    }catch(err){
+      alert("صار خطأ بالاستيراد، تأكد من شكل ملف الاكسل");
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value = "";
 }
 
-function addBlock(brand){
-  const code = prompt("كود المنتج الجديد:");
-  if(!code) return;
-  const price = prompt("السعر (كبير/صغير) مثال: 15000/11250:", "0/0") || "0/0";
-  const itemsRaw = prompt("الدرجات (افصل بفاصلة ,) أو اكتب - اذا ماكو درجات:", "-") || "-";
-  const items = itemsRaw.trim()==="-" ? ["-"] : itemsRaw.split(",").map(s=>s.trim()).filter(Boolean);
-  DATA[brand].push({code: code.trim(), price: price.trim(), items});
-  saveData();
-  buildPanels();
+function exportExcel(){
+  const wb = XLSX.utils.book_new();
+  Object.entries(DATA).forEach(([brand, blocks])=>{
+    const aoa = [["الكود","مبلغ الجملة","مبلغ المفرد"]];
+    blocks.forEach(b=>{
+      const {big, small} = parsePrices(b.price);
+      aoa.push([b.code, small, big]);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    XLSX.utils.book_append_sheet(wb, ws, brand.slice(0,31));
+  });
+  XLSX.writeFile(wb, `products_${Date.now()}.xlsx`);
 }
 
 function updateTotals(){
@@ -634,15 +751,35 @@ async function exportOrder(){
   html += `<h3 style="text-align:left;border-top:2px solid #333;padding-top:8px;">الإجمالي: ${document.getElementById("totalAmount").textContent} | القطع: ${document.getElementById("totalPieces").textContent}</h3>`;
 
   container.innerHTML = html;
+  container.style.position = "fixed";
+  container.style.left = "-9999px";
   document.body.appendChild(container);
 
   const canvas = await html2canvas(container, {scale:2, backgroundColor:"#ffffff"});
   document.body.removeChild(container);
 
-  const link = document.createElement("a");
-  link.download = `order_${Date.now()}.png`;
-  link.href = canvas.toDataURL("image/png");
-  link.click();
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({unit:"mm", format:"a4"});
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const imgWidth = pageWidth;
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+  const imgData = canvas.toDataURL("image/png");
+
+  let heightLeft = imgHeight;
+  let position = 0;
+
+  pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+  heightLeft -= pageHeight;
+
+  while(heightLeft > 0){
+    position = heightLeft - imgHeight;
+    pdf.addPage();
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+  }
+
+  pdf.save(`order_${Date.now()}.pdf`);
 }
 
 buildTabs();
