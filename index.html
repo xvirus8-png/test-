@@ -913,6 +913,98 @@ function getBarcode(block){
   return (block && block.barcode) ? String(block.barcode) : "";
 }
 
+const EAN_L = ["0001101","0011001","0010011","0111101","0100011","0110001","0101111","0111011","0110111","0001011"];
+const EAN_G = ["0100111","0110011","0011011","0100001","0011101","0111001","0000101","0010001","0001001","0010111"];
+const EAN_R = ["1110010","1100110","1101100","1000010","1011100","1001110","1010000","1000100","1001000","1110100"];
+const EAN_PARITY = ["AAAAAA","AABABB","AABBAB","AABBBA","ABAABB","ABBAAB","ABBBAA","ABABAB","ABABBA","ABBABA"];
+
+function ean13Check(d12){
+  let s = 0;
+  for(let i=0;i<12;i++) s += (i%2===0) ? parseInt(d12[i],10) : parseInt(d12[i],10)*3;
+  return (10 - (s%10)) % 10;
+}
+
+function renderBarcode(svg, value){
+  if(!svg) return;
+  const NS = "http://www.w3.org/2000/svg";
+  svg.innerHTML = "";
+  svg.style.display = "none";
+  const w = parseFloat(svg.getAttribute("width")||svg.style.width||105)||105;
+  const h = parseFloat(svg.getAttribute("height")||svg.style.height||34)||34;
+  const v = String(value||"").trim();
+  if(!v) return;
+  if(!/^[0-9]+$/.test(v)){
+    svg.style.display = "block";
+    const t = document.createElementNS(NS,"text");
+    t.setAttribute("x", w/2);
+    t.setAttribute("y", h/2+4);
+    t.setAttribute("text-anchor","middle");
+    t.setAttribute("font-family","monospace");
+    t.setAttribute("font-size", Math.min(11, h*0.4));
+    t.textContent = v.length>16 ? v.slice(0,16) : v;
+    svg.appendChild(t);
+    return;
+  }
+  let bits = "", text = "";
+  if(v.length === 12 || v.length === 13){
+    const d = v.length===12 ? v : v.slice(0,12);
+    const check = v.length===13 ? v[12] : String(ean13Check(d));
+    text = d + check;
+    const par = EAN_PARITY[parseInt(d[0],10)];
+    bits = "00000000000" + "101";
+    for(let i=1;i<=6;i++) bits += (par[i-1]==="A" ? EAN_L : EAN_G)[parseInt(d[i],10)];
+    bits += "01010";
+    for(let i=7;i<12;i++) bits += EAN_R[parseInt(d[i],10)];
+    bits += EAN_R[parseInt(check,10)] + "101" + "00000000000";
+  } else {
+    let d = v;
+    if(d.length % 2) d = "0" + d;
+    const ITF = ["nnwwn","wnnnw","nwnnw","wwnnn","nnwnw","wnwnn","nwwnn","nnnww","wnnwn","nwnwn"];
+    bits = "0000000000";
+    for(let i=0;i<d.length;i+=2){
+      const b = ITF[parseInt(d[i],10)], s = ITF[parseInt(d[i+1],10)];
+      for(let j=0;j<5;j++){ bits += b[j]==="w" ? "111" : "1"; bits += s[j]==="w" ? "000" : "0"; }
+    }
+    bits += "11101" + "0000000000";
+  }
+  const mw = w / bits.length;
+  const barH = h - (text ? 13 : 2);
+  svg.style.display = "block";
+  let run = 0;
+  for(let i=0;i<bits.length;i++){
+    if(bits[i]==="1"){ run++; continue; }
+    if(run){
+      const r = document.createElementNS(NS,"rect");
+      r.setAttribute("x", (i-run)*mw);
+      r.setAttribute("y", 1);
+      r.setAttribute("width", run*mw);
+      r.setAttribute("height", barH);
+      r.setAttribute("fill","#000");
+      svg.appendChild(r);
+      run = 0;
+    }
+  }
+  if(run){
+    const r = document.createElementNS(NS,"rect");
+    r.setAttribute("x", (bits.length-run)*mw);
+    r.setAttribute("y", 1);
+    r.setAttribute("width", run*mw);
+    r.setAttribute("height", barH);
+    r.setAttribute("fill","#000");
+    svg.appendChild(r);
+  }
+  if(text){
+    const t = document.createElementNS(NS,"text");
+    t.setAttribute("x", w/2);
+    t.setAttribute("y", h-3);
+    t.setAttribute("text-anchor","middle");
+    t.setAttribute("font-size", 9);
+    t.setAttribute("font-family","monospace");
+    t.textContent = text;
+    svg.appendChild(t);
+  }
+}
+
 function normalizeAllProducts(){
   Object.keys(DATA || {}).forEach(brand=>{
     if(!Array.isArray(DATA[brand])) DATA[brand] = [];
@@ -1149,7 +1241,7 @@ function buildEditTable(panel, brand){
       <td><button type="button" class="open-items-btn">▤ الدرجات (${block.items.length})</button></td>
       <td><input type="text" inputmode="numeric" pattern="[0-9,]*" class="small-input" value="${small?fmt(small):''}"></td>
       <td><input type="text" inputmode="numeric" pattern="[0-9,]*" class="big-input" value="${big?fmt(big):''}"></td>
-      <td><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="20" class="barcode-input" placeholder="اختياري" value="${getBarcode(block)}"></td>
+      <td><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="20" class="barcode-input" placeholder="اختياري" value="${getBarcode(block)}"><svg class="barcode-preview" width="110" height="24" style="display:none;width:110px;height:24px;margin-top:3px;"></svg></td>
       <td><button type="button" class="row-del">🗑</button></td>
     `;
     const imageBtn = tr.querySelector(".product-img-btn");
@@ -1190,6 +1282,14 @@ function buildEditTable(panel, brand){
     bigInput.addEventListener("input", applyRow);
     smallInput.addEventListener("blur", ()=>formatOnBlur(smallInput));
     bigInput.addEventListener("blur", ()=>formatOnBlur(bigInput));
+
+    const barcodeInput = tr.querySelector(".barcode-input");
+    const barcodePreview = tr.querySelector(".barcode-preview");
+    barcodeInput.addEventListener("input", ()=>renderBarcode(barcodePreview, barcodeInput.value.trim()));
+    barcodeInput.addEventListener("change", ()=>{
+      block.barcode = barcodeInput.value.trim();
+      saveData();
+    });
 
     tr.querySelector(".row-del").addEventListener("click", ()=>{
       if(!confirm(`حذف "${block.code}"؟`)) return;
@@ -1415,6 +1515,9 @@ async function exportOrder(){
   html += `<h3 style="text-align:left;border-top:2px solid #333;padding-top:8px;">الإجمالي: ${document.getElementById("totalAmount").textContent} | القطع: ${document.getElementById("totalPieces").textContent}</h3>`;
 
   container.innerHTML = html;
+  container.querySelectorAll(".invoice-barcode").forEach(svg=>{
+    renderBarcode(svg, svg.getAttribute("data-barcode"));
+  });
   container.style.position = "fixed";
   container.style.left = "-9999px";
   document.body.appendChild(container);
