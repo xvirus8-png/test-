@@ -83,7 +83,7 @@
   }
   .block.has-qty{box-shadow:0 0 0 2px var(--accent2);}
   .block-head{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;}
-  .block-head img{width:100px;height:100px;object-fit:cover;border-radius:7px;border:1px solid var(--line);background:#f4f4f4;cursor:zoom-in;display:block;}
+  .block-head img{width:100px;height:100px;object-fit:contain;border-radius:7px;border:1px solid var(--line);background:#f4f4f4;cursor:zoom-in;display:block;}
   .product-img-wrap{display:flex;align-items:center;gap:7px;min-width:100px;}
   .product-img-wrap .img-upload{display:none;}
   .product-img-btn{background:var(--gold);color:#fff;border:none;border-radius:6px;padding:5px 7px;font-size:11px;font-weight:700;cursor:pointer;}
@@ -107,7 +107,7 @@
     cursor:pointer;
   }
   .edit-image-cell{min-width:100px;}
-  .edit-image-preview{width:42px;height:42px;object-fit:cover;border-radius:6px;border:1px solid var(--line);vertical-align:middle;background:#f4f4f4;margin-inline-end:5px;}
+  .edit-image-preview{width:42px;height:42px;object-fit:contain;border-radius:6px;border:1px solid var(--line);vertical-align:middle;background:#f4f4f4;margin-inline-end:5px;}
   .block-head .code{font-weight:800;font-size:14px;}
   .prices{display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:left;direction:rtl;margin-top:0;}
   .price-line{font-size:13px;font-weight:700;white-space:nowrap;line-height:1.25;}
@@ -116,6 +116,7 @@
   .retail-price{color:#1769aa;}
   .price-line strong{font-size:16px;letter-spacing:.2px;}
   .barcode-input{direction:ltr;text-align:center;min-width:120px;}
+  .items-input{min-width:140px;}
   .barcode-preview{font-family:monospace;font-size:11px;letter-spacing:1px;color:#555;margin-inline-start:auto;display:flex;align-items:baseline;gap:6px;}
   .price-big{font-size:15px;font-weight:800;color:var(--accent);}
   .price-small{font-size:12px;font-weight:600;color:#888;}
@@ -768,7 +769,7 @@ function buildEditTable(panel, brand){
     <div class="brand-title">${brand} — جدول الأسعار</div>
     <table class="price-table">
       <thead>
-        <tr><th>الصورة</th><th>اسم المنتج</th><th>مبلغ الجملة</th><th>مبلغ المفرد</th><th>الباركود</th><th></th></tr>
+        <tr><th>الصورة</th><th>اسم المنتج</th><th>الدرجات</th><th>مبلغ الجملة</th><th>مبلغ المفرد</th><th>الباركود</th><th></th></tr>
       </thead>
       <tbody id="tbody-${brand}"></tbody>
     </table>
@@ -786,6 +787,7 @@ function buildEditTable(panel, brand){
         <button type="button" class="product-img-btn">📷</button>
       </td>
       <td><input type="text" class="code-input" value="${block.code}"></td>
+      <td><input type="text" class="items-input" placeholder="1, 2, 3..." value="${(Array.isArray(block.items)?block.items:[]).join(', ')}"></td>
       <td><input type="text" inputmode="numeric" pattern="[0-9,]*" class="small-input" value="${small?fmt(small):''}"></td>
       <td><input type="text" inputmode="numeric" pattern="[0-9,]*" class="big-input" value="${big?fmt(big):''}"></td>
       <td><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="20" class="barcode-input" placeholder="اختياري" value="${getBarcode(block)}"></td>
@@ -802,10 +804,22 @@ function buildEditTable(panel, brand){
     }
 
     const codeInput = tr.querySelector(".code-input");
+    const itemsInput = tr.querySelector(".items-input");
     const smallInput = tr.querySelector(".small-input");
     const bigInput = tr.querySelector(".big-input");
 
     const parseNum = (val)=> parseFloat(String(val).replace(/,/g,"")) || 0;
+
+    const applyItems = ()=>{
+      const raw = itemsInput.value.trim();
+      const list = raw.split(",").map(s=>s.trim()).filter(Boolean);
+      block.items = list.length ? list : ["-"];
+      saveData();
+    };
+    itemsInput.addEventListener("change", ()=>{
+      applyItems();
+      buildPanels(); // rerender so qty rows reflect new degrees
+    });
 
     const applyRow = ()=>{
       block.code = codeInput.value.trim() || block.code;
@@ -955,7 +969,7 @@ async function exportOrder(){
       const price = block ? parsePrices(block.price).small : 0;
       Object.entries(items).forEach(([label, qty])=>{
         html += `<tr>
-          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${block && block.image ? `<img src="${block.image}" style="width:38px;height:38px;object-fit:cover;border-radius:4px;">` : "📦"}${block && block.barcode ? `<svg class="invoice-barcode" data-barcode="${block.barcode}" style="width:105px;height:34px;display:block;margin:3px auto 0;"></svg>` : ""}</td>
+          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${block && block.image ? `<img src="${block.image}" style="width:38px;height:38px;object-fit:contain;border-radius:4px;">` : "📦"}${block && block.barcode ? `<svg class="invoice-barcode" data-barcode="${block.barcode}" style="width:105px;height:34px;display:block;margin:3px auto 0;"></svg>` : ""}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${code}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${label}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${qty}</td>
