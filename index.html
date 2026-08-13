@@ -128,6 +128,57 @@
   }
   .row-item.filled{border-color:var(--accent2);background:#eef7f1;}
   .row-item label{font-weight:700;color:#555;}
+  .variant-label{cursor:pointer;}
+  .variant-label.has-image{color:var(--accent2);text-decoration:underline dotted;}
+  .variant-label.has-image::after{content:" 🖼";font-size:11px;}
+  .open-items-btn{
+    background:var(--soft);border:1px solid var(--line);border-radius:8px;
+    padding:6px 10px;font-weight:700;font-size:12px;cursor:pointer;color:var(--ink);
+  }
+  .variants-modal{
+    position:fixed;inset:0;background:rgba(21,37,36,.55);z-index:200;
+    display:flex;align-items:flex-end;justify-content:center;
+  }
+  .variants-panel{
+    background:#fff;width:100%;max-width:600px;max-height:85vh;
+    border-radius:16px 16px 0 0;display:flex;flex-direction:column;
+    box-shadow:0 -4px 20px rgba(0,0,0,.25);
+  }
+  .variants-panel-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 16px;border-bottom:1px solid var(--line);
+  }
+  .variants-panel-title{font-weight:800;font-size:15px;}
+  .close-variants{
+    background:var(--soft);border:none;border-radius:50%;
+    width:30px;height:30px;font-size:18px;cursor:pointer;color:var(--ink);
+  }
+  .variants-list{overflow-y:auto;padding:10px 14px;flex:1;}
+  .variant-row{
+    display:flex;align-items:center;gap:10px;
+    padding:9px 4px;border-bottom:1px solid var(--soft);
+  }
+  .variant-row label{flex:1;font-weight:700;font-size:14px;}
+  .variant-thumb{
+    width:44px;height:44px;flex:none;border-radius:8px;border:1px solid var(--line);
+    background:var(--soft);cursor:pointer;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;font-size:16px;
+  }
+  .variant-thumb img{width:100%;height:100%;object-fit:contain;}
+  .variant-del{
+    background:#c0392b;color:#fff;border:none;border-radius:6px;
+    width:30px;height:30px;font-size:13px;cursor:pointer;flex:none;
+  }
+  .add-item-bar{
+    display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--line);
+  }
+  .add-item-bar input{
+    flex:1;border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:13px;
+  }
+  .add-item-bar button{
+    background:var(--accent2);color:#fff;border:none;border-radius:8px;
+    padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer;
+  }
   .row-item input{
     width:34px;text-align:center;border:1px solid var(--line);border-radius:5px;
     padding:3px 2px;font-size:13px;
@@ -594,6 +645,7 @@ function normalizeProductBlock(block){
   block.image = block.image || "";
   block.barcode = block.barcode || "";
   if(!Array.isArray(block.items) || !block.items.length) block.items = ["-"];
+  if(!block.itemImages || typeof block.itemImages !== "object") block.itemImages = {};
   return block;
 }
 
@@ -680,6 +732,45 @@ function chooseProductImage(brand, block, onDone){
   setTimeout(()=>input.remove(), 1000);
 }
 
+function getVariantImage(block, item){
+  return (block && block.itemImages && block.itemImages[item]) ? block.itemImages[item] : "";
+}
+
+function chooseVariantImage(block, item, onDone){
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+  input.style.display = "none";
+
+  input.addEventListener("change", ()=>{
+    const file = input.files && input.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const maxSize = 700;
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        if(!block.itemImages || typeof block.itemImages !== "object") block.itemImages = {};
+        block.itemImages[item] = canvas.toDataURL("image/jpeg", 0.78);
+        saveData();
+        if(onDone) onDone();
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.body.appendChild(input);
+  input.click();
+  setTimeout(()=>input.remove(), 1000);
+}
+
 function buildGrid(grid, brand, blocks){
   blocks.forEach(block=>{
     if(!QTY[brand][block.code]) QTY[brand][block.code] = {};
@@ -728,9 +819,17 @@ function buildGrid(grid, brand, blocks){
       const row = document.createElement("div");
       row.className = "row-item";
       const savedQty = QTY[brand][block.code][item] || 0;
-      row.innerHTML = `<label>${item}</label><div class="qty-ctrl"><button type="button" class="btn-dec">−</button><input type="number" min="0" inputmode="numeric" placeholder="0" value="${savedQty>0?savedQty:''}"><button type="button" class="btn-inc">+</button></div>`;
+      const hasVariantImg = !!getVariantImage(block, item);
+      row.innerHTML = `<label class="variant-label${hasVariantImg?' has-image':''}">${item}</label><div class="qty-ctrl"><button type="button" class="btn-dec">−</button><input type="number" min="0" inputmode="numeric" placeholder="0" value="${savedQty>0?savedQty:''}"><button type="button" class="btn-inc">+</button></div>`;
       const input = row.querySelector("input");
       if(savedQty>0) row.classList.add("filled");
+
+      const labelEl = row.querySelector(".variant-label");
+      labelEl.addEventListener("click", ()=>{
+        const src = getVariantImage(block, item);
+        if(src) showProductImage(src);
+      });
+
       const applyChange = ()=>{
         const val = parseInt(input.value)||0;
         if(val>0){
@@ -787,7 +886,7 @@ function buildEditTable(panel, brand){
         <button type="button" class="product-img-btn">📷</button>
       </td>
       <td><input type="text" class="code-input" value="${block.code}"></td>
-      <td><input type="text" class="items-input" placeholder="1, 2, 3..." value="${(Array.isArray(block.items)?block.items:[]).join(', ')}"></td>
+      <td><button type="button" class="open-items-btn">▤ الدرجات (${block.items.length})</button></td>
       <td><input type="text" inputmode="numeric" pattern="[0-9,]*" class="small-input" value="${small?fmt(small):''}"></td>
       <td><input type="text" inputmode="numeric" pattern="[0-9,]*" class="big-input" value="${big?fmt(big):''}"></td>
       <td><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="20" class="barcode-input" placeholder="اختياري" value="${getBarcode(block)}"></td>
@@ -803,23 +902,15 @@ function buildEditTable(panel, brand){
       imagePreview.addEventListener("click", ()=>showProductImage(imagePreview.src));
     }
 
+    tr.querySelector(".open-items-btn").addEventListener("click", ()=>{
+      openItemsEditor(brand, block);
+    });
+
     const codeInput = tr.querySelector(".code-input");
-    const itemsInput = tr.querySelector(".items-input");
     const smallInput = tr.querySelector(".small-input");
     const bigInput = tr.querySelector(".big-input");
 
     const parseNum = (val)=> parseFloat(String(val).replace(/,/g,"")) || 0;
-
-    const applyItems = ()=>{
-      const raw = itemsInput.value.trim();
-      const list = raw.split(",").map(s=>s.trim()).filter(Boolean);
-      block.items = list.length ? list : ["-"];
-      saveData();
-    };
-    itemsInput.addEventListener("change", ()=>{
-      applyItems();
-      buildPanels(); // rerender so qty rows reflect new degrees
-    });
 
     const applyRow = ()=>{
       block.code = codeInput.value.trim() || block.code;
@@ -852,10 +943,85 @@ function buildEditTable(panel, brand){
   });
 
   panel.querySelector(".add-row-btn").addEventListener("click", ()=>{
-    DATA[brand].push({code:"منتج جديد", price:"0/0", items:["-"]});
+    DATA[brand].push({code:"منتج جديد", price:"0/0", items:["-"], itemImages:{}});
     saveData();
     buildPanels();
   });
+}
+
+function openItemsEditor(brand, block){
+  normalizeProductBlock(block);
+  const overlay = document.createElement("div");
+  overlay.className = "variants-modal";
+  overlay.innerHTML = `
+    <div class="variants-panel">
+      <div class="variants-panel-head">
+        <div class="variants-panel-title">${block.code} — إدارة الدرجات</div>
+        <button type="button" class="close-variants" aria-label="إغلاق">×</button>
+      </div>
+      <div class="variants-list"></div>
+      <div class="add-item-bar">
+        <input type="text" class="new-item-input" placeholder="رقم/اسم الدرجة الجديدة">
+        <button type="button" class="new-item-btn">+ إضافة</button>
+      </div>
+    </div>
+  `;
+  const list = overlay.querySelector(".variants-list");
+
+  const renderList = ()=>{
+    list.innerHTML = "";
+    block.items.forEach((item, i)=>{
+      const row = document.createElement("div");
+      row.className = "variant-row";
+      const src = getVariantImage(block, item);
+      row.innerHTML = `
+        <div class="variant-thumb">
+          ${src ? `<img src="${src}">` : `<span>📷</span>`}
+        </div>
+        <label>${item}</label>
+        <button type="button" class="variant-del" title="حذف الدرجة">🗑</button>
+      `;
+      row.querySelector(".variant-thumb").addEventListener("click", ()=>{
+        chooseVariantImage(block, item, ()=>renderList());
+      });
+      row.querySelector(".variant-del").addEventListener("click", ()=>{
+        if(!confirm(`حذف الدرجة "${item}"؟`)) return;
+        block.items.splice(i,1);
+        if(block.itemImages) delete block.itemImages[item];
+        if(!block.items.length) block.items = ["-"];
+        saveData();
+        renderList();
+      });
+      list.appendChild(row);
+    });
+  };
+  renderList();
+
+  const newItemInput = overlay.querySelector(".new-item-input");
+  overlay.querySelector(".new-item-btn").addEventListener("click", ()=>{
+    const val = newItemInput.value.trim();
+    if(!val) return;
+    if(block.items.length===1 && block.items[0]==="-") block.items = [];
+    block.items.push(val);
+    saveData();
+    newItemInput.value = "";
+    renderList();
+  });
+  newItemInput.addEventListener("keydown", (e)=>{
+    if(e.key === "Enter"){ overlay.querySelector(".new-item-btn").click(); }
+  });
+
+  const close = ()=>{
+    overlay.remove();
+    document.removeEventListener("keydown", onKey);
+    buildPanels();
+  };
+  const onKey = (e)=>{ if(e.key === "Escape") close(); };
+  overlay.addEventListener("click", (e)=>{ if(e.target === overlay) close(); });
+  overlay.querySelector(".close-variants").addEventListener("click", close);
+  document.addEventListener("keydown", onKey);
+
+  document.body.appendChild(overlay);
 }
 
 function handleImportExcel(e){
@@ -938,6 +1104,11 @@ document.getElementById("searchBox").addEventListener("input", (e)=>{
   const q = e.target.value.trim().toLowerCase();
   document.querySelectorAll(".block").forEach(b=>{
     b.style.display = (!q || b.dataset.code.includes(q)) ? "" : "none";
+  });
+  document.querySelectorAll("table.price-table tbody tr").forEach(tr=>{
+    const codeInput = tr.querySelector(".code-input");
+    const code = codeInput ? codeInput.value.toLowerCase() : "";
+    tr.style.display = (!q || code.includes(q)) ? "" : "none";
   });
 });
 
