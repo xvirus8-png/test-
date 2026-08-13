@@ -179,6 +179,38 @@
     background:var(--accent2);color:#fff;border:none;border-radius:8px;
     padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer;
   }
+  .cloud-modal{
+    position:fixed;inset:0;background:rgba(21,37,36,.55);z-index:210;
+    display:flex;align-items:center;justify-content:center;padding:16px;
+  }
+  .cloud-panel{
+    background:#fff;width:100%;max-width:480px;border-radius:14px;
+    box-shadow:0 8px 30px rgba(0,0,0,.3);overflow:hidden;max-height:92vh;overflow-y:auto;
+  }
+  .cloud-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:13px 16px;border-bottom:1px solid var(--line);font-weight:800;font-size:15px;
+  }
+  .close-cloud{
+    background:var(--soft);border:none;border-radius:50%;
+    width:30px;height:30px;font-size:18px;cursor:pointer;color:var(--ink);
+  }
+  .cloud-body{padding:14px 16px;display:flex;flex-direction:column;gap:9px;}
+  .cloud-body label{font-size:12px;font-weight:700;color:#555;}
+  .cloud-body input{
+    border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:13px;width:100%;
+  }
+  .cloud-status{font-size:13px;font-weight:700;padding:7px 10px;border-radius:7px;background:var(--soft);}
+  .cloud-status.on{background:#e8f5ec;color:#1e7a3c;}
+  .cloud-status.error{background:#fdecea;color:#b02a1d;}
+  .cloud-body button{
+    background:var(--accent2);color:#fff;border:none;border-radius:8px;
+    padding:11px;font-weight:800;font-size:14px;cursor:pointer;
+  }
+  .cloud-body button.danger{background:#eee;color:#900;}
+  .cloud-help{margin-top:4px;background:var(--soft);border-radius:8px;padding:10px;font-size:12px;color:#444;line-height:1.8;}
+  .cloud-help summary{font-weight:700;cursor:pointer;color:var(--accent2);}
+  .cloud-note{font-size:11px;color:#888;line-height:1.6;}
   .row-item input{
     width:34px;text-align:center;border:1px solid var(--line);border-radius:5px;
     padding:3px 2px;font-size:13px;
@@ -270,6 +302,7 @@
     <span>المبلغ: <b id="totalAmount">0</b></span>
   </div>
   <button id="editBtn" onclick="toggleEditMode()" style="background:#a8863b;color:#fff;border:none;padding:7px 12px;border-radius:7px;font-weight:700;font-size:12px;cursor:pointer;">✎ تعديل الأسعار</button>
+  <button id="cloudBtn" onclick="openCloudSettings()" style="background:#666;color:#fff;border:none;padding:7px 12px;border-radius:7px;font-weight:700;font-size:12px;cursor:pointer;" title="السحابة غير مفعلة">☁️ سحابة</button>
 </header>
 
 <div class="tabs" id="tabs"></div>
@@ -511,35 +544,37 @@ const LS_CUSTOMER_KEY = "orderapp_customer_v1";
 let DATA = loadData();
 let QTY  = loadQty(); // QTY[brand][code][item] = number
 
+function mergeSavedData(saved){
+  // Keep the user's saved data, but restore any old/default brand whose
+  // product list was accidentally saved empty by an earlier version.
+  const result = JSON.parse(JSON.stringify(DEFAULT_DATA));
+  if(saved && typeof saved === "object"){
+    Object.keys(saved).forEach(brand=>{
+      if(Array.isArray(saved[brand]) && saved[brand].length){
+        result[brand] = saved[brand];
+      }else if(!(brand in result)){
+        result[brand] = [];
+      }
+    });
+  }
+  return result;
+}
 function loadData(){
   try{
     const savedRaw = localStorage.getItem(LS_DATA_KEY);
-    if(savedRaw){
-      const saved = JSON.parse(savedRaw);
-
-      // Keep the user's saved data, but restore any old/default brand whose
-      // product list was accidentally saved empty by an earlier version.
-      const result = JSON.parse(JSON.stringify(DEFAULT_DATA));
-
-      if(saved && typeof saved === "object"){
-        Object.keys(saved).forEach(brand=>{
-          if(Array.isArray(saved[brand]) && saved[brand].length){
-            result[brand] = saved[brand];
-          }else if(!(brand in result)){
-            result[brand] = [];
-          }
-        });
-      }
-
-      return result;
-    }
+    if(savedRaw) return mergeSavedData(JSON.parse(savedRaw));
   }catch(e){
     console.warn("تعذر قراءة بيانات المنتجات المحفوظة:", e);
   }
   return JSON.parse(JSON.stringify(DEFAULT_DATA));
 }
 function saveData(){
-  localStorage.setItem(LS_DATA_KEY, JSON.stringify(DATA));
+  try{
+    localStorage.setItem(LS_DATA_KEY, JSON.stringify(DATA));
+  }catch(e){
+    console.warn("تحذير: مساحة التخزين المحلي ممتلئة، احفظ البيانات بالسحابة", e);
+  }
+  scheduleCloudPush();
 }
 function loadQty(){
   try{
@@ -549,7 +584,232 @@ function loadQty(){
   return {};
 }
 function saveQty(){
-  localStorage.setItem(LS_QTY_KEY, JSON.stringify(QTY));
+  try{
+    localStorage.setItem(LS_QTY_KEY, JSON.stringify(QTY));
+  }catch(e){
+    console.warn("تحذير: مساحة التخزين المحلي ممتلئة", e);
+  }
+  scheduleCloudPush();
+}
+
+/* ================= CLOUD SYNC =================
+  مزامنة تلقائية عبر Firebase Realtime Database (REST, مجاني 1GB)
+  المتجر يكتب ويقرأ بلا حساب: الرابط نفسه هو المفتاح السري.
+============================================== */
+const LS_CLOUD_KEY = "orderapp_cloud_v1";
+const FIREBASE_API_KEY = "AIzaSyATmCURmgR0vW9ha8XGkJ6or7ttAYEiyhY";
+let cloudCfg = null;
+let cloudStatus = "off"; // off | connecting | on | error
+let cloudTimer = null;
+let cloudDirty = false;
+let cloudSupress = false;
+let cloudToken = null;
+try{ cloudCfg = JSON.parse(localStorage.getItem(LS_CLOUD_KEY)||"null"); }catch(e){ cloudCfg = null; }
+
+function cloudBase(){
+  if(!cloudCfg) return "";
+  return cloudCfg.url.replace(/\/+$/,"") + "/" + ((cloudCfg.room||"shop1")+"");
+}
+
+// Firebase Anonymous Auth: يجلب رمز أمان يتجدد تلقائياً، ببدونه القواعد ترفض أي قراءة/كتابة.
+async function ensureToken(force){
+  if(cloudToken && !force && Date.now() < cloudToken.expiry) return cloudToken.id;
+  const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({returnSecureToken:true})
+  });
+  if(!res.ok) throw new Error("auth failed " + res.status);
+  const j = await res.json();
+  cloudToken = { id: j.idToken, expiry: Date.now() + ((parseInt(j.expiresIn||"3600",10) - 120) * 1000) };
+  return cloudToken.id;
+}
+
+async function httpJson(method, path, body, retried){
+  const tok = await ensureToken();
+  const res = await fetch(`${cloudBase()}/${path}.json?auth=${encodeURIComponent(tok)}`, {
+    method,
+    headers: body!==undefined ? {"Content-Type":"application/json"} : undefined,
+    body: body!==undefined ? JSON.stringify(body) : undefined
+  });
+  if(res.status === 401 && !retried){
+    cloudToken = null;
+    return httpJson(method, path, body, true);
+  }
+  if(!res.ok) throw new Error(method+" "+res.status+" "+ (await res.text().catch(()=>"")));
+  const t = await res.text();
+  return t ? JSON.parse(t) : null;
+}
+
+function cloudUi(){
+  const btn = document.getElementById("cloudBtn");
+  const st = document.getElementById("cloudStatusText");
+  if(btn){
+    btn.style.background = cloudStatus==="on" ? "#1e7a3c" : (cloudStatus==="error" ? "#b02a1d" : "#666");
+    btn.title = cloudStatus==="on" ? "السحابة متصلة ✓" : (cloudStatus==="error" ? "تعذر الاتصال بالسحابة" : "السحابة غير مفعلة");
+  }
+  if(st){
+    st.textContent = cloudStatus==="on" ? "✓ متصل — المزامنة تعمل تلقائياً"
+      : cloudStatus==="connecting" ? "جاري الاتصال…"
+      : cloudStatus==="error" ? "✗ فشل الاتصال — تأكد من الرابط أو أعد الضغط على حفظ والاتصال"
+      : "غير متصل — البيانات محفوظة على هذا الجهاز فقط";
+    st.className = "cloud-status" + (cloudStatus==="on" ? " on" : (cloudStatus==="error" ? " error" : ""));
+  }
+}
+
+async function cloudPull(){
+  if(!cloudCfg) return;
+  cloudStatus = "connecting"; cloudUi();
+  try{
+    cloudSupress = true;
+    const [p,q,c] = await Promise.all([
+      httpJson("GET","products"),
+      httpJson("GET","qty"),
+      httpJson("GET","customer")
+    ]);
+    if(p && typeof p==="object"){
+      DATA = mergeSavedData(p);
+      normalizeAllProducts();
+      saveData();
+    }
+    if(q && typeof q==="object"){ QTY = decodeQty(q); saveQty(); }
+    if(typeof c === "string"){
+      const ci = document.getElementById("customerName");
+      if(ci) ci.value = c;
+      localStorage.setItem(LS_CUSTOMER_KEY, c);
+    }
+    buildTabs();
+    buildPanels();
+    updateTotals();
+    cloudSupress = false;
+    cloudStatus = "on"; cloudUi();
+    scheduleCloudPush();
+  }catch(e){
+    cloudSupress = false;
+    cloudStatus = "error"; cloudUi();
+    console.warn("سحب من السحابة فشل:", e);
+  }
+}
+
+function encodeQty(q){
+  const out = {};
+  Object.entries(q||{}).forEach(([brand, codes])=>{
+    const b = encodeURIComponent(brand);
+    out[b] = {};
+    Object.entries(codes||{}).forEach(([code, items])=>{
+      out[b][encodeURIComponent(code)] = items;
+    });
+  });
+  return out;
+}
+function decodeQty(q){
+  const out = {};
+  Object.entries(q||{}).forEach(([brand, codes])=>{
+    let b = brand;
+    try{ b = decodeURIComponent(brand); }catch(e){}
+    out[b] = {};
+    Object.entries(codes||{}).forEach(([code, items])=>{
+      let c = code;
+      try{ c = decodeURIComponent(code); }catch(e){}
+      out[b][c] = items;
+    });
+  });
+  return out;
+}
+
+async function cloudPushAll(){
+  const hasQty = Object.keys(QTY).length > 0;
+  await Promise.all([
+    httpJson("PUT","products",DATA),
+    httpJson("PUT","qty", hasQty ? encodeQty(QTY) : null),
+    httpJson("PUT","customer",document.getElementById("customerName").value),
+    httpJson("PUT","updatedAt",Date.now())
+  ]);
+}
+
+function scheduleCloudPush(){
+  if(!cloudCfg || cloudSupress) return;
+  cloudDirty = true;
+  if(cloudTimer) clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(async ()=>{
+    cloudTimer = null;
+    if(!cloudDirty || !cloudCfg) return;
+    cloudDirty = false;
+    try{
+      await cloudPushAll();
+      cloudStatus = "on"; cloudUi();
+    }catch(e){
+      cloudStatus = "error"; cloudUi();
+      console.warn("رفع للسحابة فشل:", e);
+    }
+  }, 1800);
+}
+
+function openCloudSettings(){
+  const overlay = document.createElement("div");
+  overlay.className = "cloud-modal";
+  overlay.innerHTML = `
+    <div class="cloud-panel">
+      <div class="cloud-head"><span>☁️ المزامنة السحابية</span><button type="button" class="close-cloud" aria-label="إغلاق">×</button></div>
+      <div class="cloud-body">
+        <label>رابط قاعدة البيانات (Realtime Database URL)</label>
+        <input id="cloudUrl" dir="ltr" placeholder="https://myshop-default-rtdb.firebaseio.com" value="${cloudCfg?cloudCfg.url:"https://fayrouz-order-app-default-rtdb.firebaseio.com"}">
+        <label>اسم المتجر (شارة الغرفة — حافظ عليها ثابتة على كل أجهزتك)</label>
+        <input id="cloudRoom" dir="ltr" placeholder="shop1" value="${cloudCfg?(cloudCfg.room||"fayrouz"):"fayrouz"}">
+        <div class="cloud-status" id="cloudStatusText"></div>
+        <button type="button" id="cloudSaveBtn">💾 حفظ والاتصال</button>
+        <button type="button" id="cloudDisconnectBtn" class="danger">فصل السحابة</button>
+        <details class="cloud-help">
+          <summary>كيف أجهز الرابط المجاني؟ (مرة واحدة — دقيقتين)</summary>
+          <ol>
+            <li>افتح <b>console.firebase.google.com</b> بحساب Gmail وأنشئ مشروع (الاسم ما يهم).</li>
+            <li>من القائمة الجانبية: <b>Build → Realtime Database → Create database</b>.</li>
+            <li>اختر وضع <b>Test mode</b> ثم <b>Enable</b>.</li>
+            <li>انسخ الرابط اللي يظهر (مثلاً <span dir="ltr">https://x-default-rtdb.firebaseio.com</span>) وحطه بخانة الرابط.</li>
+            <li>حط نفس الرابط ونفس اسم المتجر بكل أجهزتك — وبيصيرون متزامنين.</li>
+            <li>🔒 البيانات مؤمّنة: التطبيق يتصل برمز أمان تلقائي يتجدد بنفسه — أي أحد ثاني بدون هذا الملف ما يقدر يقرأ أو يعدّل بياناتك.</li>
+          </ol>
+        </details>
+        <p class="cloud-note">المساحة المجانية 1GB — قائمتك الكاملة مع كل الصور أقل من 30MB (تكفي أكثر من 10 آلاف صورة). أي تعديل يرفع تلقائياً بعد ثانيتين، وأي جهاز يفتح التطبيق يسحب أحدث نسخة. الوصول محمي برمز أمان (Anonymous Auth) — انسخ هذا الملف لأجهزتك فقط.</p>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  cloudUi();
+
+  overlay.querySelector(".close-cloud").addEventListener("click", close);
+  overlay.querySelector("#cloudDisconnectBtn").addEventListener("click", ()=>{
+    localStorage.removeItem(LS_CLOUD_KEY);
+    cloudCfg = null;
+    cloudStatus = "off";
+    if(cloudTimer) clearTimeout(cloudTimer);
+    cloudTimer = null;
+    cloudDirty = false;
+    close();
+  });
+
+  overlay.querySelector("#cloudSaveBtn").addEventListener("click", ()=>{
+    const url = document.getElementById("cloudUrl").value.trim().replace(/\/+$/,"");
+    const room = (document.getElementById("cloudRoom").value.trim()||"shop1").replace(/[^a-zA-Z0-9_-]/g,"");
+    if(!url){ alert("اكتب رابط قاعدة البيانات"); return; }
+    if(!/^https:\/\/.+/.test(url)){ alert("الرابط يجب أن يبدأ بـ https://"); return; }
+    cloudCfg = {url, room: room||"shop1"};
+    localStorage.setItem(LS_CLOUD_KEY, JSON.stringify(cloudCfg));
+    cloudPull();
+    close();
+  });
+
+  const onKey = (e)=>{ if(e.key === "Escape") close(); };
+  function close(){
+    overlay.remove();
+    document.removeEventListener("keydown", onKey);
+  }
+  overlay.addEventListener("click", (e)=>{ if(e.target === overlay) close(); });
+  document.addEventListener("keydown", onKey);
+}
+
+function initCloud(){
+  cloudUi();
+  if(cloudCfg) cloudPull();
 }
 
 function parsePrices(priceStr){
@@ -786,8 +1046,8 @@ function buildGrid(grid, brand, blocks){
         </div>
         <div class="code">${block.code}</div>
         <div class="prices">
-          <div class="price-line wholesale-price"><span class="price-label">سعر الجملة :</span><strong>${fmt(big)}</strong></div>
-          <div class="price-line retail-price"><span class="price-label">سعر المفرد :</span><strong>${fmt(small)}</strong></div>
+          <div class="price-line wholesale-price"><span class="price-label">سعر الجملة :</span><strong>${fmt(small)}</strong></div>
+          <div class="price-line retail-price"><span class="price-label">سعر المفرد :</span><strong>${fmt(big)}</strong></div>
         </div>
       </div>
       <div class="rows"></div>
@@ -1191,6 +1451,7 @@ normalizeAllProducts();
 buildTabs();
 buildPanels();
 updateTotals();
+initCloud();
 
 // Fallback: clicking any product image always opens the enlarged image
 // when not in edit mode. This also works after the cards are re-rendered.
@@ -1207,6 +1468,7 @@ const customerInput = document.getElementById("customerName");
 customerInput.value = localStorage.getItem(LS_CUSTOMER_KEY) || "";
 customerInput.addEventListener("input", ()=>{
   localStorage.setItem(LS_CUSTOMER_KEY, customerInput.value);
+  scheduleCloudPush();
 });
 
 // Prevent pinch-zoom and double-tap zoom
