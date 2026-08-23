@@ -1,4 +1,4 @@
-<!-- index v1.9 -->
+<!-- index v1.10 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -156,7 +156,7 @@
   .edit-image-cell{min-width:100px;}
   .edit-image-preview{width:42px;height:42px;object-fit:contain;border-radius:8px;border:1px solid var(--border);vertical-align:middle;background:var(--soft);margin-inline-end:5px;}
   .block-head .code{font-weight:800;font-size:14px;color:var(--text);}
-  .prices{display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:left;direction:rtl;margin-top:0;}
+  .prices{display:flex;flex-direction:column;gap:3px;align-items:flex-end;margin-inline-start:auto;text-align:left;direction:rtl;margin-top:0;}
   .price-line{font-size:13px;font-weight:700;white-space:nowrap;line-height:1.25;color:var(--subtext);}
   .price-line .price-label{margin-inline-end:4px;}
   .wholesale-price{color:var(--success);}
@@ -273,6 +273,13 @@
   }
   .qty-ctrl button.btn-dec{background:var(--danger);}
   .qty-ctrl button:active{transform:scale(.92);}
+  .tg-btn{
+    border:1.5px solid var(--border);background:var(--soft);color:var(--subtext);
+    min-width:34px;height:42px;border-radius:12px;font-weight:800;font-size:11px;
+    cursor:pointer;font-family:inherit;padding:0 6px;line-height:1;
+  }
+  .tg-btn.on{background:var(--success);border-color:var(--success);color:#fff;}
+  .tg-btn:active{transform:scale(.94);}
   .brand-title{
     font-size:20px;font-weight:800;text-align:center;margin:10px 0 14px;
     color:var(--primary);
@@ -473,7 +480,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز</h1>
-  <span class="version">v1.9</span>
+  <span class="version">v1.10</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -507,11 +514,11 @@
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
   </nav>
-  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.9</span></div>
+  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.10</span></div>
 </aside>
 
 <script>
-const APP_VERSION = "1.9";
+const APP_VERSION = "1.10";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1370,7 +1377,9 @@ function buildGrid(grid, brand, blocks){
       row.className = "row-item";
       const savedQty = QTY[brand][block.code][item] || 0;
       const hasVariantImg = !!getVariantImage(block, item);
-      row.innerHTML = `<label class="variant-label${hasVariantImg?' has-image':''}">${item}</label><div class="qty-ctrl"><button type="button" class="btn-dec">−</button><input type="number" min="0" inputmode="numeric" placeholder="0" value="${savedQty>0?savedQty:''}"><button type="button" class="btn-inc">+</button></div>`;
+      const tOn = QTY[brand][block.code][item+"::T"] > 0;
+      const gOn = QTY[brand][block.code][item+"::G"] > 0;
+      row.innerHTML = `<label class="variant-label${hasVariantImg?' has-image':''}">${item}</label><div class="qty-ctrl"><button type="button" class="tg-btn tg-t${tOn?" on":""}" title="Tester">T</button><button type="button" class="tg-btn tg-g${gOn?" on":""}" title="Gift">Gift</button><button type="button" class="btn-dec">−</button><input type="number" min="0" inputmode="numeric" placeholder="0" value="${savedQty>0?savedQty:''}"><button type="button" class="btn-inc">+</button></div>`;
       const input = row.querySelector("input");
       if(savedQty>0) row.classList.add("filled");
 
@@ -1403,6 +1412,22 @@ function buildGrid(grid, brand, blocks){
         input.value = v > 0 ? v : "";
         applyChange();
       });
+      // Tester / Gift: one free piece per toggle, stored as item::T / item::G
+      const toggleMeta = (suffix, btn)=>{
+        const key = item + suffix;
+        if(QTY[brand][block.code][key]){
+          delete QTY[brand][block.code][key];
+          btn.classList.remove("on");
+        }else{
+          QTY[brand][block.code][key] = 1;
+          btn.classList.add("on");
+        }
+        el.classList.toggle("has-qty", Object.keys(QTY[brand][block.code]).length>0);
+        saveQty();
+        updateTotals();
+      };
+      row.querySelector(".tg-t").addEventListener("click", (e)=>toggleMeta("::T", e.currentTarget));
+      row.querySelector(".tg-g").addEventListener("click", (e)=>toggleMeta("::G", e.currentTarget));
       rows.appendChild(row);
     });
     if(Object.keys(QTY[brand][block.code]).length>0){
@@ -1672,10 +1697,12 @@ function computeTotals(qtySource){
   Object.entries(qtySource||{}).forEach(([brand, codes])=>{
     Object.entries(codes||{}).forEach(([code, items])=>{
       const block = (DATA[brand]||[]).find(b=>b.code===code);
-      const price = block ? parsePrices(block.price).small : 0;
-      Object.values(items||{}).forEach(qty=>{
+      const basePrice = block ? parsePrices(block.price).small : 0;
+      Object.entries(items||{}).forEach(([label, qty])=>{
+        // Tester/Gift markers (::T / ::G) count as pieces but carry no price
+        const isFree = /::(T|G)$/.test(label);
         pieces += qty;
-        amount += qty * price;
+        if(!isFree) amount += qty * basePrice;
       });
     });
   });
@@ -1707,12 +1734,15 @@ async function renderOrderCanvas(qtySource, customerName){
       <tr style="background:#f1ede3;"><th style="border:1px solid #ccc;padding:4px;">الصورة / الباركود</th><th style="border:1px solid #ccc;padding:4px;">الكود</th><th style="border:1px solid #ccc;padding:4px;">الدرجة</th><th style="border:1px solid #ccc;padding:4px;">الكمية</th><th style="border:1px solid #ccc;padding:4px;">السعر</th><th style="border:1px solid #ccc;padding:4px;">المجموع</th></tr>`;
     entries.forEach(([code, items])=>{
       const block = (DATA[brand]||[]).find(b=>b.code===code);
-      const price = block ? parsePrices(block.price).small : 0;
+      const basePrice = block ? parsePrices(block.price).small : 0;
       Object.entries(items).forEach(([label, qty])=>{
+        const meta = label.match(/^(.*)::(T|G)$/);
+        const showLabel = meta ? `${meta[1]} · ${meta[2]==="T" ? "Tester" : "Gift"}` : label;
+        const price = meta ? 0 : basePrice;
         html += `<tr>
-          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${block && block.image ? `<img src="${block.image}" style="width:38px;height:38px;object-fit:contain;border-radius:4px;">` : "📦"}${block && block.barcode ? `<svg class="invoice-barcode" data-barcode="${block.barcode}" style="width:105px;height:34px;display:block;margin:3px auto 0;"></svg>` : ""}</td>
+          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${block && block.image ? `<img src="${block.image}" style="width:38px;height:38px;object-fit:contain;border-radius:4px;">` : "📦"}${!meta && block && block.barcode ? `<svg class="invoice-barcode" data-barcode="${block.barcode}" style="width:105px;height:34px;display:block;margin:3px auto 0;"></svg>` : ""}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${code}</td>
-          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${label}</td>
+          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${showLabel}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${qty}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${fmt(price)}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${fmt(qty*price)}</td>
