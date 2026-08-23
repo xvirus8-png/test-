@@ -8,6 +8,10 @@
 - index.html: v1 (+ نسخة احتياطية index-v1.html)
 
 ملاحظات تقنية مهمة:
+- سيرفر أوبن كود ويب: start-opencode-web.bat (0.0.0.0:4096 بدون باسورد)
+  * التلفون: http://192.168.100.4:4096 (نفس شبكة الواي فاي)
+  * ⚠️ لازم `set OPENCODE_SERVER_PASSWORD=` قبل التشغيل — جلسة opencode الأصلية تضيف باسورد موروث يمنع الدخول (401)
+  * قاعدة جدار الحماية: "OpenCode Web 4096"
 - الفيرجن في 3 أماكن: تعليق أول سطر + APP_VERSION + span.version
 - ⚠️ لا تستخدم replaceAll لتغيير الأرقام — يخرب روابط CDN
 - Firebase RTDB عبر REST API مباشر (fetch) — بدون SDK
