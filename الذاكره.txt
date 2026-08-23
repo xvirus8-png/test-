@@ -1,0 +1,16 @@
+آخر جلسة: 2026-08-23
+الحالة: تهيئة المشروع - index.html (بدون فيرجن، أول تعديل = v1)
+
+المشروع: فيروز - طلبية (تطبيق طلبيات منفصل كلياً)
+الريبو: https://github.com/xvirus8-png/test-.git (فرع main)
+
+الإصدار الحالي:
+- index.html: بدون فيرجن (v0)
+
+ملاحظات تقنية مهمة:
+- Firebase RTDB عبر REST API مباشر (fetch) — بدون SDK
+- المصادقة: Anonymous Auth عبر identitytoolkit signUp
+- التخزين المحلي: localStorage
+- المزامنة: rooms (الافتراضي shop1)
+- مكتبات CDN: html2canvas + jspdf + xlsx
+- الواجهة RTL عربية صفحة واحدة

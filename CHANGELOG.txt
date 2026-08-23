@@ -1,0 +1,8 @@
+=== CHANGELOG - فيروز طلبية ===
+
+[v0] 2026-08-23
+- تهيئة المشروع: استنساخ الريبو https://github.com/xvirus8-png/test-.git
+- النسخة المعتمدة: index.html (مطابقة تماماً لنسخة الريبو main)
+- إضافة AGENTS.md خاص بالمشروع
+- نسخ سكل frontend-design إلى .opencode/skills/
+- التطبيق حالياً بدون رقم فيرجن — أول تعديل يبدأ من v1
