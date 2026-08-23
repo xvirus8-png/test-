@@ -5,7 +5,12 @@
 الريبو: https://github.com/xvirus8-png/test-.git (فرع main)
 
 الإصدار الحالي:
-- index.html: v1.1 (+ نسخ احتياطية index-v1.1.html و index-v1.html)
+- index.html: v1.2 (+ نسخ احتياطية index-v1.2.html و index-v1.1.html و index-v1.html)
+- التصميم: سكل frontend-design — ألوان فاتح/داكن بمتغيرات CSS (html.dark)، زر تبديل themeBtn بالهيدر، localStorage: orderapp_theme_v1
+- Bootstrap Icons CDN 1.11.3 | خط system-ui | حاوية 600px
+- إزاحات sticky ديناميكية بـ JS (updateStickyOffsets → --hdr-h/--tabs-h/--cust-h)
+- شاشة التصدير (#exportCanvas) فاتحة دائماً حتى بالوضع الداكن
+- خطة المستخدم: إذا ما عجبه دزاين v1.2 يرجع لـ v1.1 ويُعمل "إصلاح جوال فقط" بألوان قديمة
 
 ملاحظات تقنية مهمة:
 - سيرفر أوبن كود ويب: start-opencode-web.bat (0.0.0.0:4096 بدون باسورد)
