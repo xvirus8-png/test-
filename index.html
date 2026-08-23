@@ -1,4 +1,4 @@
-<!-- index v1.5 -->
+<!-- index v1.6 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -467,7 +467,6 @@
   }
   .pv-btn:active{transform:scale(.97);}
   .pv-download{background:var(--primary);}
-  .pv-open{background:var(--success);}
 </style>
 </head>
 <body>
@@ -475,7 +474,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز</h1>
-  <span class="version">v1.5</span>
+  <span class="version">v1.6</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -510,11 +509,11 @@
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
   </nav>
-  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.5</span></div>
+  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.6</span></div>
 </aside>
 
 <script>
-const APP_VERSION = "1.5";
+const APP_VERSION = "1.6";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1742,7 +1741,7 @@ async function renderOrderCanvas(qtySource, customerName){
 
 function orderFileName(customer){
   const safeName = customer ? String(customer).replace(/[^a-zA-Z0-9ء-ي_ -]/g,"").trim().replace(/\s+/g,"_") : "";
-  return `order_${safeName ? safeName+"_" : ""}${Date.now()}.pdf`;
+  return `${safeName || "order"}.pdf`;
 }
 
 function buildOrderPdf(canvas){
@@ -1861,7 +1860,6 @@ function ensurePreviewModal(titleHtml, withActions){
         <div class="preview-body" id="previewBody"></div>
         <div class="preview-actions" id="previewActions">
           <button class="pv-btn pv-download" onclick="exportOrder()"><i class="bi bi-download"></i> تحميل PDF</button>
-          <button class="pv-btn pv-open" onclick="openPdfShare()"><i class="bi bi-share"></i> فتح للمشاركة</button>
         </div>
       </div>`;
     document.body.appendChild(modal);
@@ -1901,33 +1899,6 @@ async function previewSavedOrder(id){
 function closePreview(){
   const m = document.getElementById("previewModal");
   if(m) m.remove();
-}
-
-async function openPdfShare(){
-  try{
-    if(!hasAnyQty()){ alert("ما فيه اي كمية مدخلة للطلبية"); return; }
-    const name = await askCustomerName(editingPrefill());
-    if(!name) return;
-    const win = window.open("", "_blank");
-    try{
-      const canvas = await renderOrderCanvas(QTY, name);
-      if(!canvas){ if(win) win.close(); return; }
-      const blob = buildOrderPdf(canvas).output("blob");
-      const url = URL.createObjectURL(blob);
-      if(win){
-        win.location.href = url;
-      }else{
-        buildOrderPdf(canvas).save(orderFileName(name));
-        alert("المتصفح منع فتح نافذة جديدة — تم تحميل الـ PDF بدلاً من ذلك، شاركه من ملفات الجهاز.");
-      }
-      setTimeout(()=>URL.revokeObjectURL(url), 60000);
-    }catch(err){
-      if(win) win.close();
-      throw err;
-    }
-  }catch(err){
-    alert("⚠️ خطأ بفتح الـ PDF:\n" + err.message);
-  }
 }
 
 normalizeAllProducts();
