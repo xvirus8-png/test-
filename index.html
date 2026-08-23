@@ -1,4 +1,4 @@
-<!-- index v1.3.1 -->
+<!-- index v1.3.2 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -432,7 +432,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز</h1>
-  <span class="version">v1.3.1</span>
+  <span class="version">v1.3.2</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -464,11 +464,11 @@
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
   </nav>
-  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.3.1</span></div>
+  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.3.2</span></div>
 </aside>
 
 <script>
-const APP_VERSION = "1.3.1";
+const APP_VERSION = "1.3.2";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -696,6 +696,10 @@ const LS_CUSTOMER_KEY = "orderapp_customer_v1";
 
 let DATA = loadData();
 let QTY  = loadQty(); // QTY[brand][code][item] = number
+
+// ORDER HISTORY — must be initialized before the startup calls further below
+const LS_ORDERS_KEY = "orderapp_orders_v1";
+let ORDERS = loadOrders();
 
 function mergeSavedData(saved){
   // Keep the user's saved data, but restore any old/default brand whose
@@ -1774,8 +1778,6 @@ function closeDrawer(){
 }
 
 // ORDER HISTORY (auto-saved on PDF export)
-const LS_ORDERS_KEY = "orderapp_orders_v1";
-let ORDERS = loadOrders();
 function loadOrders(){
   try{
     const raw = localStorage.getItem(LS_ORDERS_KEY);
