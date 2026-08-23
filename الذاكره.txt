@@ -1,5 +1,12 @@
 آخر جلسة: 2026-08-24
-الحالة: index.html v1.3.2 - إصلاح جذري للسجل:
+الحالة: index.html v1.4 - معاينة الطلبية:
+- الفوتر 3 أزرار: معاينة 👁 / تصدير 📤 / مسح 🗑 (تسميات مختصرة)
+- previewOrder(): bottom-sheet فيها صورة الطلبية كاملة قابلة للتمرير + زر تحميل PDF + زر فتح للمشاركة
+- openPdfShare(): يفتح تبويب فاضي فوراً عند الضغط ثم يحوله لـ PDF blob URL (لتجاوز حاجب popup بـ iOS) — fallback: تحميل مباشر + تنبيه
+- إعادة هيكلة: renderOrderCanvas() + buildOrderPdf(canvas) + orderFileName() مشتركة بين التصدير والمعاينة
+- recordOrder() يبقى فقط داخل exportOrder
+
+سجل سابق - v1.3.2 (إصلاح جذري للسجل):
 - الخطأ: ReferenceError Cannot access 'ORDERS' before initialization — updateHistoryCount() بسلسلة التشغيل كانت تقرأ ORDERS قبل تعريفها (let تحت بالملف / TDZ) فكان يقتل كل التنفيذ بعدها
 - الدرس المستفاد: ⚠️ أي متغير let/const جديد لازم يتعرف فوق قبل سلسلة التشغيل (normalizeAllProducts...updateHistoryCount) حتى لو الدوال نفسها hoisted
 - الحل: تهيئة LS_ORDERS_KEY + ORDERS صارت بعد QTY مباشرة (~سطر 700)
@@ -9,7 +16,7 @@
 الريبو: https://github.com/xvirus8-png/test-.git (فرع main)
 
 الإصدار الحالي:
-- index.html: v1.3.2 (+ نسخ احتياطية v1.3.1 / v1.3 / v1.2 / v1.1 / v1)
+- index.html: v1.4 (+ نسخ احتياطية v1.3.2 / v1.3.1 / v1.3 / v1.2 / v1.1 / v1)
 - قائمة جانبية: زر ☰ جنب «فيروز» → drawer من اليمين (السجل/تعديل الأسعار/سحابة/المظهر) — أزرار الهيدر القديمة انتقلت لها بنفس الـ id
 - سجل الطلبيات: حفظ تلقائي عند تصدير PDF → localStorage orderapp_orders_v1 (حد 50) — فتح=استبدال الكميات مع تأكيد، حذف، عدّاد بجانب «السجل»
 - السجل محلي فقط حالياً — مزامنته السحابية مؤجلة (اقتراح لفيرجن جاي)

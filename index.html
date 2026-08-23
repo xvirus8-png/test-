@@ -1,4 +1,4 @@
-<!-- index v1.3.2 -->
+<!-- index v1.4 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -279,6 +279,7 @@
     flex:1;min-height:48px;padding:12px;border-radius:12px;border:none;font-weight:800;font-size:15px;cursor:pointer;
     display:inline-flex;align-items:center;justify-content:center;gap:7px;
   }
+  .btn-preview{background:var(--pl);color:var(--primary);}
   .btn-export{background:var(--primary);color:#fff;}
   .btn-clear{background:var(--soft);color:var(--danger);}
   .hint{font-size:12.5px;color:var(--subtext);text-align:center;padding:20px;}
@@ -425,6 +426,39 @@
   .hact-open{background:var(--pl);color:var(--primary);}
   .hact-del{background:rgba(239,68,68,.12);color:var(--danger);}
   .history-empty{text-align:center;color:var(--subtext);padding:30px 10px;font-size:13px;line-height:2;}
+  .preview-modal{
+    position:fixed;top:0;left:0;right:0;bottom:0;
+    background:rgba(15,17,23,.6);z-index:220;
+    display:flex;align-items:flex-end;justify-content:center;
+  }
+  .preview-panel{
+    background:var(--card);width:100%;max-width:600px;height:92vh;
+    border-radius:20px 20px 0 0;display:flex;flex-direction:column;
+    box-shadow:0 -4px 20px rgba(0,0,0,.3);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .preview-panel-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 16px;border-bottom:1px solid var(--border);
+  }
+  .preview-panel-title{font-weight:800;font-size:15px;color:var(--text);}
+  .preview-close{
+    background:var(--soft);border:none;border-radius:50%;
+    width:42px;height:42px;font-size:18px;cursor:pointer;color:var(--text);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .preview-body{overflow-y:auto;padding:12px 14px;flex:1;background:var(--soft);-webkit-overflow-scrolling:touch;}
+  .preview-img{width:100%;height:auto;display:block;border-radius:10px;border:1px solid var(--border);background:#fff;box-shadow:var(--shadow);}
+  .preview-actions{
+    display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--border);
+  }
+  .pv-btn{
+    flex:1;min-height:48px;border:none;border-radius:12px;font-weight:800;font-size:14px;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;gap:7px;font-family:inherit;color:#fff;
+  }
+  .pv-btn:active{transform:scale(.97);}
+  .pv-download{background:var(--primary);}
+  .pv-open{background:var(--success);}
 </style>
 </head>
 <body>
@@ -432,7 +466,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز</h1>
-  <span class="version">v1.3.2</span>
+  <span class="version">v1.4</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -448,8 +482,9 @@
 <main id="main"></main>
 
 <footer class="bar">
-  <button class="btn-clear" onclick="clearAll()"><i class="bi bi-trash3"></i> مسح الكل</button>
-  <button class="btn-export" onclick="exportOrder()"><i class="bi bi-box-arrow-up"></i> تصدير الطلبية</button>
+  <button class="btn-preview" onclick="previewOrder()"><i class="bi bi-eye"></i> معاينة</button>
+  <button class="btn-export" onclick="exportOrder()"><i class="bi bi-box-arrow-up"></i> تصدير</button>
+  <button class="btn-clear" onclick="clearAll()"><i class="bi bi-trash3"></i> مسح</button>
 </footer>
 
 <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
@@ -464,11 +499,11 @@
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
   </nav>
-  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.3.2</span></div>
+  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.4</span></div>
 </aside>
 
 <script>
-const APP_VERSION = "1.3.2";
+const APP_VERSION = "1.4";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1634,10 +1669,10 @@ document.getElementById("searchBox").addEventListener("input", (e)=>{
   });
 });
 
-// EXPORT
-async function exportOrder(){
+// EXPORT & PREVIEW
+async function renderOrderCanvas(){
   const hasAny = Object.values(QTY).some(b=>Object.values(b).some(c=>Object.keys(c).length>0));
-  if(!hasAny){ alert("ما فيه اي كمية مدخلة للطلبية"); return; }
+  if(!hasAny){ alert("ما فيه اي كمية مدخلة للطلبية"); return null; }
 
   const container = document.createElement("div");
   container.id = "exportCanvas";
@@ -1686,7 +1721,16 @@ async function exportOrder(){
 
   const canvas = await html2canvas(container, {scale:2, backgroundColor:"#ffffff"});
   document.body.removeChild(container);
+  return canvas;
+}
 
+function orderFileName(){
+  const customerName = document.getElementById("customerName").value.trim();
+  const safeName = customerName ? customerName.replace(/[^a-zA-Z0-9ء-ي_ -]/g,"").trim().replace(/\s+/g,"_") : "";
+  return `order_${safeName ? safeName+"_" : ""}${Date.now()}.pdf`;
+}
+
+function buildOrderPdf(canvas){
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({unit:"mm", format:"a4"});
   const pageWidth = pdf.internal.pageSize.getWidth();
@@ -1707,10 +1751,80 @@ async function exportOrder(){
     pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
     heightLeft -= pageHeight;
   }
+  return pdf;
+}
 
-  const safeName = customerName ? customerName.replace(/[^a-zA-Z0-9ء-ي_ -]/g,"").trim().replace(/\s+/g,"_") : "";
-  pdf.save(`order_${safeName ? safeName+"_" : ""}${Date.now()}.pdf`);
-  recordOrder();
+async function exportOrder(){
+  try{
+    const canvas = await renderOrderCanvas();
+    if(!canvas) return;
+    buildOrderPdf(canvas).save(orderFileName());
+    recordOrder();
+  }catch(err){
+    alert("⚠️ خطأ بالتصدير:\n" + err.message);
+  }
+}
+
+async function previewOrder(){
+  let modal = document.getElementById("previewModal");
+  if(modal){ modal.querySelector("#previewBody").innerHTML = "<div class='history-empty'>جاري التحضير…</div>"; }
+  try{
+    const canvas = await renderOrderCanvas();
+    if(!canvas) return;
+    if(!modal){
+      modal = document.createElement("div");
+      modal.className = "preview-modal";
+      modal.id = "previewModal";
+      modal.innerHTML = `
+        <div class="preview-panel">
+          <div class="preview-panel-head">
+            <div class="preview-panel-title"><i class="bi bi-eye"></i> معاينة الطلبية</div>
+            <button class="preview-close" onclick="closePreview()" title="إغلاق"><i class="bi bi-x-lg"></i></button>
+          </div>
+          <div class="preview-body" id="previewBody"></div>
+          <div class="preview-actions">
+            <button class="pv-btn pv-download" onclick="exportOrder()"><i class="bi bi-download"></i> تحميل PDF</button>
+            <button class="pv-btn pv-open" onclick="openPdfShare()"><i class="bi bi-share"></i> فتح للمشاركة</button>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+    }
+    const body = modal.querySelector("#previewBody");
+    body.innerHTML = "";
+    const img = document.createElement("img");
+    img.className = "preview-img";
+    img.alt = "معاينة الطلبية";
+    img.src = canvas.toDataURL("image/jpeg", 0.85);
+    body.appendChild(img);
+  }catch(err){
+    alert("⚠️ خطأ ببناء المعاينة:\n" + err.message);
+    closePreview();
+  }
+}
+
+function closePreview(){
+  const m = document.getElementById("previewModal");
+  if(m) m.remove();
+}
+
+async function openPdfShare(){
+  const win = window.open("", "_blank");
+  try{
+    const canvas = await renderOrderCanvas();
+    if(!canvas){ if(win) win.close(); return; }
+    const blob = buildOrderPdf(canvas).output("blob");
+    const url = URL.createObjectURL(blob);
+    if(win){
+      win.location.href = url;
+    }else{
+      buildOrderPdf(canvas).save(orderFileName());
+      alert("المتصفح منع فتح نافذة جديدة — تم تحميل الـ PDF بدلاً من ذلك، شاركه من ملفات الجهاز.");
+    }
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  }catch(err){
+    if(win) win.close();
+    alert("⚠️ خطأ بفتح الـ PDF:\n" + err.message);
+  }
 }
 
 normalizeAllProducts();
