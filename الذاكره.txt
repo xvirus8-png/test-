@@ -1,5 +1,15 @@
 آخر جلسة: 2026-08-24
-الحالة: index.html v1.8 - سجل بالوسط + زر مشاركة بالمعاينة:
+الحالة: index.html v1.9 - المعاينة هي التصدير:
+- الفوتر زرين: 👁 معاينة / 🗑 مسح (زر تصدير انحذف)
+- previewOrder(): فحص كميات → askCustomerName إجباري → previewCustomerName=name → commitOrderToLog(name) حفظ فوري مثل التصدير القديم → معاينة بالاسم مطبوع وعلى العنوان
+- نافذة المعاينة: زرين «✏️ تعديل» + «📤 مشاركة» فقط (pv-edit أزرق فاتح / pv-share أصفر) — تحميل PDF انحذف نهائياً والملف يوصله عبر المشاركة
+- تعديل: الحية = closePreview رجوع للشاشة، المحفوظة = editSavedOrder(id) → loadOrder (شريط وضع التعديل ✏️)
+- shareLiveOrder تستخدم previewCustomerName مباشرة بدون سؤال؛ clearAll يصفّر المتغير
+- عدادات الهيدر صارت سطرين فوق بعض (.totals flex-direction:column — القطع فوق والمبلغ تحته)
+- انحذفت الدوال الميتة: exportOrder/openPdfShare/downloadSavedOrder/openSavedPdf + CSS btn-export/pv-download/pv-open
+- ⚠️ ملاحظة: الحفظ بالسجل يصير لحظة تأكيد الاسم حتى لو المستخدم قفل المعاينة بدون مشاركة (سلوك مقصود بطلب المستخدم)
+
+سجل سابق - v1.8 (سجل بالوسط + زر مشاركة):
 - نافذة السجل صارت centered modal (align-items:center + padding:16px + max-width:520px + max-height:80vh) بدل bottom-sheet
 - نافذة المعاينة صارت 3 أزرار: ⬇️ تحميل PDF / ↗️ فتح / 📤 مشاركة (pv-share أصفر)
 - ensurePreviewModal(titleHtml, orderId|null): orderId=null → أزرار على الطلبية الحية، وإلا على اللقطة المحفوظة (ربط onclick ديناميكي — لا تعتمد inline onclick لأن النافذة تُعاد استخدامها)
@@ -44,7 +54,7 @@
 الريبو: https://github.com/xvirus8-png/test-.git (فرع main)
 
 الإصدار الحالي:
-- index.html: v1.8 (+ نسخ احتياطية v1.7 / v1.6 / v1.5 / v1.4 / v1.3.2 / v1.3.1 / v1.3 / v1.2 / v1.1 / v1)
+- index.html: v1.9 (+ نسخ احتياطية v1.8 / v1.7 / v1.6 / v1.5 / v1.4 / v1.3.2 / v1.3.1 / v1.3 / v1.2 / v1.1 / v1)
 - قائمة جانبية: زر ☰ جنب «فيروز» → drawer من اليمين (السجل/تعديل الأسعار/سحابة/المظهر) — أزرار الهيدر القديمة انتقلت لها بنفس الـ id
 - سجل الطلبيات: حفظ تلقائي عند تصدير PDF → localStorage orderapp_orders_v1 (حد 50) — فتح=استبدال الكميات مع تأكيد، حذف، عدّاد بجانب «السجل»
 - السجل محلي فقط حالياً — مزامنته السحابية مؤجلة (اقتراح لفيرجن جاي)
