@@ -1,4 +1,4 @@
-<!-- index v1.7 -->
+<!-- index v1.8 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -399,13 +399,12 @@
   .history-modal{
     position:fixed;top:0;left:0;right:0;bottom:0;
     background:rgba(15,17,23,.6);z-index:200;
-    display:flex;align-items:flex-end;justify-content:center;
+    display:flex;align-items:center;justify-content:center;padding:16px;
   }
   .history-panel{
-    background:var(--card);width:100%;max-width:600px;max-height:85vh;
-    border-radius:20px 20px 0 0;display:flex;flex-direction:column;
-    box-shadow:0 -4px 20px rgba(0,0,0,.3);
-    padding-bottom:env(safe-area-inset-bottom);
+    background:var(--card);width:100%;max-width:520px;max-height:80vh;
+    border-radius:20px;display:flex;flex-direction:column;
+    box-shadow:0 12px 40px rgba(0,0,0,.4);overflow:hidden;
   }
   .history-panel-head{
     display:flex;align-items:center;justify-content:space-between;
@@ -468,6 +467,7 @@
   .pv-btn:active{transform:scale(.97);}
   .pv-download{background:var(--primary);}
   .pv-open{background:var(--success);}
+  .pv-share{background:var(--warning);}
 </style>
 </head>
 <body>
@@ -475,7 +475,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز</h1>
-  <span class="version">v1.7</span>
+  <span class="version">v1.8</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -510,11 +510,11 @@
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
   </nav>
-  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.7</span></div>
+  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.8</span></div>
 </aside>
 
 <script>
-const APP_VERSION = "1.7";
+const APP_VERSION = "1.8";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1835,7 +1835,7 @@ async function exportOrder(){
 async function previewOrder(){
   try{
     if(!hasAnyQty()){ alert("ما فيه اي كمية مدخلة للطلبية"); return; }
-    const modal = ensurePreviewModal('<i class="bi bi-eye"></i> معاينة الطلبية', true);
+    const modal = ensurePreviewModal('<i class="bi bi-eye"></i> معاينة الطلبية', null);
     modal.querySelector("#previewBody").innerHTML = "<div class='history-empty'>جاري التحضير…</div>";
     const canvas = await renderOrderCanvas(QTY, "");
     if(!canvas){ closePreview(); return; }
@@ -1846,7 +1846,8 @@ async function previewOrder(){
   }
 }
 
-function ensurePreviewModal(titleHtml, withActions){
+// orderId = null → buttons act on the LIVE order; otherwise on the SAVED entry
+function ensurePreviewModal(titleHtml, orderId){
   let modal = document.getElementById("previewModal");
   if(!modal){
     modal = document.createElement("div");
@@ -1860,14 +1861,19 @@ function ensurePreviewModal(titleHtml, withActions){
         </div>
         <div class="preview-body" id="previewBody"></div>
         <div class="preview-actions" id="previewActions">
-          <button class="pv-btn pv-download" onclick="exportOrder()"><i class="bi bi-download"></i> تحميل PDF</button>
-          <button class="pv-btn pv-open" onclick="openPdfShare()"><i class="bi bi-share"></i> فتح للمشاركة</button>
+          <button class="pv-btn pv-download"><i class="bi bi-download"></i> تحميل PDF</button>
+          <button class="pv-btn pv-open"><i class="bi bi-box-arrow-up-right"></i> فتح</button>
+          <button class="pv-btn pv-share"><i class="bi bi-share"></i> مشاركة</button>
         </div>
       </div>`;
     document.body.appendChild(modal);
   }
+  const live = !orderId;
+  modal.querySelector(".pv-download").onclick = ()=>{ live ? exportOrder() : downloadSavedOrder(orderId); };
+  modal.querySelector(".pv-open").onclick = ()=>{ live ? openPdfShare() : openSavedPdf(orderId); };
+  modal.querySelector(".pv-share").onclick = ()=>{ live ? shareLiveOrder() : shareSavedOrder(orderId); };
   modal.querySelector("#previewTitle").innerHTML = titleHtml;
-  modal.querySelector("#previewActions").style.display = withActions ? "flex" : "none";
+  modal.querySelector("#previewActions").style.display = "flex";
   return modal;
 }
 
@@ -1887,14 +1893,103 @@ async function previewSavedOrder(id){
     const o = ORDERS.find(x=>x.id===id);
     if(!o) return;
     if(!hasAnyQty(o.qty)){ alert("هذي الطلبية ما فيها كميات محفوظة"); return; }
-    ensurePreviewModal(`<i class="bi bi-clock-history"></i> معاينة: ${o.customer || "بدون اسم"}`, false)
-      .querySelector("#previewBody").innerHTML = "<div class='history-empty'>جاري التحضير…</div>";
+    const modal = ensurePreviewModal(`<i class="bi bi-clock-history"></i> معاينة: ${o.customer || "بدون اسم"}`, id);
+    modal.querySelector("#previewBody").innerHTML = "<div class='history-empty'>جاري التحضير…</div>";
     const canvas = await renderOrderCanvas(o.qty||{}, o.customer||"");
     if(!canvas){ closePreview(); return; }
-    putPreviewImage(document.getElementById("previewModal"), canvas);
+    putPreviewImage(modal, canvas);
   }catch(err){
     alert("⚠️ خطأ ببناء المعاينة:\n" + err.message);
     closePreview();
+  }
+}
+
+// ===== Saved-order actions (act on the stored snapshot, no name dialog needed) =====
+function savedOrderOrNull(id){
+  const o = ORDERS.find(x=>x.id===id);
+  if(!o){ alert("هذي الطلبية ما موجودة بالسجل"); return null; }
+  if(!hasAnyQty(o.qty)){ alert("هذي الطلبية ما فيها كميات محفوظة"); return null; }
+  return o;
+}
+async function downloadSavedOrder(id){
+  try{
+    const o = savedOrderOrNull(id);
+    if(!o) return;
+    const canvas = await renderOrderCanvas(o.qty||{}, o.customer||"");
+    if(!canvas) return;
+    buildOrderPdf(canvas).save(orderFileName(o.customer||""));
+  }catch(err){
+    alert("⚠️ خطأ بالتصدير:\n" + err.message);
+  }
+}
+async function openSavedPdf(id){
+  let win = null;
+  try{
+    const o = savedOrderOrNull(id);
+    if(!o) return;
+    const canvas = await renderOrderCanvas(o.qty||{}, o.customer||"");
+    if(!canvas) return;
+    const pdf = buildOrderPdf(canvas);
+    const url = URL.createObjectURL(pdf.output("blob"));
+    win = window.open("", "_blank");
+    if(win){
+      win.location.href = url;
+    }else{
+      pdf.save(orderFileName(o.customer||""));
+      alert("المتصفح منع فتح نافذة جديدة — تم تحميل الـ PDF بدلاً من ذلك.");
+    }
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  }catch(err){
+    if(win) win.close();
+    alert("⚠️ خطأ بفتح الـ PDF:\n" + err.message);
+  }
+}
+
+// ===== Sharing: native share sheet when available, viewer tab as fallback =====
+async function shareOrderPdf(qtySource, customerName){
+  const canvas = await renderOrderCanvas(qtySource, customerName);
+  if(!canvas) return false;
+  const pdf = buildOrderPdf(canvas);
+  const blob = pdf.output("blob");
+  const fname = orderFileName(customerName);
+  try{
+    const file = new File([blob], fname, {type:"application/pdf"});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:"طلبية " + (customerName||""), text:"طلبية " + (customerName||"")});
+      return true; // user completed (or cancelled) the native share sheet
+    }
+  }catch(err){
+    if(err && err.name === "AbortError") return true; // user closed the share sheet
+    // fall through to viewer fallback
+  }
+  const win = window.open("", "_blank");
+  if(win){
+    const url = URL.createObjectURL(blob);
+    win.location.href = url;
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  }else{
+    pdf.save(fname);
+    alert("المتصفح منع المشاركة — تم تحميل الـ PDF بدلاً من ذلك، شاركه من ملفات الجهاز.");
+  }
+  return true;
+}
+async function shareLiveOrder(){
+  try{
+    if(!hasAnyQty()){ alert("ما فيه اي كمية مدخلة للطلبية"); return; }
+    const name = await askCustomerName(editingPrefill());
+    if(!name) return;
+    await shareOrderPdf(QTY, name);
+  }catch(err){
+    alert("⚠️ خطأ بالمشاركة:\n" + err.message);
+  }
+}
+async function shareSavedOrder(id){
+  try{
+    const o = savedOrderOrNull(id);
+    if(!o) return;
+    await shareOrderPdf(o.qty||{}, o.customer||"");
+  }catch(err){
+    alert("⚠️ خطأ بالمشاركة:\n" + err.message);
   }
 }
 
