@@ -1,3 +1,4 @@
+<!-- index v1 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -297,6 +298,7 @@
 
 <header>
   <h1>📋 فيروز</h1>
+  <span class="version" style="font-size:11px;color:#a8863b;font-weight:700;opacity:.9;">v1</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -319,6 +321,7 @@
 </footer>
 
 <script>
+const APP_VERSION = "1";
 /* ================= DATA MODEL =================
 Each product block:
 { brand, code, prices:[{qtyTier, price}], items:[itemLabel,...] }

@@ -1,13 +1,15 @@
 آخر جلسة: 2026-08-23
-الحالة: تهيئة المشروع - index.html (بدون فيرجن، أول تعديل = v1)
+الحالة: index.html v1 - بدأ عد الفيرجنات
 
 المشروع: فيروز - طلبية (تطبيق طلبيات منفصل كلياً)
 الريبو: https://github.com/xvirus8-png/test-.git (فرع main)
 
 الإصدار الحالي:
-- index.html: بدون فيرجن (v0)
+- index.html: v1 (+ نسخة احتياطية index-v1.html)
 
 ملاحظات تقنية مهمة:
+- الفيرجن في 3 أماكن: تعليق أول سطر + APP_VERSION + span.version
+- ⚠️ لا تستخدم replaceAll لتغيير الأرقام — يخرب روابط CDN
 - Firebase RTDB عبر REST API مباشر (fetch) — بدون SDK
 - المصادقة: Anonymous Auth عبر identitytoolkit signUp
 - التخزين المحلي: localStorage
