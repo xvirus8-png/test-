@@ -1,4 +1,4 @@
-<!-- index v1.4 -->
+<!-- index v1.5 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -93,11 +93,19 @@
     white-space:nowrap;
   }
   .tab-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
-  .search-bar{padding:10px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:calc(var(--hdr-h,58px) + var(--tabs-h,50px) + var(--cust-h,48px));z-index:48;}
-  .customer-bar{padding:8px 10px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:calc(var(--hdr-h,58px) + var(--tabs-h,50px));z-index:48;}
-  .customer-bar input{
-    width:100%;padding:11px 12px;border-radius:10px;border:1.5px solid var(--warning);
-    font-size:16px;font-weight:700;background:var(--card);
+  .search-bar{padding:10px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:calc(var(--hdr-h,58px) + var(--tabs-h,50px));z-index:48;}
+  .edit-order-banner{
+    position:fixed;left:12px;right:12px;margin:0 auto;max-width:572px;
+    bottom:calc(76px + env(safe-area-inset-bottom));z-index:59;
+    background:var(--warning);color:#fff;border-radius:20px;
+    padding:9px 14px;font-size:13px;font-weight:800;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    box-shadow:0 4px 14px rgba(245,158,11,.45);
+  }
+  .edit-order-banner button{
+    background:rgba(255,255,255,.25);border:none;color:#fff;
+    width:28px;height:28px;border-radius:50%;font-weight:800;font-size:14px;
+    cursor:pointer;font-family:inherit;flex:none;line-height:1;
   }
   .search-bar input{
     width:100%;padding:11px 12px;border-radius:10px;border:1.5px solid var(--border);
@@ -423,6 +431,7 @@
     border:none;border-radius:10px;width:42px;height:42px;font-size:17px;cursor:pointer;
     display:flex;align-items:center;justify-content:center;font-family:inherit;
   }
+  .hact-view{background:var(--soft);color:var(--warning);}
   .hact-open{background:var(--pl);color:var(--primary);}
   .hact-del{background:rgba(239,68,68,.12);color:var(--danger);}
   .history-empty{text-align:center;color:var(--subtext);padding:30px 10px;font-size:13px;line-height:2;}
@@ -466,7 +475,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز</h1>
-  <span class="version">v1.4</span>
+  <span class="version">v1.5</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -474,12 +483,14 @@
 </header>
 
 <div class="tabs" id="tabs"></div>
-<div class="customer-bar">
-  <input id="customerName" placeholder="اسم الزبون">
-</div>
 <div class="search-bar"><input id="searchBox" placeholder="ابحث بالكود... مثال: LMM, GT, NG"></div>
 
 <main id="main"></main>
+
+<div class="edit-order-banner" id="editOrderBanner" style="display:none;">
+  <span id="editOrderLabel"></span>
+  <button type="button" onclick="cancelEditOrder()" title="إلغاء وضع التعديل">✕</button>
+</div>
 
 <footer class="bar">
   <button class="btn-preview" onclick="previewOrder()"><i class="bi bi-eye"></i> معاينة</button>
@@ -499,11 +510,11 @@
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
   </nav>
-  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.4</span></div>
+  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.5</span></div>
 </aside>
 
 <script>
-const APP_VERSION = "1.4";
+const APP_VERSION = "1.5";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -727,7 +738,6 @@ const DEFAULT_DATA = {
 
 const LS_DATA_KEY = "orderapp_data_v1";
 const LS_QTY_KEY  = "orderapp_qty_v1";
-const LS_CUSTOMER_KEY = "orderapp_customer_v1";
 
 let DATA = loadData();
 let QTY  = loadQty(); // QTY[brand][code][item] = number
@@ -858,10 +868,9 @@ async function cloudPull(){
   cloudStatus = "connecting"; cloudUi();
   try{
     cloudSupress = true;
-    const [p,q,c] = await Promise.all([
+    const [p,q] = await Promise.all([
       httpJson("GET","products"),
-      httpJson("GET","qty"),
-      httpJson("GET","customer")
+      httpJson("GET","qty")
     ]);
     if(p && typeof p==="object"){
       DATA = mergeSavedData(p);
@@ -869,11 +878,6 @@ async function cloudPull(){
       saveData();
     }
     if(q && typeof q==="object"){ QTY = decodeQty(q); saveQty(); }
-    if(typeof c === "string"){
-      const ci = document.getElementById("customerName");
-      if(ci) ci.value = c;
-      localStorage.setItem(LS_CUSTOMER_KEY, c);
-    }
     buildTabs();
     buildPanels();
     updateTotals();
@@ -918,7 +922,7 @@ async function cloudPushAll(){
   await Promise.all([
     httpJson("PUT","products",DATA),
     httpJson("PUT","qty", hasQty ? encodeQty(QTY) : null),
-    httpJson("PUT","customer",document.getElementById("customerName").value),
+    httpJson("PUT","customer",null),
     httpJson("PUT","updatedAt",Date.now())
   ]);
 }
@@ -1634,25 +1638,16 @@ function exportExcel(){
 }
 
 function updateTotals(){
-  let pieces=0, amount=0;
-  Object.entries(QTY).forEach(([brand, codes])=>{
-    Object.entries(codes).forEach(([code, items])=>{
-      const block = (DATA[brand]||[]).find(b=>b.code===code);
-      const price = block ? parsePrices(block.price).small : 0;
-      Object.values(items).forEach(qty=>{
-        pieces += qty;
-        amount += qty * price;
-      });
-    });
-  });
-  document.getElementById("totalPieces").textContent = pieces;
-  document.getElementById("totalAmount").textContent = fmt(amount);
+  const t = computeTotals(QTY);
+  document.getElementById("totalPieces").textContent = t.pieces;
+  document.getElementById("totalAmount").textContent = fmt(t.amount);
 }
 
 function clearAll(){
   if(!confirm("متأكد تريد تمسح كل الطلبية؟")) return;
   QTY = {};
   saveQty();
+  setEditingOrder(null);
   buildPanels();
 }
 
@@ -1670,9 +1665,30 @@ document.getElementById("searchBox").addEventListener("input", (e)=>{
 });
 
 // EXPORT & PREVIEW
-async function renderOrderCanvas(){
-  const hasAny = Object.values(QTY).some(b=>Object.values(b).some(c=>Object.keys(c).length>0));
-  if(!hasAny){ alert("ما فيه اي كمية مدخلة للطلبية"); return null; }
+function hasAnyQty(qtySource){
+  const src = qtySource || QTY;
+  return Object.values(src).some(b=>b && Object.values(b).some(c=>c && Object.keys(c).length>0));
+}
+function computeTotals(qtySource){
+  let pieces=0, amount=0;
+  Object.entries(qtySource||{}).forEach(([brand, codes])=>{
+    Object.entries(codes||{}).forEach(([code, items])=>{
+      const block = (DATA[brand]||[]).find(b=>b.code===code);
+      const price = block ? parsePrices(block.price).small : 0;
+      Object.values(items||{}).forEach(qty=>{
+        pieces += qty;
+        amount += qty * price;
+      });
+    });
+  });
+  return {pieces, amount};
+}
+
+// qtySource = snapshot of quantities to render (defaults to live QTY)
+// customerName = optional name printed on the sheet header
+async function renderOrderCanvas(qtySource, customerName){
+  const srcQty = qtySource || QTY;
+  if(!hasAnyQty(srcQty)){ alert("ما فيه اي كمية مدخلة للطلبية"); return null; }
 
   const container = document.createElement("div");
   container.id = "exportCanvas";
@@ -1680,13 +1696,12 @@ async function renderOrderCanvas(){
   container.style.fontFamily = "Tahoma, sans-serif";
   container.style.direction = "rtl";
 
-  const customerName = document.getElementById("customerName").value.trim();
   let html = `<h2 style="text-align:center;border-bottom:3px solid #b5442e;padding-bottom:10px;">طلبية - ${new Date().toLocaleDateString('ar-IQ')}</h2>`;
   if(customerName){
     html += `<h3 style="text-align:center;color:#2f6b52;margin-top:-6px;">الزبون: ${customerName}</h3>`;
   }
 
-  Object.entries(QTY).forEach(([brand, codes])=>{
+  Object.entries(srcQty).forEach(([brand, codes])=>{
     const entries = Object.entries(codes).filter(([c,items])=>Object.keys(items).length>0);
     if(!entries.length) return;
     html += `<div class="exp-header" style="margin-top:14px;">${brand}</div>`;
@@ -1709,7 +1724,8 @@ async function renderOrderCanvas(){
     html += `</table>`;
   });
 
-  html += `<h3 style="text-align:left;border-top:2px solid #333;padding-top:8px;">الإجمالي: ${document.getElementById("totalAmount").textContent} | القطع: ${document.getElementById("totalPieces").textContent}</h3>`;
+  const t = computeTotals(srcQty);
+  html += `<h3 style="text-align:left;border-top:2px solid #333;padding-top:8px;">الإجمالي: ${fmt(t.amount)} | القطع: ${t.pieces}</h3>`;
 
   container.innerHTML = html;
   container.querySelectorAll(".invoice-barcode").forEach(svg=>{
@@ -1724,9 +1740,8 @@ async function renderOrderCanvas(){
   return canvas;
 }
 
-function orderFileName(){
-  const customerName = document.getElementById("customerName").value.trim();
-  const safeName = customerName ? customerName.replace(/[^a-zA-Z0-9ء-ي_ -]/g,"").trim().replace(/\s+/g,"_") : "";
+function orderFileName(customer){
+  const safeName = customer ? String(customer).replace(/[^a-zA-Z0-9ء-ي_ -]/g,"").trim().replace(/\s+/g,"_") : "";
   return `order_${safeName ? safeName+"_" : ""}${Date.now()}.pdf`;
 }
 
@@ -1754,48 +1769,129 @@ function buildOrderPdf(canvas){
   return pdf;
 }
 
+// Mandatory customer-name prompt. Resolves with the trimmed name, or null if cancelled.
+function askCustomerName(prefill){
+  return new Promise(resolve=>{
+    const overlay = document.createElement("div");
+    overlay.className = "variants-modal";
+    overlay.innerHTML = `
+      <div class="variants-panel">
+        <div class="variants-panel-head">
+          <div class="variants-panel-title"><i class="bi bi-person"></i> اسم الزبون</div>
+          <button type="button" class="close-variants" aria-label="إلغاء">×</button>
+        </div>
+        <div class="add-item-bar" style="border-top:none;">
+          <input type="text" class="custreq-input" placeholder="اكتب اسم الزبون…" autocomplete="off">
+          <button type="button" class="custreq-ok">✅ تصدير</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const input = overlay.querySelector(".custreq-input");
+    if(prefill) input.value = prefill;
+
+    const done = (val)=>{
+      overlay.remove();
+      document.removeEventListener("keydown", onKey);
+      resolve(val);
+    };
+    const submit = ()=>{
+      const v = input.value.trim();
+      if(!v){ alert("اسم الزبون مطلوب للتصدير ✍️"); input.focus(); return; }
+      done(v);
+    };
+    const close = ()=>done(null);
+
+    overlay.querySelector(".custreq-ok").addEventListener("click", submit);
+    input.addEventListener("keydown", (e)=>{ if(e.key === "Enter") submit(); });
+    overlay.querySelector(".close-variants").addEventListener("click", close);
+    overlay.addEventListener("click", (e)=>{ if(e.target === overlay) close(); });
+    const onKey = (e)=>{ if(e.key === "Escape") close(); };
+    document.addEventListener("keydown", onKey);
+    setTimeout(()=>{ try{ input.focus(); }catch(e){} }, 60);
+  });
+}
+
+function editingPrefill(){
+  if(!editingOrderId) return "";
+  const o = ORDERS.find(x=>x.id===editingOrderId);
+  return o ? (o.customer||"") : "";
+}
+
 async function exportOrder(){
   try{
-    const canvas = await renderOrderCanvas();
+    if(!hasAnyQty()){ alert("ما فيه اي كمية مدخلة للطلبية"); return; }
+    const name = await askCustomerName(editingPrefill());
+    if(!name) return;
+    const canvas = await renderOrderCanvas(QTY, name);
     if(!canvas) return;
-    buildOrderPdf(canvas).save(orderFileName());
-    recordOrder();
+    buildOrderPdf(canvas).save(orderFileName(name));
+    commitOrderToLog(name);
   }catch(err){
     alert("⚠️ خطأ بالتصدير:\n" + err.message);
   }
 }
 
+// Live order preview (footer button) — no customer name known yet, header omits it
 async function previewOrder(){
-  let modal = document.getElementById("previewModal");
-  if(modal){ modal.querySelector("#previewBody").innerHTML = "<div class='history-empty'>جاري التحضير…</div>"; }
   try{
-    const canvas = await renderOrderCanvas();
-    if(!canvas) return;
-    if(!modal){
-      modal = document.createElement("div");
-      modal.className = "preview-modal";
-      modal.id = "previewModal";
-      modal.innerHTML = `
-        <div class="preview-panel">
-          <div class="preview-panel-head">
-            <div class="preview-panel-title"><i class="bi bi-eye"></i> معاينة الطلبية</div>
-            <button class="preview-close" onclick="closePreview()" title="إغلاق"><i class="bi bi-x-lg"></i></button>
-          </div>
-          <div class="preview-body" id="previewBody"></div>
-          <div class="preview-actions">
-            <button class="pv-btn pv-download" onclick="exportOrder()"><i class="bi bi-download"></i> تحميل PDF</button>
-            <button class="pv-btn pv-open" onclick="openPdfShare()"><i class="bi bi-share"></i> فتح للمشاركة</button>
-          </div>
-        </div>`;
-      document.body.appendChild(modal);
-    }
-    const body = modal.querySelector("#previewBody");
-    body.innerHTML = "";
-    const img = document.createElement("img");
-    img.className = "preview-img";
-    img.alt = "معاينة الطلبية";
-    img.src = canvas.toDataURL("image/jpeg", 0.85);
-    body.appendChild(img);
+    if(!hasAnyQty()){ alert("ما فيه اي كمية مدخلة للطلبية"); return; }
+    const modal = ensurePreviewModal('<i class="bi bi-eye"></i> معاينة الطلبية', true);
+    modal.querySelector("#previewBody").innerHTML = "<div class='history-empty'>جاري التحضير…</div>";
+    const canvas = await renderOrderCanvas(QTY, "");
+    if(!canvas){ closePreview(); return; }
+    putPreviewImage(modal, canvas);
+  }catch(err){
+    alert("⚠️ خطأ ببناء المعاينة:\n" + err.message);
+    closePreview();
+  }
+}
+
+function ensurePreviewModal(titleHtml, withActions){
+  let modal = document.getElementById("previewModal");
+  if(!modal){
+    modal = document.createElement("div");
+    modal.className = "preview-modal";
+    modal.id = "previewModal";
+    modal.innerHTML = `
+      <div class="preview-panel">
+        <div class="preview-panel-head">
+          <div class="preview-panel-title" id="previewTitle"></div>
+          <button class="preview-close" onclick="closePreview()" title="إغلاق"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="preview-body" id="previewBody"></div>
+        <div class="preview-actions" id="previewActions">
+          <button class="pv-btn pv-download" onclick="exportOrder()"><i class="bi bi-download"></i> تحميل PDF</button>
+          <button class="pv-btn pv-open" onclick="openPdfShare()"><i class="bi bi-share"></i> فتح للمشاركة</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+  modal.querySelector("#previewTitle").innerHTML = titleHtml;
+  modal.querySelector("#previewActions").style.display = withActions ? "flex" : "none";
+  return modal;
+}
+
+function putPreviewImage(modal, canvas){
+  const body = modal.querySelector("#previewBody");
+  body.innerHTML = "";
+  const img = document.createElement("img");
+  img.className = "preview-img";
+  img.alt = "معاينة الطلبية";
+  img.src = canvas.toDataURL("image/jpeg", 0.85);
+  body.appendChild(img);
+}
+
+// Preview of a SAVED history entry — rendered from its stored snapshot
+async function previewSavedOrder(id){
+  try{
+    const o = ORDERS.find(x=>x.id===id);
+    if(!o) return;
+    if(!hasAnyQty(o.qty)){ alert("هذي الطلبية ما فيها كميات محفوظة"); return; }
+    ensurePreviewModal(`<i class="bi bi-clock-history"></i> معاينة: ${o.customer || "بدون اسم"}`, false)
+      .querySelector("#previewBody").innerHTML = "<div class='history-empty'>جاري التحضير…</div>";
+    const canvas = await renderOrderCanvas(o.qty||{}, o.customer||"");
+    if(!canvas){ closePreview(); return; }
+    putPreviewImage(document.getElementById("previewModal"), canvas);
   }catch(err){
     alert("⚠️ خطأ ببناء المعاينة:\n" + err.message);
     closePreview();
@@ -1808,21 +1904,28 @@ function closePreview(){
 }
 
 async function openPdfShare(){
-  const win = window.open("", "_blank");
   try{
-    const canvas = await renderOrderCanvas();
-    if(!canvas){ if(win) win.close(); return; }
-    const blob = buildOrderPdf(canvas).output("blob");
-    const url = URL.createObjectURL(blob);
-    if(win){
-      win.location.href = url;
-    }else{
-      buildOrderPdf(canvas).save(orderFileName());
-      alert("المتصفح منع فتح نافذة جديدة — تم تحميل الـ PDF بدلاً من ذلك، شاركه من ملفات الجهاز.");
+    if(!hasAnyQty()){ alert("ما فيه اي كمية مدخلة للطلبية"); return; }
+    const name = await askCustomerName(editingPrefill());
+    if(!name) return;
+    const win = window.open("", "_blank");
+    try{
+      const canvas = await renderOrderCanvas(QTY, name);
+      if(!canvas){ if(win) win.close(); return; }
+      const blob = buildOrderPdf(canvas).output("blob");
+      const url = URL.createObjectURL(blob);
+      if(win){
+        win.location.href = url;
+      }else{
+        buildOrderPdf(canvas).save(orderFileName(name));
+        alert("المتصفح منع فتح نافذة جديدة — تم تحميل الـ PDF بدلاً من ذلك، شاركه من ملفات الجهاز.");
+      }
+      setTimeout(()=>URL.revokeObjectURL(url), 60000);
+    }catch(err){
+      if(win) win.close();
+      throw err;
     }
-    setTimeout(()=>URL.revokeObjectURL(url), 60000);
   }catch(err){
-    if(win) win.close();
     alert("⚠️ خطأ بفتح الـ PDF:\n" + err.message);
   }
 }
@@ -1846,14 +1949,6 @@ document.addEventListener("click", (e)=>{
   showProductImage(img.currentSrc || img.src);
 }, true);
 
-// Customer name persistence
-const customerInput = document.getElementById("customerName");
-customerInput.value = localStorage.getItem(LS_CUSTOMER_KEY) || "";
-customerInput.addEventListener("input", ()=>{
-  localStorage.setItem(LS_CUSTOMER_KEY, customerInput.value);
-  scheduleCloudPush();
-});
-
 // THEME (dark/light)
 const LS_THEME_KEY = "orderapp_theme_v1";
 function applyThemeIcon(){
@@ -1867,15 +1962,13 @@ function toggleTheme(){
   applyThemeIcon();
 }
 
-// STICKY OFFSETS: real header/tabs/customer heights so stacked bars never overlap
+// STICKY OFFSETS: real header/tabs heights so stacked bars never overlap
 function updateStickyOffsets(){
   const hdr = document.querySelector("header");
   const tabs = document.querySelector(".tabs");
-  const cust = document.querySelector(".customer-bar");
   const rs = document.documentElement.style;
   rs.setProperty("--hdr-h", (hdr ? hdr.offsetHeight : 56) + "px");
   rs.setProperty("--tabs-h", (tabs ? tabs.offsetHeight : 50) + "px");
-  rs.setProperty("--cust-h", (cust ? cust.offsetHeight : 48) + "px");
 }
 window.addEventListener("resize", updateStickyOffsets);
 window.addEventListener("orientationchange", ()=>setTimeout(updateStickyOffsets,200));
@@ -1891,7 +1984,7 @@ function closeDrawer(){
   document.getElementById("drawerBackdrop").classList.remove("show");
 }
 
-// ORDER HISTORY (auto-saved on PDF export)
+// ORDER HISTORY (saved on PDF export — new entries or updates while editing)
 function loadOrders(){
   try{
     const raw = localStorage.getItem(LS_ORDERS_KEY);
@@ -1903,18 +1996,58 @@ function saveOrders(){
   try{ localStorage.setItem(LS_ORDERS_KEY, JSON.stringify(ORDERS)); }
   catch(e){ console.warn("تعذر حفظ السجل محلياً", e); }
 }
-function recordOrder(){
-  ORDERS.unshift({
-    id: Date.now(),
-    ts: new Date().toISOString(),
-    customer: (customerInput.value||"").trim(),
-    qty: JSON.parse(JSON.stringify(QTY)),
-    pieces: document.getElementById("totalPieces").textContent,
-    amount: document.getElementById("totalAmount").textContent
-  });
-  if(ORDERS.length > 50) ORDERS.length = 50;
+
+// EDIT MODE: when an old order is opened for editing, exporting updates the same entry
+let editingOrderId = null;
+function setEditingOrder(id){
+  editingOrderId = id;
+  updateEditBanner();
+}
+function updateEditBanner(){
+  const banner = document.getElementById("editOrderBanner");
+  if(!banner) return;
+  const o = editingOrderId ? ORDERS.find(x=>x.id===editingOrderId) : null;
+  if(o){
+    document.getElementById("editOrderLabel").textContent = "✏️ تعدل طلبية: " + (o.customer || "بدون اسم");
+    banner.style.display = "flex";
+  }else{
+    banner.style.display = "none";
+  }
+}
+function cancelEditOrder(){
+  setEditingOrder(null);
+}
+
+function commitOrderToLog(customerName){
+  const t = computeTotals(QTY);
+  let updated = false;
+  if(editingOrderId){
+    const o = ORDERS.find(x=>x.id===editingOrderId);
+    if(o){
+      o.customer = customerName;
+      o.qty = JSON.parse(JSON.stringify(QTY));
+      o.pieces = String(t.pieces);
+      o.amount = fmt(t.amount);
+      o.ts = new Date().toISOString();
+      updated = true;
+    }
+    editingOrderId = null;
+  }
+  if(!updated){
+    ORDERS.unshift({
+      id: Date.now(),
+      ts: new Date().toISOString(),
+      customer: customerName,
+      qty: JSON.parse(JSON.stringify(QTY)),
+      pieces: String(t.pieces),
+      amount: fmt(t.amount)
+    });
+    if(ORDERS.length > 50) ORDERS.length = 50;
+  }
   saveOrders();
   updateHistoryCount();
+  updateEditBanner();
+  if(updated) alert("تم تحديث الطلبية نفسها بالسجل ✅");
 }
 function fmtOrderDate(ts){
   const d = new Date(ts);
@@ -1961,9 +2094,11 @@ function renderHistory(){
           <div class="history-sub">${fmtOrderDate(o.ts)}<br>القطع: ${o.pieces} • المبلغ: ${o.amount}</div>
         </div>
         <div class="history-actions">
-          <button class="hact-open" title="فتح الطلبية"><i class="bi bi-folder2-open"></i></button>
+          <button class="hact-view" title="معاينة"><i class="bi bi-eye"></i></button>
+          <button class="hact-open" title="فتح للتعديل"><i class="bi bi-folder2-open"></i></button>
           <button class="hact-del" title="حذف"><i class="bi bi-trash3"></i></button>
         </div>`;
+      row.querySelector(".hact-view").addEventListener("click", ()=>previewSavedOrder(o.id));
       row.querySelector(".hact-open").addEventListener("click", ()=>loadOrder(o.id));
       row.querySelector(".hact-del").addEventListener("click", ()=>deleteOrder(o.id));
       list.appendChild(row);
@@ -1986,10 +2121,11 @@ function loadOrder(id){
   try{
     const o = ORDERS.find(x=>x.id===id);
     if(!o) return;
-    if(!confirm(`فتح طلبيه "${o.customer||"بدون اسم"}"؟ راح تستبدل الكميات الحالية.`)) return;
+    if(!confirm(`فتح طلبيه "${o.customer||"بدون اسم"}" للتعديل؟\nراح تستبدل الكميات الحالية، والتصدير الجاي يحدث نفس هذي الطلبية بالسجل.`)) return;
     QTY = JSON.parse(JSON.stringify(o.qty||{}));
     Object.keys(DATA||{}).forEach(b=>{ if(!QTY[b]) QTY[b]={}; });
     saveQty();
+    setEditingOrder(id);
     buildPanels();
     closeHistory();
   }catch(err){
@@ -2000,8 +2136,10 @@ function deleteOrder(id){
   try{
     if(!confirm("متأكد تريد تحذف هذي الطلبية من السجل؟")) return;
     ORDERS = ORDERS.filter(x=>x.id!==id);
+    if(editingOrderId === id) editingOrderId = null;
     saveOrders();
     updateHistoryCount();
+    updateEditBanner();
     renderHistory();
   }catch(err){
     alert("⚠️ خطأ بحذف الطلبية:\n" + err.message);

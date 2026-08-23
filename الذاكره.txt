@@ -1,10 +1,19 @@
 آخر جلسة: 2026-08-24
-الحالة: index.html v1.4 - معاينة الطلبية:
-- الفوتر 3 أزرار: معاينة 👁 / تصدير 📤 / مسح 🗑 (تسميات مختصرة)
-- previewOrder(): bottom-sheet فيها صورة الطلبية كاملة قابلة للتمرير + زر تحميل PDF + زر فتح للمشاركة
-- openPdfShare(): يفتح تبويب فاضي فوراً عند الضغط ثم يحوله لـ PDF blob URL (لتجاوز حاجب popup بـ iOS) — fallback: تحميل مباشر + تنبيه
-- إعادة هيكلة: renderOrderCanvas() + buildOrderPdf(canvas) + orderFileName() مشتركة بين التصدير والمعاينة
-- recordOrder() يبقى فقط داخل exportOrder
+الحالة: index.html v1.5 - تعديل السجل + اسم الزبون عند التصدير:
+- شريط «اسم الزبون» انحذف نهائياً (HTML+CSS+localStorage orderapp_customer_v1+سحابة) — حقل customer بالسحابة ينمسح بأول PUT null
+- askCustomerName(prefill): مربع إجباري قبل أي تصدير/مشاركة/تحميل PDF — بدون ما يصير تصدير، والاسم يطبع بالـPDF واسم الملف ويتسجل بالسجل
+- السجل: كل إدخال له 3 أزرار 👁 معاينة / 📂 فتح / 🗑 حذف
+- previewSavedOrder(id): معاينة صورة اللقطة المحفوظة بنافذة منسدلة بدون أزرار تحميل (العنوان = اسم الزبون)
+- فتح من السجل = وضع تعديل: editingOrderId + شريط برتقالي فوق الفوتر «✏️ تعدل طلبية: [اسم] ✕» (cancelEditOrder يلغيه)
+- commitOrderToLog(name): إذا editingOrderId مفعّل → يحدّث نفس الإدخال بدل إدخال جديد + رسالة تأكيد؛ بعدها يطلع من وضع التعديل
+- حذف الطلبية المعدَّلة أو «مسح الكل» يلغي وضع التعديل تلقائياً
+- hasAnyQty(qtySource?)/computeTotals(qtySource) مشتركة؛ renderOrderCanvas(qtySource?, customerName?) تخدم الحي والمحفوظ
+- ensurePreviewModal(title, withActions)/putPreviewImage() للمعاينة مع أو بدون أزرار
+
+سجل سابق - v1.4 (معاينة الطلبية):
+- الفوتر 3 أزرار: معاينة 👁 / تصدير 📤 / مسح 🗑
+- openPdfShare(): فتح تبويب فوري ثم تحويله لـ PDF blob URL — fallback تحميل مباشر
+- ⚠️ بعد v1.5: window.open صار بعد await مربع الاسم (microtask بعد ضغط زر التأكيد — نفس user activation)؛ إذا ظهر حجب popup بـ iOS لازم إعادة تصميم المسار
 
 سجل سابق - v1.3.2 (إصلاح جذري للسجل):
 - الخطأ: ReferenceError Cannot access 'ORDERS' before initialization — updateHistoryCount() بسلسلة التشغيل كانت تقرأ ORDERS قبل تعريفها (let تحت بالملف / TDZ) فكان يقتل كل التنفيذ بعدها
@@ -16,13 +25,15 @@
 الريبو: https://github.com/xvirus8-png/test-.git (فرع main)
 
 الإصدار الحالي:
-- index.html: v1.4 (+ نسخ احتياطية v1.3.2 / v1.3.1 / v1.3 / v1.2 / v1.1 / v1)
+- index.html: v1.5 (+ نسخ احتياطية v1.4 / v1.3.2 / v1.3.1 / v1.3 / v1.2 / v1.1 / v1)
 - قائمة جانبية: زر ☰ جنب «فيروز» → drawer من اليمين (السجل/تعديل الأسعار/سحابة/المظهر) — أزرار الهيدر القديمة انتقلت لها بنفس الـ id
 - سجل الطلبيات: حفظ تلقائي عند تصدير PDF → localStorage orderapp_orders_v1 (حد 50) — فتح=استبدال الكميات مع تأكيد، حذف، عدّاد بجانب «السجل»
 - السجل محلي فقط حالياً — مزامنته السحابية مؤجلة (اقتراح لفيرجن جاي)
 - التصميم: سكل frontend-design — ألوان فاتح/داكن بمتغيرات CSS (html.dark)، localStorage: orderapp_theme_v1
 - Bootstrap Icons CDN 1.11.3 | خط system-ui | حاوية 600px
-- إزاحات sticky ديناميكية بـ JS (updateStickyOffsets → --hdr-h/--tabs-h/--cust-h)
+- إزاحات sticky ديناميكية بـ JS (updateStickyOffsets → --hdr-h/--tabs-h فقط بعد حذف شريط الزبون)
+- الفيرجن فعلياً في 4 أماكن: تعليق أول سطر + APP_VERSION + span.version + drawer-foot
+- مفاتيح localStorage الحالية: orderapp_data_v1 / orderapp_qty_v1 / orderapp_orders_v1 / orderapp_cloud_v1 / orderapp_theme_v1 (orderapp_customer_v1 أُوقفت بـ v1.5)
 - شاشة التصدير (#exportCanvas) فاتحة دائماً حتى بالوضع الداكن
 - خطة المستخدم: إذا ما عجبه دزاين v1.2 يرجع لـ v1.1 ويُعمل "إصلاح جوال فقط" بألوان قديمة
 
