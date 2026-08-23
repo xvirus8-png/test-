@@ -1,4 +1,4 @@
-<!-- index v1.3 -->
+<!-- index v1.3.1 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -387,7 +387,28 @@
     font-size:11px;font-weight:700;color:var(--subtext);
     display:flex;align-items:center;justify-content:space-between;
   }
-  .history-list{overflow-y:auto;padding:10px 14px;flex:1;}
+  .history-modal{
+    position:fixed;top:0;left:0;right:0;bottom:0;
+    background:rgba(15,17,23,.6);z-index:200;
+    display:flex;align-items:flex-end;justify-content:center;
+  }
+  .history-panel{
+    background:var(--card);width:100%;max-width:600px;max-height:85vh;
+    border-radius:20px 20px 0 0;display:flex;flex-direction:column;
+    box-shadow:0 -4px 20px rgba(0,0,0,.3);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .history-panel-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 16px;border-bottom:1px solid var(--border);
+  }
+  .history-panel-title{font-weight:800;font-size:15px;color:var(--text);}
+  .history-close{
+    background:var(--soft);border:none;border-radius:50%;
+    width:42px;height:42px;font-size:18px;cursor:pointer;color:var(--text);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .history-list{overflow-y:auto;padding:10px 14px;flex:1;min-height:140px;}
   .history-row{
     display:flex;align-items:center;gap:10px;
     background:var(--soft);border:1.5px solid var(--border);border-radius:14px;
@@ -411,7 +432,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز</h1>
-  <span class="version">v1.3</span>
+  <span class="version">v1.3.1</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -443,11 +464,14 @@
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
   </nav>
-  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.3</span></div>
+  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.3.1</span></div>
 </aside>
 
 <script>
-const APP_VERSION = "1.3";
+const APP_VERSION = "1.3.1";
+window.onerror = function(msg, src, line){
+  try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
+};
 /* ================= DATA MODEL =================
 Each product block:
 { brand, code, prices:[{qtyTier, price}], items:[itemLabel,...] }
@@ -1786,71 +1810,86 @@ function updateHistoryCount(){
 }
 function buildHistoryModal(){
   const wrap = document.createElement("div");
-  wrap.className = "variants-modal";
+  wrap.className = "history-modal";
   wrap.id = "historyModal";
   wrap.innerHTML = `
-    <div class="variants-panel">
-      <div class="variants-panel-head">
-        <div class="variants-panel-title"><i class="bi bi-clock-history"></i> سجل الطلبيات</div>
-        <button class="close-variants" onclick="closeHistory()" title="إغلاق"><i class="bi bi-x-lg"></i></button>
+    <div class="history-panel">
+      <div class="history-panel-head">
+        <div class="history-panel-title"><i class="bi bi-clock-history"></i> سجل الطلبيات</div>
+        <button class="history-close" onclick="closeHistory()" title="إغلاق"><i class="bi bi-x-lg"></i></button>
       </div>
       <div class="history-list" id="historyList"></div>
     </div>`;
   return wrap;
 }
 function renderHistory(){
-  let modal = document.getElementById("historyModal");
-  if(!modal){
-    modal = buildHistoryModal();
-    document.body.appendChild(modal);
+  let list;
+  try{
+    let modal = document.getElementById("historyModal");
+    if(!modal){
+      modal = buildHistoryModal();
+      document.body.appendChild(modal);
+    }
+    list = modal.querySelector("#historyList");
+    if(!ORDERS.length){
+      list.innerHTML = `<div class="history-empty">ماكو طلبيات محفوظة بعد.<br>صدّر طلبية PDF وبتنحفظ تلقائياً هنا 📜</div>`;
+      return;
+    }
+    list.innerHTML = "";
+    ORDERS.forEach(o=>{
+      const row = document.createElement("div");
+      row.className = "history-row";
+      row.innerHTML = `
+        <div class="history-info">
+          <div class="history-title">${o.customer ? o.customer : "بدون اسم"}</div>
+          <div class="history-sub">${fmtOrderDate(o.ts)}<br>القطع: ${o.pieces} • المبلغ: ${o.amount}</div>
+        </div>
+        <div class="history-actions">
+          <button class="hact-open" title="فتح الطلبية"><i class="bi bi-folder2-open"></i></button>
+          <button class="hact-del" title="حذف"><i class="bi bi-trash3"></i></button>
+        </div>`;
+      row.querySelector(".hact-open").addEventListener("click", ()=>loadOrder(o.id));
+      row.querySelector(".hact-del").addEventListener("click", ()=>deleteOrder(o.id));
+      list.appendChild(row);
+    });
+  }catch(err){
+    alert("⚠️ خطأ بعرض السجل:\n" + err.message);
+    if(list) list.innerHTML = `<div class="history-empty">صار خطأ بالعرض: ${err.message}</div>`;
   }
-  const list = modal.querySelector("#historyList");
-  if(!ORDERS.length){
-    list.innerHTML = `<div class="history-empty">ماكو طلبيات محفوظة بعد.<br>صدّر طلبية PDF وبتنحفظ تلقائياً هنا 📜</div>`;
-    return;
-  }
-  list.innerHTML = "";
-  ORDERS.forEach(o=>{
-    const row = document.createElement("div");
-    row.className = "history-row";
-    row.innerHTML = `
-      <div class="history-info">
-        <div class="history-title">${o.customer ? o.customer : "بدون اسم"}</div>
-        <div class="history-sub">${fmtOrderDate(o.ts)}<br>القطع: ${o.pieces} • المبلغ: ${o.amount}</div>
-      </div>
-      <div class="history-actions">
-        <button class="hact-open" title="فتح الطلبية"><i class="bi bi-folder2-open"></i></button>
-        <button class="hact-del" title="حذف"><i class="bi bi-trash3"></i></button>
-      </div>`;
-    row.querySelector(".hact-open").addEventListener("click", ()=>loadOrder(o.id));
-    row.querySelector(".hact-del").addEventListener("click", ()=>deleteOrder(o.id));
-    list.appendChild(row);
-  });
 }
 function openHistory(){
   closeDrawer();
-  renderHistory();
+  try{ renderHistory(); }
+  catch(err){ alert("⚠️ خطأ بفتح السجل:\n" + err.message); }
 }
 function closeHistory(){
   const m = document.getElementById("historyModal");
   if(m) m.remove();
 }
 function loadOrder(id){
-  const o = ORDERS.find(x=>x.id===id);
-  if(!o) return;
-  if(!confirm(`فتح طلبيه "${o.customer||"بدون اسم"}"؟ راح تستبدل الكميات الحالية.`)) return;
-  QTY = JSON.parse(JSON.stringify(o.qty||{}));
-  Object.keys(DATA||{}).forEach(b=>{ if(!QTY[b]) QTY[b]={}; });
-  saveQty();
-  buildPanels();
-  closeHistory();
+  try{
+    const o = ORDERS.find(x=>x.id===id);
+    if(!o) return;
+    if(!confirm(`فتح طلبيه "${o.customer||"بدون اسم"}"؟ راح تستبدل الكميات الحالية.`)) return;
+    QTY = JSON.parse(JSON.stringify(o.qty||{}));
+    Object.keys(DATA||{}).forEach(b=>{ if(!QTY[b]) QTY[b]={}; });
+    saveQty();
+    buildPanels();
+    closeHistory();
+  }catch(err){
+    alert("⚠️ خطأ بفتح الطلبية:\n" + err.message);
+  }
 }
 function deleteOrder(id){
-  if(!confirm("متأكد تريد تحذف هذي الطلبية من السجل؟")) return;
-  ORDERS = ORDERS.filter(x=>x.id!==id);
-  saveOrders();
-  updateHistoryCount();
-  renderHistory();
+  try{
+    if(!confirm("متأكد تريد تحذف هذي الطلبية من السجل؟")) return;
+    ORDERS = ORDERS.filter(x=>x.id!==id);
+    saveOrders();
+    updateHistoryCount();
+    renderHistory();
+  }catch(err){
+    alert("⚠️ خطأ بحذف الطلبية:\n" + err.message);
+  }
 }
 
 // Prevent pinch-zoom and double-tap zoom
@@ -1859,7 +1898,8 @@ document.addEventListener("gesturechange", e => e.preventDefault());
 let lastTouchEnd = 0;
 document.addEventListener("touchend", e => {
   const now = Date.now();
-  if(now - lastTouchEnd <= 300) e.preventDefault();
+  const onControl = e.target && e.target.closest && e.target.closest("button,input,a,label,select,textarea");
+  if(!onControl && now - lastTouchEnd <= 300) e.preventDefault();
   lastTouchEnd = now;
 }, {passive:false});
 document.addEventListener("touchmove", e => {
