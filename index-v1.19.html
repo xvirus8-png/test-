@@ -1,0 +1,2417 @@
+<!-- index v1.19 -->
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>فيروز - طلبية</title>
+<script>try{if(localStorage.getItem("orderapp_theme_v1")==="dark")document.documentElement.classList.add("dark")}catch(e){}</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#f5f7fa;
+    --card:#ffffff;
+    --text:#1f2a44;
+    --subtext:#6e7b96;
+    --primary:#0d6efd;
+    --success:#16a34a;
+    --danger:#ef4444;
+    --warning:#f59e0b;
+    --border:#dfe5f1;
+    --soft:#eef2f8;
+    --pl:#e7f0ff;
+    --shadow:0 8px 25px rgba(0,0,0,.07);
+  }
+  html.dark{
+    --bg:#0f1117;
+    --card:#1a1d27;
+    --text:#e2e8f0;
+    --subtext:#8896b0;
+    --border:#2a3456;
+    --soft:#212739;
+    --pl:#1c2a4a;
+    --shadow:0 8px 25px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Tahoma,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding-bottom:calc(92px + env(safe-area-inset-bottom));
+    -webkit-user-select:none;
+    -moz-user-select:none;
+    user-select:none;
+    -webkit-touch-callout:none;
+  }
+  input{
+    -webkit-user-select:text;
+    -moz-user-select:text;
+    user-select:text;
+    color:var(--text);
+  }
+  button,input,select{font-family:inherit;}
+  header{
+    position:fixed;top:0;left:0;right:0;z-index:50;
+    background:var(--card);
+    color:var(--text);
+    padding:10px 14px;
+    padding-top:calc(10px + env(safe-area-inset-top));
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+    border-bottom:1px solid var(--border);
+    box-shadow:0 2px 10px var(--shadow);
+  }
+  header h1{font-size:16px;margin:0;flex:1;font-weight:800;display:flex;align-items:center;gap:6px;min-width:110px;}
+  .version{font-size:11px;color:var(--warning);font-weight:700;opacity:.95;margin-inline-start:-4px;}
+  .hbtn{
+    border:none;border-radius:10px;padding:9px 12px;min-height:40px;
+    font-weight:700;font-size:12.5px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  #menuBtn{background:transparent;border:1px solid var(--border);color:var(--text);width:40px;height:40px;padding:0;justify-content:center;font-size:20px;}
+  .drawer-item#editBtn,.drawer-item#cloudBtn,.drawer-item#themeBtn{background:transparent;color:var(--text);}
+  .totals{
+    display:flex;flex-direction:column;gap:1px;font-size:11.5px;background:var(--soft);
+    padding:5px 10px;border-radius:10px;color:var(--subtext);
+    font-weight:700;line-height:1.5;
+  }
+  .totals b{color:var(--warning);font-size:13.5px;}
+  .tabs{
+    display:flex;gap:6px;overflow-x:auto;background:var(--card);
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;
+    padding:8px 10px;position:sticky;top:var(--hdr-h,58px);z-index:49;
+    border-bottom:1px solid var(--border);
+    margin-top:var(--hdr-h,58px);
+  }
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab-btn{
+    flex:none;padding:9px 16px;min-height:38px;border-radius:20px;border:1.5px solid var(--border);
+    background:var(--card);font-weight:700;font-size:13px;cursor:pointer;color:var(--subtext);
+    white-space:nowrap;
+  }
+  .tab-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+  .search-bar{padding:10px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:calc(var(--hdr-h,58px) + var(--tabs-h,50px));z-index:48;}
+  .edit-order-banner{
+    position:fixed;left:12px;right:12px;margin:0 auto;max-width:572px;
+    bottom:calc(76px + env(safe-area-inset-bottom));z-index:59;
+    background:var(--warning);color:#fff;border-radius:20px;
+    padding:9px 14px;font-size:13px;font-weight:800;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    box-shadow:0 4px 14px rgba(245,158,11,.45);
+  }
+  .edit-order-banner button{
+    background:rgba(255,255,255,.25);border:none;color:#fff;
+    width:28px;height:28px;border-radius:50%;font-weight:800;font-size:14px;
+    cursor:pointer;font-family:inherit;flex:none;line-height:1;
+  }
+  .search-bar input{
+    width:100%;padding:11px 12px;border-radius:10px;border:1.5px solid var(--border);
+    font-size:16px;background:var(--card);
+  }
+  main{padding:12px;max-width:600px;margin:0 auto;}
+  .brand-panel{display:none;}
+  .brand-panel.active{display:block;}
+  .grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));
+    gap:12px;
+  }
+  @media (max-width:480px){
+    .grid{grid-template-columns:1fr;}
+    header{gap:6px;padding-inline:10px;}
+  }
+  .block{
+    background:var(--card);border:1.5px solid var(--border);border-radius:16px;
+    padding:12px 14px;position:relative;
+    box-shadow:var(--shadow);
+    transition:border-color .15s,box-shadow .15s;
+  }
+  .block.has-qty{border-color:var(--primary);box-shadow:0 0 0 2px rgba(13,110,253,.28),var(--shadow);}
+  .block-head{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;}
+  .block-head img{width:100px;height:100px;object-fit:contain;border-radius:10px;border:1px solid var(--border);background:var(--soft);cursor:zoom-in;display:block;}
+  .product-img-wrap{display:flex;align-items:center;gap:7px;min-width:100px;}
+  .product-img-wrap .img-upload{display:none;}
+  .product-img-btn{background:var(--warning);color:#fff;border:none;border-radius:8px;padding:6px 8px;font-size:11px;font-weight:700;cursor:pointer;min-height:32px;}
+  .product-img-btn:active{transform:scale(.96);}
+  .image-lightbox{
+    position:fixed;inset:0;z-index:99999;
+    background:rgba(0,0,0,.85);
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;cursor:zoom-out;
+  }
+  .image-lightbox img{
+    max-width:92vw;max-height:88vh;
+    width:auto;height:auto;
+    object-fit:contain;border-radius:14px;
+    box-shadow:0 8px 35px rgba(0,0,0,.45);
+  }
+  .image-lightbox .close-image{
+    position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;
+    width:42px;height:42px;border:none;border-radius:50%;
+    background:#fff;color:#222;font-size:24px;font-weight:800;
+    cursor:pointer;
+  }
+  .edit-image-cell{min-width:100px;}
+  .edit-image-preview{width:42px;height:42px;object-fit:contain;border-radius:8px;border:1px solid var(--border);vertical-align:middle;background:var(--soft);margin-inline-end:5px;}
+  .block-head .code{font-weight:800;font-size:14px;color:var(--text);}
+  .prices{display:flex;flex-direction:column;gap:3px;align-items:flex-end;margin-inline-start:auto;text-align:left;direction:rtl;margin-top:0;}
+  .price-line{font-size:13px;font-weight:700;white-space:nowrap;line-height:1.25;color:var(--subtext);}
+  .price-line .price-label{margin-inline-end:4px;}
+  .wholesale-price{color:var(--success);}
+  .retail-price{color:var(--primary);}
+  .price-line strong{font-size:16px;letter-spacing:.2px;}
+  .barcode-input{direction:ltr;text-align:center;min-width:120px;}
+  .items-input{min-width:140px;}
+  .price-big{font-size:15px;font-weight:800;color:var(--primary);}
+  .price-small{font-size:12px;font-weight:600;color:var(--subtext);}
+  .rows{display:grid;grid-template-columns:1fr;gap:2px;}
+  .row-item{
+    display:flex;align-items:center;justify-content:flex-start;
+    background:var(--soft);border-radius:10px;padding:3px 8px;font-size:13px;
+    border:1.5px solid transparent;
+  }
+  .row-item.filled{border-color:var(--success);background:rgba(22,163,74,.10);}
+  .row-item label{font-weight:700;color:var(--subtext);}
+  .variant-label{cursor:pointer;}
+  .variant-label.has-image{color:var(--primary);text-decoration:underline dotted;}
+  .variant-label.has-image::after{content:" 🖼";font-size:11px;}
+  .open-items-btn{
+    background:var(--soft);border:1px solid var(--border);border-radius:10px;
+    padding:9px 12px;min-height:40px;font-weight:700;font-size:13px;cursor:pointer;color:var(--text);
+  }
+  .variants-modal{
+    position:fixed;inset:0;background:rgba(15,17,23,.6);z-index:200;
+    display:flex;align-items:flex-end;justify-content:center;
+  }
+  .variants-panel{
+    background:var(--card);width:100%;max-width:600px;max-height:85vh;
+    border-radius:20px 20px 0 0;display:flex;flex-direction:column;
+    box-shadow:0 -4px 20px rgba(0,0,0,.3);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .variants-panel-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 16px;border-bottom:1px solid var(--border);
+  }
+  .variants-panel-title{font-weight:800;font-size:15px;color:var(--text);}
+  .close-variants{
+    background:var(--soft);border:none;border-radius:50%;
+    width:42px;height:42px;font-size:20px;cursor:pointer;color:var(--text);
+  }
+  .variants-list{overflow-y:auto;padding:10px 14px;flex:1;}
+  .variant-row{
+    display:flex;align-items:center;gap:10px;
+    padding:9px 4px;border-bottom:1px solid var(--soft);
+  }
+  .variant-row label{flex:1;font-weight:700;font-size:15px;color:var(--text);}
+  .variant-thumb{
+    width:44px;height:44px;flex:none;border-radius:10px;border:1px solid var(--border);
+    background:var(--soft);cursor:pointer;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;font-size:16px;
+  }
+  .variant-thumb img{width:100%;height:100%;object-fit:contain;}
+  .variant-del{
+    background:var(--danger);color:#fff;border:none;border-radius:10px;
+    width:42px;height:42px;font-size:16px;cursor:pointer;flex:none;
+  }
+  .add-item-bar{
+    display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--border);
+  }
+  .add-item-bar input{
+    flex:1;border:1.5px solid var(--border);border-radius:10px;padding:11px 10px;font-size:16px;background:var(--card);
+  }
+  .add-item-bar button{
+    background:var(--primary);color:#fff;border:none;border-radius:10px;
+    padding:11px 14px;min-height:44px;font-weight:800;font-size:14px;cursor:pointer;
+  }
+  .cloud-modal{
+    position:fixed;inset:0;background:rgba(15,17,23,.6);z-index:210;
+    display:flex;align-items:flex-end;justify-content:center;padding:0;
+  }
+  .cloud-panel{
+    background:var(--card);width:100%;max-width:480px;border-radius:20px 20px 0 0;
+    box-shadow:0 8px 30px rgba(0,0,0,.35);overflow:hidden;max-height:92vh;overflow-y:auto;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .cloud-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:13px 16px;border-bottom:1px solid var(--border);font-weight:800;font-size:15px;color:var(--text);
+  }
+  .close-cloud{
+    background:var(--soft);border:none;border-radius:50%;
+    width:42px;height:42px;font-size:20px;cursor:pointer;color:var(--text);
+  }
+  .cloud-body{padding:14px 16px;display:flex;flex-direction:column;gap:9px;}
+  .cloud-body label{font-size:12px;font-weight:700;color:var(--subtext);}
+  .cloud-body input{
+    border:1.5px solid var(--border);border-radius:10px;padding:11px 10px;font-size:16px;width:100%;background:var(--card);
+  }
+  .cloud-status{font-size:13px;font-weight:700;padding:8px 10px;border-radius:8px;background:var(--soft);color:var(--subtext);}
+  .cloud-status.on{background:rgba(22,163,74,.12);color:var(--success);}
+  .cloud-status.error{background:rgba(239,68,68,.12);color:var(--danger);}
+  .cloud-body button{
+    background:var(--primary);color:#fff;border:none;border-radius:10px;
+    padding:13px;min-height:48px;font-weight:800;font-size:15px;cursor:pointer;
+  }
+  .cloud-body button.danger{background:var(--soft);color:var(--danger);}
+  .cloud-help{margin-top:4px;background:var(--soft);border-radius:10px;padding:10px;font-size:12.5px;color:var(--subtext);line-height:1.8;}
+  .cloud-help summary{font-weight:700;cursor:pointer;color:var(--primary);}
+  .cloud-note{font-size:11px;color:var(--subtext);line-height:1.6;}
+  .row-item input{
+    width:52px;height:40px;text-align:center;border:1.5px solid var(--border);border-radius:10px;
+    padding:3px 2px;font-size:16px;font-weight:700;background:var(--card);
+  }
+  .qty-ctrl{display:flex;align-items:center;gap:6px;}
+  .qty-ctrl button{
+    width:42px;height:42px;line-height:1;border:none;border-radius:12px;
+    background:var(--primary);font-weight:900;font-size:20px;cursor:pointer;color:#fff;padding:0;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 1px 3px rgba(0,0,0,.2);
+  }
+  .qty-ctrl button.btn-dec{background:var(--danger);}
+  .qty-ctrl button:active{transform:scale(.92);}
+  .add-extra-btn{
+    width:36px;height:42px;border:1.5px solid var(--border);background:var(--soft);color:var(--text);
+    border-radius:12px;font-weight:800;font-size:15px;
+    cursor:pointer;font-family:inherit;padding:0;line-height:1;
+    display:inline-flex;align-items:center;justify-content:center;
+  }
+  .add-extra-btn:active{transform:scale(.94);}
+  .qty-side{display:flex;flex-direction:column;gap:3px;margin-inline-start:auto;}
+  .meta-badges{
+    display:flex;gap:4px;align-self:flex-end;
+    min-height:18px;align-items:center;
+  }
+  .meta-badge{
+    display:inline-flex;align-items:center;justify-content:center;pointer-events:none;
+    background:var(--success);color:#fff;border-radius:8px;
+    font-size:12px;font-weight:800;padding:3px 8px;line-height:1;
+  }
+  .row-note{
+    display:none;font-size:13px;font-weight:700;color:#b45309;text-align:right;
+    padding:0 2px;line-height:1.5;word-break:break-word;
+  }
+  .row-note.has{display:block;}
+  .extra-menu-modal{
+    position:fixed;inset:0;background:rgba(15,17,23,.5);z-index:230;
+    display:flex;align-items:center;justify-content:center;padding:20px;
+  }
+  .extra-menu{
+    background:var(--card);border-radius:16px;width:min(300px,88vw);
+    box-shadow:0 12px 40px rgba(0,0,0,.4);padding:8px;display:flex;flex-direction:column;gap:2px;
+  }
+  .xm-opt{
+    display:flex;align-items:center;gap:10px;background:transparent;border:none;
+    padding:13px 12px;min-height:48px;font-size:15px;font-weight:700;color:var(--text);
+    cursor:pointer;border-radius:10px;text-align:right;font-family:inherit;
+  }
+  .xm-opt:active{background:var(--soft);}
+  .xm-opt .st{margin-inline-start:auto;font-size:11px;color:var(--success);font-weight:800;}
+  .xm-cancel{
+    margin-top:4px;background:var(--soft);border:none;border-radius:10px;padding:12px;
+    min-height:44px;font-weight:800;font-size:14px;color:var(--subtext);cursor:pointer;font-family:inherit;
+  }
+  .note-input{
+    width:100%;padding:11px 12px;border-radius:10px;border:1.5px solid var(--border);
+    font-size:15px;font-weight:600;font-family:inherit;background:var(--bg);color:var(--text);
+  }
+  .note-del{
+    background:rgba(220,53,69,.14);color:var(--danger);border:none;border-radius:10px;
+    padding:11px 14px;min-height:44px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;
+  }
+  .note-save{flex:1;}
+  .brand-title{
+    font-size:20px;font-weight:800;text-align:center;margin:10px 0 14px;
+    color:var(--primary);
+  }
+  footer.bar{
+    position:fixed;bottom:0;left:0;right:0;background:var(--card);
+    border-top:1px solid var(--border);padding:10px 14px;
+    padding-bottom:calc(10px + env(safe-area-inset-bottom));
+    display:flex;gap:10px;box-shadow:0 -2px 10px var(--shadow);z-index:60;
+  }
+  footer.bar button{
+    flex:1;min-height:48px;padding:12px;border-radius:12px;border:none;font-weight:800;font-size:15px;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  }
+  .btn-preview{background:var(--pl);color:var(--primary);}
+  .btn-clear{background:var(--soft);color:var(--danger);}
+  .hint{font-size:12.5px;color:var(--subtext);text-align:center;padding:20px;}
+  .edit-price-btn{
+    background:var(--warning);color:#fff;border:none;border-radius:7px;
+    width:26px;height:26px;font-size:13px;cursor:pointer;margin-inline-start:4px;
+  }
+  .add-block-btn{
+    display:block;margin:0 auto 12px;background:var(--primary);color:#fff;border:none;
+    padding:10px 18px;min-height:42px;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;
+  }
+  .add-item-btn, .del-block-btn{
+    margin-top:8px;border:none;border-radius:8px;padding:7px 10px;min-height:34px;font-size:12px;
+    font-weight:700;cursor:pointer;
+  }
+  .add-item-btn{background:var(--primary);color:#fff;}
+  .del-block-btn{background:var(--danger);color:#fff;margin-inline-start:6px;}
+  body.edit-mode .block{outline:1.5px dashed var(--warning);}
+  .edit-toolbar{
+    display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+    background:var(--card);border:1.5px solid var(--border);border-radius:14px;
+    padding:12px;margin-bottom:14px;box-shadow:var(--shadow);
+  }
+  .edit-toolbar .import-btn, .edit-toolbar #exportExcelBtn{
+    background:var(--primary);color:#fff;border:none;border-radius:10px;
+    padding:10px 14px;min-height:42px;font-weight:700;font-size:13.5px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .edit-toolbar #exportExcelBtn{background:var(--warning);}
+  .edit-hint{font-size:12px;color:var(--subtext);}
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  table.price-table{
+    width:100%;min-width:700px;border-collapse:separate;border-spacing:0;background:var(--card);border-radius:12px;overflow:hidden;
+    margin-bottom:10px;border:1px solid var(--border);
+  }
+  table.price-table th{
+    background:var(--soft);color:var(--text);padding:10px 8px;font-size:13px;text-align:center;
+  }
+  table.price-table td{
+    border-bottom:1px solid var(--border);padding:6px;text-align:center;color:var(--text);
+  }
+  table.price-table input{
+    width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 6px;font-size:16px;
+    text-align:center;background:var(--card);
+  }
+  table.price-table .code-input{text-align:right;font-weight:700;min-width:110px;}
+  table.price-table .small-input,table.price-table .big-input{min-width:96px;}
+  table.price-table .row-del{
+    background:var(--danger);color:#fff;border:none;border-radius:8px;
+    width:36px;height:36px;cursor:pointer;font-size:15px;
+  }
+  .add-row-btn{
+    display:block;margin:0 auto 20px;background:var(--primary);color:#fff;border:none;
+    padding:11px 18px;min-height:44px;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;
+  }
+  #exportCanvas{padding:16px;background:#fff;color:#1c1c1c;}
+  .exp-block{border:1px solid #333;padding:6px;margin-bottom:8px;border-radius:4px;}
+  .exp-header{font-weight:800;border-bottom:2px solid var(--primary);margin-bottom:10px;padding-bottom:6px;}
+  .drawer-backdrop{
+    position:fixed;inset:0;background:rgba(15,17,23,.5);z-index:120;
+    opacity:0;pointer-events:none;transition:opacity .25s;
+  }
+  .drawer-backdrop.show{opacity:1;pointer-events:auto;}
+  .drawer{
+    position:fixed;top:0;bottom:0;right:0;z-index:121;
+    width:min(300px,84vw);background:var(--card);
+    box-shadow:-8px 0 30px rgba(0,0,0,.25);
+    transform:translateX(100%);transition:transform .28s ease;
+    display:flex;flex-direction:column;
+    padding-top:env(safe-area-inset-top);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .drawer.open{transform:translateX(0);}
+  .drawer-head{
+    display:flex;align-items:center;gap:8px;padding:16px;
+    border-bottom:1px solid var(--border);
+    font-weight:800;font-size:15px;color:var(--text);
+  }
+  .drawer-close{
+    margin-inline-start:auto;background:var(--soft);border:none;border-radius:50%;
+    width:42px;height:42px;font-size:18px;cursor:pointer;color:var(--text);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .drawer-body{padding:10px;display:flex;flex-direction:column;gap:4px;}
+  .drawer-item{
+    display:flex;align-items:center;gap:12px;width:100%;
+    background:transparent;border:none;border-radius:12px;
+    padding:13px 12px;min-height:48px;font-family:inherit;
+    font-size:14.5px;font-weight:700;color:var(--text);
+    cursor:pointer;text-align:right;
+  }
+  .drawer-item:active{background:var(--soft);}
+  .drawer-item i:first-child{font-size:19px;color:var(--primary);width:24px;text-align:center;}
+  .drawer-count{
+    margin-inline-start:auto;background:var(--soft);color:var(--subtext);
+    border-radius:20px;font-size:11.5px;font-weight:800;
+    padding:3px 9px;min-width:26px;text-align:center;
+  }
+  .drawer-count:empty{display:none;}
+  .badge-dot{
+    margin-inline-start:auto;width:10px;height:10px;border-radius:50%;
+    background:#9aa3b5;flex:none;
+  }
+  .badge-dot.on{background:var(--success);}
+  .badge-dot.error{background:var(--danger);}
+  .drawer-foot{
+    margin-top:auto;padding:14px 16px;border-top:1px solid var(--border);
+    font-size:11px;font-weight:700;color:var(--subtext);
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .history-modal{
+    position:fixed;top:0;left:0;right:0;bottom:0;
+    background:rgba(15,17,23,.6);z-index:200;
+    display:flex;align-items:center;justify-content:center;padding:16px;
+  }
+  .history-panel{
+    background:var(--card);width:100%;max-width:520px;max-height:80vh;
+    border-radius:20px;display:flex;flex-direction:column;
+    box-shadow:0 12px 40px rgba(0,0,0,.4);overflow:hidden;
+  }
+  .history-panel-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 16px;border-bottom:1px solid var(--border);
+  }
+  .history-panel-title{font-weight:800;font-size:15px;color:var(--text);}
+  .history-close{
+    background:var(--soft);border:none;border-radius:50%;
+    width:42px;height:42px;font-size:18px;cursor:pointer;color:var(--text);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .history-list{overflow-y:auto;padding:10px 14px;flex:1;min-height:140px;}
+  .history-row{
+    display:flex;align-items:center;gap:10px;
+    background:var(--soft);border:1.5px solid var(--border);border-radius:14px;
+    padding:12px;margin-bottom:8px;
+  }
+  .history-info{flex:1;min-width:0;}
+  .history-title{font-weight:800;font-size:14px;color:var(--text);}
+  .history-sub{font-size:12px;color:var(--subtext);margin-top:3px;line-height:1.7;}
+  .history-actions{display:flex;gap:6px;flex:none;}
+  .history-actions button{
+    border:none;border-radius:10px;width:42px;height:42px;font-size:17px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;font-family:inherit;
+  }
+  .hact-view{background:var(--soft);color:var(--warning);}
+  .hact-open{background:var(--pl);color:var(--primary);}
+  .hact-del{background:rgba(239,68,68,.12);color:var(--danger);}
+  .history-empty{text-align:center;color:var(--subtext);padding:30px 10px;font-size:13px;line-height:2;}
+  .preview-modal{
+    position:fixed;top:0;left:0;right:0;bottom:0;
+    background:rgba(15,17,23,.6);z-index:220;
+    display:flex;align-items:flex-end;justify-content:center;
+  }
+  .preview-panel{
+    background:var(--card);width:100%;max-width:600px;height:92vh;
+    border-radius:20px 20px 0 0;display:flex;flex-direction:column;
+    box-shadow:0 -4px 20px rgba(0,0,0,.3);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .preview-panel-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 16px;border-bottom:1px solid var(--border);
+  }
+  .preview-panel-title{font-weight:800;font-size:15px;color:var(--text);}
+  .preview-close{
+    background:var(--soft);border:none;border-radius:50%;
+    width:42px;height:42px;font-size:18px;cursor:pointer;color:var(--text);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .preview-body{overflow-y:auto;padding:12px 14px;flex:1;background:var(--soft);-webkit-overflow-scrolling:touch;}
+  .preview-img{width:100%;height:auto;display:block;border-radius:10px;border:1px solid var(--border);background:#fff;box-shadow:var(--shadow);}
+  .preview-actions{
+    display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--border);
+  }
+  .pv-btn{
+    flex:1;min-height:48px;border:none;border-radius:12px;font-weight:800;font-size:14px;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;gap:7px;font-family:inherit;color:#fff;
+  }
+  .pv-btn:active{transform:scale(.97);}
+  .pv-edit{background:var(--pl);color:var(--primary);}
+  .pv-share{background:var(--warning);}
+</style>
+</head>
+<body>
+
+<header>
+  <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
+  <h1><i class="bi bi-clipboard2-check"></i> فيروز</h1>
+  <span class="version">v1.19</span>
+  <div class="totals">
+    <span>القطع: <b id="totalPieces">0</b></span>
+    <span>المبلغ: <b id="totalAmount">0</b></span>
+  </div>
+</header>
+
+<div class="tabs" id="tabs"></div>
+<div class="search-bar"><input id="searchBox" placeholder="ابحث بالكود... مثال: LMM, GT, NG"></div>
+
+<main id="main"></main>
+
+<div class="edit-order-banner" id="editOrderBanner" style="display:none;">
+  <span id="editOrderLabel"></span>
+  <button type="button" onclick="cancelEditOrder()" title="إلغاء وضع التعديل">✕</button>
+</div>
+
+<footer class="bar">
+  <button class="btn-preview" onclick="previewOrder()"><i class="bi bi-eye"></i> معاينة</button>
+  <button class="btn-clear" onclick="clearAll()"><i class="bi bi-trash3"></i> مسح</button>
+</footer>
+
+<div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <i class="bi bi-clipboard2-check" style="font-size:20px;color:var(--primary);"></i> قائمة فيروز
+    <button class="drawer-close" onclick="closeDrawer()" title="إغلاق"><i class="bi bi-x-lg"></i></button>
+  </div>
+  <nav class="drawer-body">
+    <button class="drawer-item" onclick="openHistory()"><i class="bi bi-clock-history"></i> السجل<span class="drawer-count" id="historyCount"></span></button>
+    <button class="drawer-item" id="editBtn" onclick="toggleEditMode();closeDrawer()"><i class="bi bi-pencil-square"></i> تعديل الأسعار</button>
+    <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
+    <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
+  </nav>
+  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.19</span></div>
+</aside>
+
+<script>
+const APP_VERSION = "1.19";
+window.onerror = function(msg, src, line){
+  try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
+};
+/* ================= DATA MODEL =================
+Each product block:
+{ brand, code, prices:[{qtyTier, price}], items:[itemLabel,...] }
+Prices shown as they appear on sheet (two numbers = two price tiers depending on order qty; we just display them as reference).
+============================================== */
+const DEFAULT_DATA = {
+  "Forever52": [
+    {code:"LMM", price:"15.000 / 11.250", items:["-"]},
+    {code:"H001", price:"7.312 / 8.750", items:["-"]},
+    {code:"TBM", price:"10.000 / 7.500", items:["-"]},
+    {code:"UBM", price:"12.000 / 9.000", items:["-"]},
+    {code:"ARG", price:"9.000 / 6.750", items:["-"]},
+    {code:"F801", price:"9.000 / 6.750", items:["-"]},
+    {code:"KPP", price:"17.500 / 13.125", items:["-"]},
+    {code:"IGE", price:"15.000 / 11.250", items:["-"]},
+    {code:"GT", price:"9.000 / 12.000", items:["1","2"]},
+    {code:"EK", price:"9.000 / 12.000", items:["1","4","5"]},
+    {code:"WBS", price:"9.000 / 12.000", items:["2","3","5","6","9","10","11","12"]},
+    {code:"FLB", price:"7.500 / 10.000", items:["2","3","4","6"]},
+    {code:"RSL", price:"4.500 / 6.000", items:["1","2","3","4"]},
+    {code:"NG", price:"9.000 / 12.000", items:["1","3","6","11","12","14","15"]},
+    {code:"HWL", price:"7.500 / 10.000", items:["1","2","3","4"]},
+    {code:"WBL", price:"9.000 / 12.000", items:["1","2","3","4"]},
+    {code:"FEP", price:"6.750 / 9.000", items:["2","4","5"]},
+    {code:"FLE", price:"9.000 / 12.000", items:["1","2","5","6","11","22","3"]},
+    {code:"G701", price:"6.000 / 8.000", items:["-"]},
+    {code:"WE", price:"7.125 / 9.500", items:["-"]},
+    {code:"PX021", price:"9.000 / 12.000", items:["-"]},
+    {code:"PX001", price:"9.000 / 12.000", items:["-"]},
+    {code:"PX039", price:"7.500 / 10.000", items:["-"]},
+    {code:"PX018", price:"9.000 / 12.000", items:["-"]},
+    {code:"PX008", price:"7.500 / 10.000", items:["-"]},
+    {code:"PX036", price:"7.500 / 10.000", items:["-"]},
+    {code:"F500", price:"7.125 / 9.500", items:["501","502","503","504","505","506","511","512","515","517","519","523","527","528","530","531"]},
+    {code:"SSL", price:"7.500 / 10.000", items:["1","6","7","8","10","12","15","26","27","28","29","30"]},
+    {code:"NB", price:"7.500 / 10.000", items:["2","3","5","6","7","9","10","11","13","4"]},
+    {code:"GP", price:"7.500 / 10.000", items:["-"]},
+    {code:"RS", price:"9.000 / 12.000", items:["5","8","9","10","15","16","17","18","19","20"]},
+    {code:"IML", price:"9.000 / 12.000", items:["5","6","7","8","9","14","15","17"]},
+    {code:"DDE", price:"13.500 / 18.000", items:["5","6","7","8","9","10","11"]},
+    {code:"SNS 300", price:"7.500 / 10.000", items:["302","303","304","305","306"]},
+    {code:"SNS 400", price:"9.000 / 12.000", items:["401","403","405"]},
+    {code:"SPB", price:"13.500 / 18.000", items:["-"]},
+    {code:"BBR", price:"9.000 / 12.000", items:["5","6"]},
+    {code:"PLF", price:"17.250 / 23.000", items:["1","2"]},
+    {code:"CC", price:"11.250 / 15.000", items:["1","2"]},
+    {code:"ZB", price:"11.250 / 15.000", items:["3","4"]},
+    {code:"LUX", price:"9.938 / 13.250", items:["3","4"]},
+    {code:"SNS100", price:"9.000 / 12.000", items:["1","2"]},
+    {code:"SNS200", price:"7.500 / 10.000", items:["1","2"]},
+    {code:"COV", price:"9.000 / 12.000", items:["1","2","3","7","15","16"]},
+    {code:"AMB", price:"9.000 / 12.000", items:["-"]},
+    {code:"LYD", price:"9.000 / 12.000", items:["-"]},
+    {code:"G101", price:"7.125 / 9.500", items:["-"]},
+    {code:"KWP", price:"7.125 / 9.500", items:["1","2"]},
+    {code:"GBC", price:"13.125 / 17.500", items:["4","5","6"]},
+    {code:"STC", price:"13.500 / 18.000", items:["1","2","3","4"]},
+    {code:"GLM", price:"9.000 / 12.000", items:["1","2","6"]},
+    {code:"A00", price:"9.938 / 13.250", items:["1","2","3"]},
+    {code:"WD", price:"7.500 / 10.000", items:["2","3"]},
+    {code:"FBP", price:"9.000 / 12.000", items:["-"]},
+    {code:"NFB001", price:"11.250 / 15.000", items:["-"]},
+    {code:"DGH", price:"13.125 / 17.500", items:["-"]},
+    {code:"KMF", price:"15.000 / 20.000", items:["-"]},
+    {code:"Sp010", price:"4.500 / 6.000", items:["-"]},
+    {code:"LME", price:"13.125 / 17.500", items:["-"]},
+    {code:"AAF", price:"15.000 / 20.000", items:["-"]},
+    {code:"MSM", price:"9.000 / 12.000", items:["-"]},
+    {code:"SPS", price:"9.000 / 12.000", items:["-"]},
+    {code:"AC003", price:"11.250 / 15.000", items:["-"]},
+    {code:"GFP001", price:"15.000 / 20.000", items:["-"]},
+    {code:"SHA", price:"2.625 / 3.500", items:["-"]},
+    {code:"Wi001", price:"7.125 / 9.500", items:["-"]},
+    {code:"FEG001", price:"11.250 / 15.000", items:["-"]},
+    {code:"XZ003", price:"33.750 / 45.000", items:["-"]},
+    {code:"XZ005", price:"26.250 / 35.000", items:["-"]},
+    {code:"BKS", price:"18.750 / 25.000", items:["1","2"]},
+    {code:"CMO", price:"33.750 / 45.000", items:["2","3"]},
+    {code:"ICP", price:"26.250 / 35.000", items:["1","2","3","4"]},
+    {code:"GLT", price:"9.750 / 13.000", items:["3","4","7","10"]},
+    {code:"FLT", price:"9.000 / 12.000", items:["1","2","3","4"]},
+    {code:"XTM", price:"9.750 / 13.000", items:["-"]},
+  ],
+  "Character": [
+    {code:"NLT", price:"7.500 / 10.000", items:["1","2","3","4"]},
+    {code:"DGE", price:"9.000 / 12.000", items:["2","3","4","8","9","10"]},
+    {code:"MEV", price:"7.500 / 10.000", items:["-"]},
+    {code:"c601", price:"6.375 / 8.500", items:["-"]},
+    {code:"CMT", price:"6.375", items:["-"]},
+    {code:"CUV", price:"8.500", items:["-"]},
+    {code:"CBV", price:"8.500", items:["-"]},
+    {code:"Clk", price:"5.250 / 7.000", items:["1","2","4","6","12"]},
+    {code:"Cms002", price:"7.500 / 10.000", items:["-"]},
+    {code:"TWE", price:"6.000 / 8.000", items:["-"]},
+    {code:"Cme", price:"6.750 / 9.000", items:["1","2","3"]},
+    {code:"FP", price:"6.000 / 8.000", items:["1","2","3"]},
+    {code:"C701", price:"6.375 / 8.500", items:["-"]},
+    {code:"GOD", price:"7.125 / 9.500", items:["1","2","3","4","5","6","7","8"]},
+    {code:"SPK", price:"9.000 / 12.000", items:["1","2","3","6","9","10","11","14","15","16","17"]},
+    {code:"C400", price:"6.000 / 8.000", items:["401","402","403","404","405","406","407","410","412","413"]},
+    {code:"RSH", price:"6.375 / 8.500", items:["-"]},
+    {code:"RSB", price:"6.375 / 8.500", items:["2","4"]},
+    {code:"CTT", price:"11.250 / 15.000", items:["1","2"]},
+    {code:"XCL", price:"4.500 / 6.000", items:["1","2","3","4","5","6","7","8","9","10","11","12"]},
+    {code:"CTO 200", price:"6.750 / 9.000", items:["201","202","203","204","205","206","207","208"]},
+    {code:"CTO 300", price:"6.750 / 9.000", items:["301","302","303","304","305"]},
+    {code:"CDU", price:"4.500 / 6.000", items:["2","3","4","5","8","9","16","18"]},
+    {code:"RL", price:"2.250 / 3.000", items:["3","4","5","6","7","8","9","10","11","12","13","18","20","21","22","24"]},
+    {code:"CGT", price:"10.500 / 14.000", items:["1","2","3"]},
+    {code:"CGE", price:"9.000 / 12.000", items:["1","2","3","4","7"]},
+    {code:"PLF-C", price:"13.500 / 18.000", items:["1","2","11","12"]},
+    {code:"BPL", price:"9.000 / 12.000", items:["-"]},
+    {code:"DRO", price:"5.625 / 7.500", items:["1","2"]},
+    {code:"PLC", price:"7.500 / 10.000", items:["1","2","11","12"]},
+    {code:"GME", price:"11.250 / 15.000", items:["4","8","9","10","12","13"]},
+    {code:"CMP", price:"9.000 / 12.000", items:["1","2","3","4","5"]},
+    {code:"MMR", price:"7.500 / 10.000", items:["-"]},
+    {code:"Css", price:"11.250 / 15.000", items:["-"]},
+    {code:"Cps", price:"7.500 / 10.000", items:["-"]},
+    {code:"CBT", price:"3.750 / 5.000", items:["-"]},
+    {code:"CDB", price:"7.500 / 10.000", items:["-"]},
+    {code:"LPP", price:"9.000 / 12.000", items:["1","2","3"]},
+    {code:"GK", price:"13.125 / 17.500", items:["1","2","3","4"]},
+    {code:"CSO", price:"9.000 / 12.000", items:["1","2","3","4","5","6"]},
+    {code:"CBH", price:"18.750 / 25.000", items:["-"]},
+  ],
+  "Rosella": [
+    {code:"Cinderella-اساس", price:"15.000 / 11.250", items:["LAVENDER","CANDY","VIOLA"]},
+    {code:"سنوية-اساس", price:"25.000 / 18.750", items:["FAYROUZ","CARAMEL","SQUASH","PISTACHIO"]},
+    {code:"LATTE-اساس", price:"25.000 / 18.750", items:["CHOCOLATE","PANCY","QUARTZO","PUR PURA"]},
+    {code:"SPICY-اساس", price:"25.000 / 18.750", items:["AVOCADO","LEMON MINT","SUGAR","GREY"]},
+    {code:"لمعان شفاه", price:"6.000 / 4.500", items:["SHAMS","MOHRA","MINA","ZAHRAA","ZAINAB","FATIMA","NOOR","ASILA","BAHAR","SULTANA","SARAH","AYA","GAZALA","SHAM","FAJER","MARWA"]},
+    {code:"قلم حاجب", price:"6.000 / 4.500", items:["DARK BROWN","CHOCOLATE","CHARCOL"]},
+    {code:"يومية-عدسات", price:"7.500 / 5.625", items:["CLOUDY","CACAO","BABY BLUE","SPRING","PEARL","TIGER","CAPHE","LIME","ACAJOU","ASH GREY","LAVA","PESTO"]},
+    {code:"سيت حمر", price:"10.000 / 7.500", items:["SNOW WHITE","SANDY BELL","BARBIE"]},
+    {code:"كلوس-احمر شفاه", price:"7.500 / 10.000", items:["LINA","LUNA","NORA","NOVA"]},
+    {code:"تنت", price:"7.000 / 5.250", items:["Moon","Sun"]},
+    {code:"بلاشر سائل", price:"7.500 / 10.000", items:["Candy rose","Baby pink","Flamingo"]},
+    {code:"اي لاينر", price:"7.500 / 10.000", items:["-"]},
+    {code:"دب لاينر", price:"4.500 / 6.000", items:["-"]},
+    {code:"واكس", price:"7.500 / 10.000", items:["-"]},
+    {code:"فرشة الدمج RS001", price:"6.375 / 8.500", items:["-"]},
+    {code:"فرشة الظلال RS002", price:"6.375 / 8.500", items:["-"]},
+    {code:"فرشة الاي لاينر RS003", price:"6.375 / 8.500", items:["-"]},
+    {code:"فرشة بلاشر&باودر RS004", price:"6.375 / 8.500", items:["-"]},
+    {code:"فرشة الحاجب RS005", price:"6.375 / 8.500", items:["-"]},
+    {code:"فرشة الاساس RS006", price:"7.500 / 10.000", items:["-"]},
+    {code:"مجموعة الفرش", price:"18.750 / 26.250", items:["-"]},
+    {code:"CC كريم", price:"9.750 / 13.000", items:["1","2"]},
+    {code:"BB كريم", price:"9.750 / 13.000", items:["1","2"]},
+    {code:"برايمر", price:"6.375 / 8.000", items:["-"]},
+    {code:"لوس باودر", price:"7.500 / 10.000", items:["-"]},
+    {code:"كونسيلر فلوليس", price:"7.500 / 10.000", items:["1","2","3"]},
+    {code:"كونسيلر فلتر", price:"6.000 / 8.000", items:["1","2","3"]},
+    {code:"فونديشن", price:"7.500 / 10.000", items:["1","2","3"]},
+    {code:"باودر", price:"7.500 / 10.000", items:["1","2","3"]},
+    {code:"بلاشر (Cherry/Nude/Mocha)", price:"3.750 / 5.000", items:["Cherry","Nude","Mocha"]},
+    {code:"بلاشر (Coral/Beach/Rose)", price:"6.000 / 8.000", items:["Coral","Beach","Rose"]},
+    {code:"باليت بلاشر", price:"9.000 / 12.000", items:["-"]},
+    {code:"قلم تحديد (13-44)", price:"3.750 / 5.000", items:["13","15","16","19","20","22","28","34","44"]},
+    {code:"سائل عدسات 360ml", price:"7.500 / 10.000", items:["-"]},
+    {code:"سائل عدسات 80ml", price:"3.750 / 5.000", items:["-"]},
+    {code:"سائل عدسات 160ml", price:"5.250 / 7.000", items:["-"]},
+    {code:"رموش (Dreamy/Divine)", price:"7.500 / 10.000", items:["Dreamy","Divine"]},
+    {code:"رموش استرابس", price:"7.500 / 10.000", items:["-"]},
+    {code:"عدسات (اسماء)", price:"-", items:["SHADAN","MIRAL","RINA","MARA","AYLA","MAY","GHAZAL","REMAN"]},
+    {code:"عدسة Pink/Black", price:"3.750 / 5.000", items:["Pink","Black"]},
+    {code:"اقراص قطن", price:"3.000 / 4.000", items:["-"]},
+    {code:"مزيل مكياج", price:"6.375 / 8.500", items:["-"]},
+    {code:"شامبو 750ml", price:"15.000 / 20.000", items:["-"]},
+    {code:"كوندشنر 750ml", price:"15.000 / 20.000", items:["-"]},
+    {code:"ماسك 500ml", price:"15.000 / 20.000", items:["-"]},
+    {code:"مجموعة الشعر", price:"23.000 / 30.000", items:["-"]},
+    {code:"سيروم", price:"11.250 / 15.000", items:["-"]},
+    {code:"ليف ان", price:"9.750 / 13.000", items:["-"]},
+    {code:"واقي شمس", price:"18.750 / 25.000", items:["-"]},
+    {code:"غسول البشرة", price:"15.000 / 20.000", items:["-"]},
+    {code:"ليف ان سبري", price:"7.500 / 10.000", items:["-"]},
+    {code:"كريم القدم", price:"9.750 / 13.000", items:["-"]},
+    {code:"لاصق رموش", price:"4.500 / 6.000", items:["-"]},
+    {code:"فرشة سشوار", price:"41.000 / 55.000", items:["-"]},
+    {code:"بديل دايسون", price:"250.000 / 300.000", items:["-"]},
+    {code:"بيوتي بلندر صغير", price:"3.750 / 5.000", items:["-"]},
+    {code:"حافظة عدسات", price:"500 / 1.000", items:["-"]},
+    {code:"غسالة عدسات", price:"3.750 / 5.000", items:["-"]},
+    {code:"عطر (درجات)", price:"18.750 / 30.000", items:["R.LIBRE","R.VELVET ORCHID","R.VERT MALACHITE","R.STRONGER WITH YOUTH","R.INTENSE OUD","R.MY WAY","R.UOMO","R.LAIL MALEKI","R.ONE ROYAL NIGHT","R.MON PARIS","R.LA VIE BELLE","R.ROSE DES VENTS","R.IMBERBIM ROSE","R.INTERDIT","R.IMPERIAL","R.AVENTUS"]},
+    {code:"لب لاينر (2-16)", price:"6.375 / 8.500", items:["2","5","6","9","10","13","14","15","16"]},
+  ],
+  "Future": [
+    {code:"FU6300", price:"3.750 / 5.000", items:["6301","6302","6303","6304","6305","6306"]},
+    {code:"FU5000", price:"3.750 / 5.000", items:["5001","5002","5003","5004","5005"]},
+    {code:"FU6100", price:"6.750 / 9.000", items:["6101","6103","6104","6105","6106"]},
+    {code:"FU5100", price:"5.250 / 7.000", items:["5101","5102","5103","5105","5108","5110","5113","5114","5115","5116"]},
+    {code:"FU2900", price:"6.000 / 8.000", items:["2901","2902","2903","2906","4405","4406"]},
+    {code:"FU600", price:"7.500 / 10.000", items:["601","602","603","604","605","606","607","608"]},
+    {code:"FU2500", price:"5.625 / 7.500", items:["2502","2503","2504","2507"]},
+    {code:"FU2601", price:"5.625 / 7.500", items:["-"]},
+    {code:"FU5902", price:"3.750 / 5.000", items:["-"]},
+    {code:"FU5401", price:"6.375 / 8.500", items:["-"]},
+    {code:"FU5701", price:"6.375 / 8.500", items:["-"]},
+    {code:"FU6400", price:"6.000 / 8.000", items:["6402","6403","6406"]},
+    {code:"FU3100", price:"6.000 / 8.000", items:["3101","3102","3103","3111"]},
+    {code:"FU120", price:"10.875 / 14.500", items:["121","122"]},
+    {code:"FU6900", price:"26.250 / 35.000", items:["6901","6902"]},
+    {code:"FU3701", price:"6.375 / 8.500", items:["-"]},
+    {code:"FU4201", price:"6.750 / 9.000", items:["-"]},
+    {code:"FU3301", price:"4.125 / 5.500", items:["-"]},
+    {code:"FU4700", price:"6.375 / 8.500", items:["4701","4702","4704"]},
+    {code:"FU3502", price:"9.000 / 12.000", items:["-"]},
+    {code:"FU3600", price:"9.000 / 12.000", items:["3601","3602"]},
+    {code:"FU4100", price:"13.875 / 18.500", items:["4101","4102"]},
+    {code:"FU100", price:"18.750 / 25.000", items:["101","112"]},
+    {code:"FU4800", price:"7.500 / 10.000", items:["4801","4802","4804"]},
+    {code:"FU6001", price:"15.000 / 20.000", items:["-"]},
+    {code:"FU5201", price:"13.875 / 18.500", items:["-"]},
+  ]
+};
+
+const LS_DATA_KEY = "orderapp_data_v1";
+const LS_QTY_KEY  = "orderapp_qty_v1";
+
+let DATA = loadData();
+let QTY  = loadQty(); // QTY[brand][code][item] = number
+
+// ORDER HISTORY — must be initialized before the startup calls further below
+const LS_ORDERS_KEY = "orderapp_orders_v1";
+let ORDERS = loadOrders();
+
+function mergeSavedData(saved){
+  // Keep the user's saved data, but restore any old/default brand whose
+  // product list was accidentally saved empty by an earlier version.
+  const result = JSON.parse(JSON.stringify(DEFAULT_DATA));
+  if(saved && typeof saved === "object"){
+    Object.keys(saved).forEach(brand=>{
+      if(Array.isArray(saved[brand]) && saved[brand].length){
+        result[brand] = saved[brand];
+      }else if(!(brand in result)){
+        result[brand] = [];
+      }
+    });
+  }
+  return result;
+}
+function loadData(){
+  try{
+    const savedRaw = localStorage.getItem(LS_DATA_KEY);
+    if(savedRaw) return mergeSavedData(JSON.parse(savedRaw));
+  }catch(e){
+    console.warn("تعذر قراءة بيانات المنتجات المحفوظة:", e);
+  }
+  return JSON.parse(JSON.stringify(DEFAULT_DATA));
+}
+function saveData(){
+  try{
+    localStorage.setItem(LS_DATA_KEY, JSON.stringify(DATA));
+  }catch(e){
+    console.warn("تحذير: مساحة التخزين المحلي ممتلئة، احفظ البيانات بالسحابة", e);
+  }
+  scheduleCloudPush();
+}
+function loadQty(){
+  try{
+    const saved = localStorage.getItem(LS_QTY_KEY);
+    if(saved) return JSON.parse(saved);
+  }catch(e){}
+  return {};
+}
+function saveQty(){
+  try{
+    localStorage.setItem(LS_QTY_KEY, JSON.stringify(QTY));
+  }catch(e){
+    console.warn("تحذير: مساحة التخزين المحلي ممتلئة", e);
+  }
+  scheduleCloudPush();
+}
+
+/* ================= CLOUD SYNC =================
+  مزامنة تلقائية عبر Firebase Realtime Database (REST, مجاني 1GB)
+  المتجر يكتب ويقرأ بلا حساب: الرابط نفسه هو المفتاح السري.
+============================================== */
+const LS_CLOUD_KEY = "orderapp_cloud_v1";
+const FIREBASE_API_KEY = "AIzaSyATmCURmgR0vW9ha8XGkJ6or7ttAYEiyhY";
+let cloudCfg = null;
+let cloudStatus = "off"; // off | connecting | on | error
+let cloudTimer = null;
+let cloudDirty = false;
+let cloudSupress = false;
+let cloudToken = null;
+try{ cloudCfg = JSON.parse(localStorage.getItem(LS_CLOUD_KEY)||"null"); }catch(e){ cloudCfg = null; }
+
+function cloudBase(){
+  if(!cloudCfg) return "";
+  return cloudCfg.url.replace(/\/+$/,"") + "/" + ((cloudCfg.room||"shop1")+"");
+}
+
+// Firebase Anonymous Auth: يجلب رمز أمان يتجدد تلقائياً، ببدونه القواعد ترفض أي قراءة/كتابة.
+async function ensureToken(force){
+  if(cloudToken && !force && Date.now() < cloudToken.expiry) return cloudToken.id;
+  const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({returnSecureToken:true})
+  });
+  if(!res.ok) throw new Error("auth failed " + res.status);
+  const j = await res.json();
+  cloudToken = { id: j.idToken, expiry: Date.now() + ((parseInt(j.expiresIn||"3600",10) - 120) * 1000) };
+  return cloudToken.id;
+}
+
+async function httpJson(method, path, body, retried){
+  const tok = await ensureToken();
+  const res = await fetch(`${cloudBase()}/${path}.json?auth=${encodeURIComponent(tok)}`, {
+    method,
+    headers: body!==undefined ? {"Content-Type":"application/json"} : undefined,
+    body: body!==undefined ? JSON.stringify(body) : undefined
+  });
+  if(res.status === 401 && !retried){
+    cloudToken = null;
+    return httpJson(method, path, body, true);
+  }
+  if(!res.ok) throw new Error(method+" "+res.status+" "+ (await res.text().catch(()=>"")));
+  const t = await res.text();
+  return t ? JSON.parse(t) : null;
+}
+
+function cloudUi(){
+  const btn = document.getElementById("cloudBtn");
+  const st = document.getElementById("cloudStatusText");
+  const dot = document.getElementById("cloudDot");
+  if(btn){
+    btn.style.background = cloudStatus==="on" ? "rgba(22,163,74,.12)" : (cloudStatus==="error" ? "rgba(239,68,68,.12)" : "transparent");
+    btn.title = cloudStatus==="on" ? "السحابة متصلة ✓" : (cloudStatus==="error" ? "تعذر الاتصال بالسحابة" : "السحابة غير مفعلة");
+  }
+  if(dot){
+    dot.className = "badge-dot" + (cloudStatus==="on" ? " on" : (cloudStatus==="error" ? " error" : ""));
+  }
+  if(st){
+    st.textContent = cloudStatus==="on" ? "✓ متصل — المزامنة تعمل تلقائياً"
+      : cloudStatus==="connecting" ? "جاري الاتصال…"
+      : cloudStatus==="error" ? "✗ فشل الاتصال — تأكد من الرابط أو أعد الضغط على حفظ والاتصال"
+      : "غير متصل — البيانات محفوظة على هذا الجهاز فقط";
+    st.className = "cloud-status" + (cloudStatus==="on" ? " on" : (cloudStatus==="error" ? " error" : ""));
+  }
+}
+
+async function cloudPull(){
+  if(!cloudCfg) return;
+  cloudStatus = "connecting"; cloudUi();
+  try{
+    cloudSupress = true;
+    const [p,q] = await Promise.all([
+      httpJson("GET","products"),
+      httpJson("GET","qty")
+    ]);
+    if(p && typeof p==="object"){
+      DATA = mergeSavedData(p);
+      normalizeAllProducts();
+      saveData();
+    }
+    if(q && typeof q==="object"){ QTY = decodeQty(q); saveQty(); }
+    buildTabs();
+    buildPanels();
+    updateTotals();
+    cloudSupress = false;
+    cloudStatus = "on"; cloudUi();
+    scheduleCloudPush();
+  }catch(e){
+    cloudSupress = false;
+    cloudStatus = "error"; cloudUi();
+    console.warn("سحب من السحابة فشل:", e);
+  }
+}
+
+function encodeQty(q){
+  const out = {};
+  Object.entries(q||{}).forEach(([brand, codes])=>{
+    const b = encodeURIComponent(brand);
+    out[b] = {};
+    Object.entries(codes||{}).forEach(([code, items])=>{
+      out[b][encodeURIComponent(code)] = items;
+    });
+  });
+  return out;
+}
+function decodeQty(q){
+  const out = {};
+  Object.entries(q||{}).forEach(([brand, codes])=>{
+    let b = brand;
+    try{ b = decodeURIComponent(brand); }catch(e){}
+    out[b] = {};
+    Object.entries(codes||{}).forEach(([code, items])=>{
+      let c = code;
+      try{ c = decodeURIComponent(code); }catch(e){}
+      out[b][c] = items;
+    });
+  });
+  return out;
+}
+
+async function cloudPushAll(){
+  const hasQty = Object.keys(QTY).length > 0;
+  await Promise.all([
+    httpJson("PUT","products",DATA),
+    httpJson("PUT","qty", hasQty ? encodeQty(QTY) : null),
+    httpJson("PUT","customer",null),
+    httpJson("PUT","updatedAt",Date.now())
+  ]);
+}
+
+function scheduleCloudPush(){
+  if(!cloudCfg || cloudSupress) return;
+  cloudDirty = true;
+  if(cloudTimer) clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(async ()=>{
+    cloudTimer = null;
+    if(!cloudDirty || !cloudCfg) return;
+    cloudDirty = false;
+    try{
+      await cloudPushAll();
+      cloudStatus = "on"; cloudUi();
+    }catch(e){
+      cloudStatus = "error"; cloudUi();
+      console.warn("رفع للسحابة فشل:", e);
+    }
+  }, 1800);
+}
+
+function openCloudSettings(){
+  const overlay = document.createElement("div");
+  overlay.className = "cloud-modal";
+  overlay.innerHTML = `
+    <div class="cloud-panel">
+      <div class="cloud-head"><span>☁️ المزامنة السحابية</span><button type="button" class="close-cloud" aria-label="إغلاق">×</button></div>
+      <div class="cloud-body">
+        <label>رابط قاعدة البيانات (Realtime Database URL)</label>
+        <input id="cloudUrl" dir="ltr" placeholder="https://myshop-default-rtdb.firebaseio.com" value="${cloudCfg?cloudCfg.url:"https://fayrouz-order-app-default-rtdb.firebaseio.com"}">
+        <label>اسم المتجر (شارة الغرفة — حافظ عليها ثابتة على كل أجهزتك)</label>
+        <input id="cloudRoom" dir="ltr" placeholder="shop1" value="${cloudCfg?(cloudCfg.room||"fayrouz"):"fayrouz"}">
+        <div class="cloud-status" id="cloudStatusText"></div>
+        <button type="button" id="cloudSaveBtn">💾 حفظ والاتصال</button>
+        <button type="button" id="cloudDisconnectBtn" class="danger">فصل السحابة</button>
+        <details class="cloud-help">
+          <summary>كيف أجهز الرابط المجاني؟ (مرة واحدة — دقيقتين)</summary>
+          <ol>
+            <li>افتح <b>console.firebase.google.com</b> بحساب Gmail وأنشئ مشروع (الاسم ما يهم).</li>
+            <li>من القائمة الجانبية: <b>Build → Realtime Database → Create database</b>.</li>
+            <li>اختر وضع <b>Test mode</b> ثم <b>Enable</b>.</li>
+            <li>انسخ الرابط اللي يظهر (مثلاً <span dir="ltr">https://x-default-rtdb.firebaseio.com</span>) وحطه بخانة الرابط.</li>
+            <li>حط نفس الرابط ونفس اسم المتجر بكل أجهزتك — وبيصيرون متزامنين.</li>
+            <li>🔒 البيانات مؤمّنة: التطبيق يتصل برمز أمان تلقائي يتجدد بنفسه — أي أحد ثاني بدون هذا الملف ما يقدر يقرأ أو يعدّل بياناتك.</li>
+          </ol>
+        </details>
+        <p class="cloud-note">المساحة المجانية 1GB — قائمتك الكاملة مع كل الصور أقل من 30MB (تكفي أكثر من 10 آلاف صورة). أي تعديل يرفع تلقائياً بعد ثانيتين، وأي جهاز يفتح التطبيق يسحب أحدث نسخة. الوصول محمي برمز أمان (Anonymous Auth) — انسخ هذا الملف لأجهزتك فقط.</p>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  cloudUi();
+
+  overlay.querySelector(".close-cloud").addEventListener("click", close);
+  overlay.querySelector("#cloudDisconnectBtn").addEventListener("click", ()=>{
+    localStorage.removeItem(LS_CLOUD_KEY);
+    cloudCfg = null;
+    cloudStatus = "off";
+    if(cloudTimer) clearTimeout(cloudTimer);
+    cloudTimer = null;
+    cloudDirty = false;
+    close();
+  });
+
+  overlay.querySelector("#cloudSaveBtn").addEventListener("click", ()=>{
+    const url = document.getElementById("cloudUrl").value.trim().replace(/\/+$/,"");
+    const room = (document.getElementById("cloudRoom").value.trim()||"shop1").replace(/[^a-zA-Z0-9_-]/g,"");
+    if(!url){ alert("اكتب رابط قاعدة البيانات"); return; }
+    if(!/^https:\/\/.+/.test(url)){ alert("الرابط يجب أن يبدأ بـ https://"); return; }
+    cloudCfg = {url, room: room||"shop1"};
+    localStorage.setItem(LS_CLOUD_KEY, JSON.stringify(cloudCfg));
+    cloudPull();
+    close();
+  });
+
+  const onKey = (e)=>{ if(e.key === "Escape") close(); };
+  function close(){
+    overlay.remove();
+    document.removeEventListener("keydown", onKey);
+  }
+  overlay.addEventListener("click", (e)=>{ if(e.target === overlay) close(); });
+  document.addEventListener("keydown", onKey);
+}
+
+function initCloud(){
+  cloudUi();
+  if(cloudCfg) cloudPull();
+}
+
+function parsePrices(priceStr){
+  if(!priceStr || priceStr.trim()==="-") return {big:0, small:0};
+  const parts = priceStr.split("/").map(s=>{
+    // Source sheet uses "." as a THOUSANDS separator (e.g. 15.000 = 15000), not decimal.
+    const clean = s.trim().replace(/,/g,"").replace(/\./g,"");
+    return parseFloat(clean);
+  });
+  const valid = parts.filter(n=>!isNaN(n));
+  if(!valid.length) return {big:0, small:0};
+  return { big: Math.max(...valid), small: Math.min(...valid) };
+}
+function fmt(n){
+  if(!n) return "0";
+  return n.toLocaleString("en-US", {maximumFractionDigits:3});
+}
+// iPhone/Arabic keyboards emit Arabic-Indic (٠-٩) or Persian (۰-۹) digits which
+// parseInt() rejects — normalize any input to plain Latin digits before use.
+function normDigits(v){
+  return String(v==null?"":v)
+    .replace(/[٠-٩]/g, d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d))
+    .replace(/[۰-۹]/g, d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+    .replace(/[^0-9]/g,"");
+}
+
+function buildTabs(){
+  const tabsEl = document.getElementById("tabs");
+  tabsEl.innerHTML = "";
+  Object.keys(DATA).forEach((brand,i)=>{
+    const btn = document.createElement("button");
+    btn.className = "tab-btn" + (i===0?" active":"");
+    btn.textContent = brand;
+    btn.onclick = ()=>switchTab(brand);
+    btn.dataset.brand = brand;
+    tabsEl.appendChild(btn);
+  });
+}
+
+function switchTab(brand){
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.toggle("active", b.dataset.brand===brand));
+  document.querySelectorAll(".brand-panel").forEach(p=>p.classList.toggle("active", p.dataset.brand===brand));
+}
+
+let editMode = false;
+
+function toggleEditMode(){
+  editMode = !editMode;
+  document.body.classList.toggle("edit-mode", editMode);
+  document.getElementById("editBtn").innerHTML = editMode ? '<i class="bi bi-check2-circle"></i> إنهاء التعديل' : '<i class="bi bi-pencil-square"></i> تعديل الأسعار';
+  buildPanels(); // rerender to show/hide edit controls
+}
+
+function buildPanels(){
+  Object.keys(DATA || {}).forEach(brand=>{
+    if(!Array.isArray(DATA[brand])) DATA[brand] = [];
+    DATA[brand].forEach(normalizeProductBlock);
+  });
+  const activeBrand = document.querySelector(".brand-panel.active")?.dataset.brand || Object.keys(DATA)[0];
+  const main = document.getElementById("main");
+  main.innerHTML = "";
+
+  if(editMode){
+    const toolbar = document.createElement("div");
+    toolbar.className = "edit-toolbar";
+    toolbar.innerHTML = `
+      <label class="import-btn"><i class="bi bi-file-earmark-arrow-down"></i> استيراد اكسل
+        <input type="file" id="importExcelInput" accept=".xlsx,.xls" style="display:none;">
+      </label>
+      <button type="button" id="exportExcelBtn"><i class="bi bi-file-earmark-arrow-up"></i> تصدير اكسل</button>
+      <span class="edit-hint">عدّل الاسم / مبلغ الجملة / مبلغ المفرد مباشرة بالجدول</span>
+    `;
+    main.appendChild(toolbar);
+    toolbar.querySelector("#importExcelInput").addEventListener("change", handleImportExcel);
+    toolbar.querySelector("#exportExcelBtn").addEventListener("click", exportExcel);
+  }
+
+  Object.entries(DATA).forEach(([brand, blocks])=>{
+    if(!QTY[brand]) QTY[brand] = {};
+    const panel = document.createElement("div");
+    panel.className = "brand-panel" + (brand===activeBrand?" active":"");
+    panel.dataset.brand = brand;
+    main.appendChild(panel);
+
+    if(editMode){
+      buildEditTable(panel, brand);
+    } else {
+      panel.innerHTML = `<div class="brand-title">${brand}</div><div class="grid" id="grid-${brand}"></div>`;
+      buildGrid(panel.querySelector(".grid"), brand, blocks);
+    }
+  });
+  updateTotals();
+}
+
+
+function normalizeProductBlock(block){
+  if(!block) return block;
+  const parsed = parsePrices(block.price || "");
+  block.big = Number(block.big || parsed.big || 0);
+  block.small = Number(block.small || parsed.small || 0);
+  block.image = block.image || "";
+  block.barcode = block.barcode || "";
+  if(!Array.isArray(block.items) || !block.items.length) block.items = ["-"];
+  if(!block.itemImages || typeof block.itemImages !== "object") block.itemImages = {};
+  if(!block.itemBarcodes || typeof block.itemBarcodes !== "object") block.itemBarcodes = {};
+  return block;
+}
+
+function getBarcode(block){
+  return (block && block.barcode) ? String(block.barcode) : "";
+}
+
+const EAN_L = ["0001101","0011001","0010011","0111101","0100011","0110001","0101111","0111011","0110111","0001011"];
+const EAN_G = ["0100111","0110011","0011011","0100001","0011101","0111001","0000101","0010001","0001001","0010111"];
+const EAN_R = ["1110010","1100110","1101100","1000010","1011100","1001110","1010000","1000100","1001000","1110100"];
+const EAN_PARITY = ["AAAAAA","AABABB","AABBAB","AABBBA","ABAABB","ABBAAB","ABBBAA","ABABAB","ABABBA","ABBABA"];
+
+function ean13Check(d12){
+  let s = 0;
+  for(let i=0;i<12;i++) s += (i%2===0) ? parseInt(d12[i],10) : parseInt(d12[i],10)*3;
+  return (10 - (s%10)) % 10;
+}
+
+function renderBarcode(svg, value){
+  if(!svg) return;
+  const NS = "http://www.w3.org/2000/svg";
+  svg.innerHTML = "";
+  svg.setAttribute("fill","currentColor");
+  svg.style.display = "none";
+  const w = parseFloat(svg.getAttribute("width")||svg.style.width||105)||105;
+  const h = parseFloat(svg.getAttribute("height")||svg.style.height||34)||34;
+  const v = String(value||"").trim();
+  if(!v) return;
+  if(!/^[0-9]+$/.test(v)){
+    svg.style.display = "block";
+    const t = document.createElementNS(NS,"text");
+    t.setAttribute("x", w/2);
+    t.setAttribute("y", h/2+4);
+    t.setAttribute("text-anchor","middle");
+    t.setAttribute("font-family","monospace");
+    t.setAttribute("font-size", Math.min(11, h*0.4));
+    t.textContent = v.length>16 ? v.slice(0,16) : v;
+    svg.appendChild(t);
+    return;
+  }
+  let bits = "", text = "";
+  if(v.length === 12 || v.length === 13){
+    const d = v.length===12 ? v : v.slice(0,12);
+    const check = v.length===13 ? v[12] : String(ean13Check(d));
+    text = d + check;
+    const par = EAN_PARITY[parseInt(d[0],10)];
+    bits = "00000000000" + "101";
+    for(let i=1;i<=6;i++) bits += (par[i-1]==="A" ? EAN_L : EAN_G)[parseInt(d[i],10)];
+    bits += "01010";
+    for(let i=7;i<12;i++) bits += EAN_R[parseInt(d[i],10)];
+    bits += EAN_R[parseInt(check,10)] + "101" + "00000000000";
+  } else {
+    let d = v;
+    if(d.length % 2) d = "0" + d;
+    const ITF = ["nnwwn","wnnnw","nwnnw","wwnnn","nnwnw","wnwnn","nwwnn","nnnww","wnnwn","nwnwn"];
+    bits = "0000000000";
+    for(let i=0;i<d.length;i+=2){
+      const b = ITF[parseInt(d[i],10)], s = ITF[parseInt(d[i+1],10)];
+      for(let j=0;j<5;j++){ bits += b[j]==="w" ? "111" : "1"; bits += s[j]==="w" ? "000" : "0"; }
+    }
+    bits += "11101" + "0000000000";
+  }
+  const mw = w / bits.length;
+  const barH = h - (text ? 13 : 2);
+  svg.style.display = "block";
+  let run = 0;
+  for(let i=0;i<bits.length;i++){
+    if(bits[i]==="1"){ run++; continue; }
+    if(run){
+      const r = document.createElementNS(NS,"rect");
+      r.setAttribute("x", (i-run)*mw);
+      r.setAttribute("y", 1);
+      r.setAttribute("width", run*mw);
+      r.setAttribute("height", barH);
+      r.setAttribute("fill","#000");
+      svg.appendChild(r);
+      run = 0;
+    }
+  }
+  if(run){
+    const r = document.createElementNS(NS,"rect");
+    r.setAttribute("x", (bits.length-run)*mw);
+    r.setAttribute("y", 1);
+    r.setAttribute("width", run*mw);
+    r.setAttribute("height", barH);
+    r.setAttribute("fill","#000");
+    svg.appendChild(r);
+  }
+  if(text){
+    const t = document.createElementNS(NS,"text");
+    t.setAttribute("x", w/2);
+    t.setAttribute("y", h-3);
+    t.setAttribute("text-anchor","middle");
+    t.setAttribute("font-size", 9);
+    t.setAttribute("font-family","monospace");
+    t.textContent = text;
+    svg.appendChild(t);
+  }
+}
+
+function normalizeAllProducts(){
+  Object.keys(DATA || {}).forEach(brand=>{
+    if(!Array.isArray(DATA[brand])) DATA[brand] = [];
+    DATA[brand] = DATA[brand].map(normalizeProductBlock);
+  });
+}
+
+function getProductImage(block){
+  return block && block.image ? block.image : "";
+}
+
+function imagePlaceholder(){
+  return `<div style="width:52px;height:52px;border-radius:8px;border:1px solid var(--border);background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:22px;">📦</div>`;
+}
+
+
+function showProductImage(src){
+  if(!src) return;
+
+  const overlay = document.createElement("div");
+  overlay.className = "image-lightbox";
+  overlay.innerHTML = `
+    <button type="button" class="close-image" aria-label="إغلاق">×</button>
+    <img src="${src}" alt="صورة المنتج">
+  `;
+
+  const close = ()=>{
+    overlay.remove();
+    document.removeEventListener("keydown", onKey);
+  };
+  const onKey = (e)=>{
+    if(e.key === "Escape") close();
+  };
+
+  overlay.addEventListener("click", (e)=>{
+    if(e.target === overlay) close();
+  });
+  overlay.querySelector(".close-image").addEventListener("click", close);
+
+  document.addEventListener("keydown", onKey);
+  document.body.appendChild(overlay);
+}
+
+function chooseProductImage(brand, block, onDone){
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+  input.style.display = "none";
+
+  input.addEventListener("change", ()=>{
+    const file = input.files && input.files[0];
+    if(!file) return;
+
+    // Resize before saving to localStorage so product images don't consume excessive space.
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const maxSize = 700;
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        block.image = canvas.toDataURL("image/jpeg", 0.78);
+        saveData();
+        if(onDone) onDone();
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.body.appendChild(input);
+  input.click();
+  setTimeout(()=>input.remove(), 1000);
+}
+
+function getVariantImage(block, item){
+  return (block && block.itemImages && block.itemImages[item]) ? block.itemImages[item] : "";
+}
+
+function chooseVariantImage(block, item, onDone){
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+  input.style.display = "none";
+
+  input.addEventListener("change", ()=>{
+    const file = input.files && input.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const maxSize = 700;
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        if(!block.itemImages || typeof block.itemImages !== "object") block.itemImages = {};
+        block.itemImages[item] = canvas.toDataURL("image/jpeg", 0.78);
+        saveData();
+        if(onDone) onDone();
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.body.appendChild(input);
+  input.click();
+  setTimeout(()=>input.remove(), 1000);
+}
+
+function escHtml(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function codeHasRealQty(obj){
+  return Object.keys(obj||{}).some(k=>!/::N$/.test(k));
+}
+// press-and-hold auto-repeat: fires fn immediately, then repeats every 90ms after 450ms hold
+function attachHoldRepeat(btn, fn){
+  let hold = null, rep = null;
+  const stop = ()=>{
+    if(hold){ clearTimeout(hold); hold = null; }
+    if(rep){ clearInterval(rep); rep = null; }
+  };
+  btn.addEventListener("pointerdown", (e)=>{
+    if(e.button !== undefined && e.button !== 0) return;
+    e.preventDefault();
+    try{ btn.setPointerCapture(e.pointerId); }catch(err){}
+    fn();
+    hold = setTimeout(()=>{ rep = setInterval(fn, 90); }, 450);
+  });
+  ["pointerup","pointercancel","lostpointercapture"].forEach(ev=>btn.addEventListener(ev, stop));
+}
+function badgeHtml(tOn, gOn){
+  let s = "";
+  if(tOn) s += '<span class="meta-badge" title="Tester">TESTER</span>';
+  if(gOn) s += '<span class="meta-badge" title="Gift">GIFT</span>';
+  return s;
+}
+function getNoteVal(brand, code, item){
+  const v = QTY[brand] && QTY[brand][code] ? QTY[brand][code][item+"::N"] : undefined;
+  return typeof v === "string" ? v : "";
+}
+function refreshRowExtras(rowEl, brand, code, item){
+  const bag = rowEl.querySelector(".meta-badges");
+  if(bag) bag.innerHTML = badgeHtml(
+    !!(QTY[brand] && QTY[brand][code] && QTY[brand][code][item+"::T"] > 0),
+    !!(QTY[brand] && QTY[brand][code] && QTY[brand][code][item+"::G"] > 0)
+  );
+  const noteEl = rowEl.querySelector(".row-note");
+  if(noteEl){
+    const nv = getNoteVal(brand, code, item);
+    noteEl.innerHTML = nv ? "📝 " + escHtml(nv) : "";
+    noteEl.classList.toggle("has", !!nv);
+  }
+}
+
+function buildGrid(grid, brand, blocks){
+  blocks.forEach(block=>{
+    if(!QTY[brand][block.code]) QTY[brand][block.code] = {};
+    const {big, small} = parsePrices(block.price);
+    const el = document.createElement("div");
+    el.className = "block";
+    el.dataset.code = block.code.toLowerCase();
+    el.innerHTML = `
+      <div class="block-head">
+        <div class="product-img-wrap">
+          ${getProductImage(block) ? `<img src="${getProductImage(block)}" class="product-image" title="اضغط لتغيير الصورة">` : imagePlaceholder()}
+          ${editMode ? `<button type="button" class="product-img-btn"><i class="bi bi-camera"></i> صورة</button>` : ""}
+        </div>
+        <div class="code">${block.code}</div>
+        <div class="prices">
+          <div class="price-line wholesale-price"><span class="price-label">سعر الجملة :</span><strong>${fmt(small)}</strong></div>
+          <div class="price-line retail-price"><span class="price-label">سعر المفرد :</span><strong>${fmt(big)}</strong></div>
+        </div>
+      </div>
+      <div class="rows"></div>
+    `;
+    const rows = el.querySelector(".rows");
+
+    if(editMode){
+      const imgBtn = el.querySelector(".product-img-btn");
+      if(imgBtn){
+        imgBtn.addEventListener("click", ()=>{
+          chooseProductImage(brand, block, ()=>buildPanels());
+        });
+      }
+      const img = el.querySelector(".product-image");
+      if(img){
+        img.onclick = (e)=>{
+          e.preventDefault();
+          e.stopPropagation();
+          if(editMode){
+            chooseProductImage(brand, block, ()=>buildPanels());
+          } else {
+            showProductImage(img.src);
+          }
+        };
+      }
+    }
+
+    block.items.forEach(item=>{
+      const row = document.createElement("div");
+      row.className = "row-item";
+      const savedQty = QTY[brand][block.code][item] || 0;
+      const hasVariantImg = !!getVariantImage(block, item);
+      const noteVal = typeof QTY[brand][block.code][item+"::N"] === "string" ? QTY[brand][block.code][item+"::N"] : "";
+      row.innerHTML = `<label class="variant-label${hasVariantImg?' has-image':''}">${item}</label><div class="qty-side"><span class="meta-badges"></span><div class="qty-ctrl"><button type="button" class="add-extra-btn" title="تيستر / هدية / ملاحظة"><i class="bi bi-three-dots"></i></button><button type="button" class="btn-dec">−</button><input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="0" value="${savedQty>0?savedQty:''}"><button type="button" class="btn-inc">+</button></div><div class="row-note${noteVal?' has':''}">${noteVal?"📝 "+escHtml(noteVal):""}</div></div>`;
+      const input = row.querySelector("input");
+      if(savedQty>0) row.classList.add("filled");
+      // tapping the field pre-selects its value so typing replaces it instead of appending
+      input.addEventListener("focus", ()=>{
+        try{ input.select(); }catch(err){}
+        requestAnimationFrame(()=>{ try{ input.select(); }catch(err){} });
+      });
+
+      const labelEl = row.querySelector(".variant-label");
+      labelEl.addEventListener("click", ()=>{
+        const src = getVariantImage(block, item);
+        if(src) showProductImage(src);
+      });
+      refreshRowExtras(row, brand, block.code, item);
+
+      const applyChange = ()=>{
+        const val = parseInt(normDigits(input.value))||0;
+        if(val>0){
+          QTY[brand][block.code][item] = val;
+          row.classList.add("filled");
+        } else {
+          delete QTY[brand][block.code][item];
+          row.classList.remove("filled");
+        }
+        el.classList.toggle("has-qty", codeHasRealQty(QTY[brand][block.code]));
+        saveQty();
+        updateTotals();
+      };
+      input.addEventListener("input", ()=>{
+        const clean = normDigits(input.value);
+        if(clean !== input.value) input.value = clean;
+        applyChange();
+      });
+      attachHoldRepeat(row.querySelector(".btn-inc"), ()=>{
+        input.value = (parseInt(normDigits(input.value))||0) + 1;
+        applyChange();
+      });
+      attachHoldRepeat(row.querySelector(".btn-dec"), ()=>{
+        const v = (parseInt(normDigits(input.value))||0) - 1;
+        input.value = v > 0 ? v : "";
+        applyChange();
+      });
+      // ⋯ opens the extra menu: Tester / Gift / Note (item::T / ::G = 1, item::N = note text)
+      row.querySelector(".add-extra-btn").addEventListener("click", ()=>{
+        openExtraMenu(brand, block.code, item, row);
+      });
+      rows.appendChild(row);
+    });
+    if(codeHasRealQty(QTY[brand][block.code])){
+      el.classList.add("has-qty");
+    }
+    grid.appendChild(el);
+  });
+}
+
+function openExtraMenu(brand, code, item, rowEl){
+  const bucket = QTY[brand][code];
+  const overlay = document.createElement("div");
+  overlay.className = "extra-menu-modal";
+  const tOn = bucket[item+"::T"] > 0;
+  const gOn = bucket[item+"::G"] > 0;
+  overlay.innerHTML = `
+    <div class="extra-menu">
+      <button type="button" class="xm-opt" data-x="T">🧪 تيستر${tOn?'<span class="st">✓ مفعّل</span>':""}</button>
+      <button type="button" class="xm-opt" data-x="G">🎁 هدية${gOn?'<span class="st">✓ مفعّل</span>':""}</button>
+      <button type="button" class="xm-opt" data-x="N">📝 ملاحظة</button>
+      <button type="button" class="xm-cancel">إلغاء</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const onKey = (e)=>{ if(e.key === "Escape") close(); };
+  const close = ()=>{ overlay.remove(); document.removeEventListener("keydown", onKey); };
+  overlay.addEventListener("click", (e)=>{ if(e.target === overlay) close(); });
+  document.addEventListener("keydown", onKey);
+  overlay.querySelector(".xm-cancel").addEventListener("click", close);
+  const syncBlock = ()=>{
+    const blk = rowEl.closest(".block");
+    if(blk) blk.classList.toggle("has-qty", codeHasRealQty(bucket));
+  };
+  overlay.querySelectorAll(".xm-opt").forEach(btn=>{
+    btn.addEventListener("click", async ()=>{
+      const x = btn.dataset.x;
+      if(x === "N"){
+        close();
+        const res = await askNote(getNoteVal(brand, code, item));
+        if(res === null) return;
+        if(res){ bucket[item+"::N"] = res; } else { delete bucket[item+"::N"]; }
+        saveQty();
+        refreshRowExtras(rowEl, brand, code, item);
+        syncBlock();
+      }else{
+        const key = item + "::" + x;
+        if(bucket[key]){ delete bucket[key]; } else { bucket[key] = 1; }
+        saveQty();
+        refreshRowExtras(rowEl, brand, code, item);
+        syncBlock();
+        updateTotals();
+        close();
+      }
+    });
+  });
+}
+
+// resolves: string = save note, "" = delete note, null = cancelled
+function askNote(current){
+  return new Promise(resolve=>{
+    const overlay = document.createElement("div");
+    overlay.className = "variants-modal";
+    overlay.innerHTML = `
+      <div class="variants-panel">
+        <div class="variants-panel-head">
+          <div class="variants-panel-title">📝 ملاحظة على الدرجة</div>
+          <button type="button" class="close-variants" aria-label="إغلاق">×</button>
+        </div>
+        <div class="variants-list" style="padding:14px;">
+          <input type="text" class="note-input" placeholder="اكتب الملاحظة…" maxlength="120" autocomplete="off" value="${current?escHtml(current):""}">
+        </div>
+        <div class="add-item-bar">
+          ${current?'<button type="button" class="note-del">🗑 حذف</button>':""}
+          <button type="button" class="note-save">💾 حفظ</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const input = overlay.querySelector(".note-input");
+    const done = (v)=>{ overlay.remove(); document.removeEventListener("keydown", onKey); resolve(v); };
+    const onKey = (e)=>{ if(e.key === "Escape") done(null); };
+    overlay.querySelector(".note-save").addEventListener("click", ()=>done(input.value.trim()));
+    const delBtn = overlay.querySelector(".note-del");
+    if(delBtn) delBtn.addEventListener("click", ()=>done(""));
+    overlay.querySelector(".close-variants").addEventListener("click", ()=>done(null));
+    overlay.addEventListener("click", (e)=>{ if(e.target === overlay) done(null); });
+    input.addEventListener("keydown", (e)=>{ if(e.key === "Enter") overlay.querySelector(".note-save").click(); });
+    document.addEventListener("keydown", onKey);
+    setTimeout(()=>{ try{ input.focus(); }catch(err){} }, 60);
+  });
+}
+
+function buildEditTable(panel, brand){
+  const blocks = Array.isArray(DATA[brand]) ? DATA[brand] : [];
+  panel.innerHTML = `
+    <div class="brand-title">${brand} — جدول الأسعار</div>
+    <div class="table-scroll">
+    <table class="price-table">
+      <thead>
+        <tr><th>الصورة</th><th>اسم المنتج</th><th>الدرجات</th><th>مبلغ الجملة</th><th>مبلغ المفرد</th><th>الباركود</th><th></th></tr>
+      </thead>
+      <tbody id="tbody-${brand}"></tbody>
+    </table>
+    </div>
+    <button type="button" class="add-row-btn">+ إضافة منتج</button>
+  `;
+  const tbody = panel.querySelector(`#tbody-${brand}`);
+
+  blocks.forEach((block, idx)=>{
+    normalizeProductBlock(block);
+    const {big, small} = {big:block.big, small:block.small};
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="edit-image-cell">
+        ${getProductImage(block) ? `<img src="${getProductImage(block)}" class="edit-image-preview">` : `<span style="font-size:22px;">📦</span>`}
+        <button type="button" class="product-img-btn">📷</button>
+      </td>
+      <td><input type="text" class="code-input" value="${block.code}"></td>
+      <td><button type="button" class="open-items-btn">▤ الدرجات (${block.items.length})</button></td>
+      <td><input type="text" inputmode="numeric" pattern="[0-9,]*" class="small-input" value="${small?fmt(small):''}"></td>
+      <td><input type="text" inputmode="numeric" pattern="[0-9,]*" class="big-input" value="${big?fmt(big):''}"></td>
+      <td><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="20" class="barcode-input" placeholder="اختياري" value="${getBarcode(block)}"></td>
+      <td><button type="button" class="row-del">🗑</button></td>
+    `;
+    const imageBtn = tr.querySelector(".product-img-btn");
+    imageBtn.addEventListener("click", ()=>{
+      chooseProductImage(brand, block, ()=>buildPanels());
+    });
+    const imagePreview = tr.querySelector(".edit-image-preview");
+    if(imagePreview){
+      imagePreview.style.cursor = "zoom-in";
+      imagePreview.addEventListener("click", ()=>showProductImage(imagePreview.src));
+    }
+
+    tr.querySelector(".open-items-btn").addEventListener("click", ()=>{
+      openItemsEditor(brand, block);
+    });
+
+    const codeInput = tr.querySelector(".code-input");
+    const smallInput = tr.querySelector(".small-input");
+    const bigInput = tr.querySelector(".big-input");
+
+    const parseNum = (val)=> parseFloat(String(val).replace(/,/g,"")) || 0;
+
+    const applyRow = ()=>{
+      block.code = codeInput.value.trim() || block.code;
+      const s = parseNum(smallInput.value);
+      const b = parseNum(bigInput.value);
+      block.price = `${b}/${s}`;
+      block.big = b;
+      block.small = s;
+      saveData();
+    };
+    const formatOnBlur = (input)=>{
+      const n = parseNum(input.value);
+      input.value = n ? fmt(n) : "";
+    };
+    codeInput.addEventListener("change", applyRow);
+    smallInput.addEventListener("input", applyRow);
+    bigInput.addEventListener("input", applyRow);
+    smallInput.addEventListener("blur", ()=>formatOnBlur(smallInput));
+    bigInput.addEventListener("blur", ()=>formatOnBlur(bigInput));
+
+    const barcodeInput = tr.querySelector(".barcode-input");
+    barcodeInput.addEventListener("change", ()=>{
+      block.barcode = barcodeInput.value.trim();
+      saveData();
+    });
+
+    tr.querySelector(".row-del").addEventListener("click", ()=>{
+      if(!confirm(`حذف "${block.code}"؟`)) return;
+      delete QTY[brand]?.[block.code];
+      DATA[brand].splice(idx,1);
+      saveData();
+      saveQty();
+      buildPanels();
+    });
+    tbody.appendChild(tr);
+  });
+
+  panel.querySelector(".add-row-btn").addEventListener("click", ()=>{
+    DATA[brand].push({code:"منتج جديد", price:"0/0", items:["-"], itemImages:{}});
+    saveData();
+    buildPanels();
+  });
+}
+
+function openItemsEditor(brand, block){
+  normalizeProductBlock(block);
+  const overlay = document.createElement("div");
+  overlay.className = "variants-modal";
+  overlay.innerHTML = `
+    <div class="variants-panel">
+      <div class="variants-panel-head">
+        <div class="variants-panel-title">${block.code} — إدارة الدرجات</div>
+        <button type="button" class="close-variants" aria-label="إغلاق">×</button>
+      </div>
+      <div class="variants-list"></div>
+      <div class="add-item-bar">
+        <input type="text" class="new-item-input" placeholder="رقم/اسم الدرجة الجديدة">
+        <button type="button" class="new-item-btn">+ إضافة</button>
+      </div>
+    </div>
+  `;
+  const list = overlay.querySelector(".variants-list");
+
+  const renderList = ()=>{
+    list.innerHTML = "";
+    block.items.forEach((item, i)=>{
+      const row = document.createElement("div");
+      row.className = "variant-row";
+      const src = getVariantImage(block, item);
+      const barcodeVal = block.itemBarcodes[item] || "";
+      row.innerHTML = `
+        <div class="variant-thumb">
+          ${src ? `<img src="${src}">` : `<span>📷</span>`}
+        </div>
+        <label>${item}</label>
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="20" class="variant-barcode-input" placeholder="باركود (اختياري)" value="${escHtml(barcodeVal)}" style="width:140px;text-align:center;">
+        <button type="button" class="variant-del" title="حذف الدرجة">🗑</button>
+      `;
+      row.querySelector(".variant-thumb").addEventListener("click", ()=>{
+        chooseVariantImage(block, item, ()=>renderList());
+      });
+      row.querySelector(".variant-barcode-input").addEventListener("change", ()=>{
+        block.itemBarcodes[item] = row.querySelector(".variant-barcode-input").value.trim();
+        saveData();
+      });
+      row.querySelector(".variant-del").addEventListener("click", ()=>{
+        if(!confirm(`حذف الدرجة "${item}"؟`)) return;
+        block.items.splice(i,1);
+        if(block.itemImages) delete block.itemImages[item];
+        if(block.itemBarcodes) delete block.itemBarcodes[item];
+        if(!block.items.length) block.items = ["-"];
+        saveData();
+        renderList();
+      });
+      list.appendChild(row);
+    });
+  };
+  renderList();
+
+  const newItemInput = overlay.querySelector(".new-item-input");
+  overlay.querySelector(".new-item-btn").addEventListener("click", ()=>{
+    const val = newItemInput.value.trim();
+    if(!val) return;
+    if(block.items.length===1 && block.items[0]==="-") block.items = [];
+    block.items.push(val);
+    saveData();
+    newItemInput.value = "";
+    renderList();
+  });
+  newItemInput.addEventListener("keydown", (e)=>{
+    if(e.key === "Enter"){ overlay.querySelector(".new-item-btn").click(); }
+  });
+
+  const close = ()=>{
+    overlay.remove();
+    document.removeEventListener("keydown", onKey);
+    buildPanels();
+  };
+  const onKey = (e)=>{ if(e.key === "Escape") close(); };
+  overlay.addEventListener("click", (e)=>{ if(e.target === overlay) close(); });
+  overlay.querySelector(".close-variants").addEventListener("click", close);
+  document.addEventListener("keydown", onKey);
+
+  document.body.appendChild(overlay);
+}
+
+function handleImportExcel(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    try{
+      const wb = XLSX.read(ev.target.result, {type:"array"});
+      wb.SheetNames.forEach(sheetName=>{
+        const brand = Object.keys(DATA).find(b=>b.toLowerCase()===sheetName.toLowerCase()) || sheetName;
+        if(!DATA[brand]) DATA[brand] = [];
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {header:1});
+        rows.slice(1).forEach(row=>{ // skip header row
+          const [code, jumla, mfrad] = row;
+          if(!code) return;
+          const codeStr = String(code).trim();
+          const s = parseFloat(jumla)||0;
+          const b = parseFloat(mfrad)||0;
+          const existing = DATA[brand].find(bl=>bl.code.toLowerCase()===codeStr.toLowerCase());
+          if(existing){
+            existing.price = `${b}/${s}`;
+          } else {
+            DATA[brand].push({code: codeStr, price:`${b}/${s}`, items:["-"]});
+          }
+        });
+      });
+      saveData();
+      buildTabs();
+      buildPanels();
+      alert("تم الاستيراد بنجاح ✅");
+    }catch(err){
+      alert("صار خطأ بالاستيراد، تأكد من شكل ملف الاكسل");
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value = "";
+}
+
+function exportExcel(){
+  const wb = XLSX.utils.book_new();
+  Object.entries(DATA).forEach(([brand, blocks])=>{
+    const aoa = [["الكود","مبلغ الجملة","مبلغ المفرد"]];
+    blocks.forEach(b=>{
+      const {big, small} = parsePrices(b.price);
+      aoa.push([b.code, small, big]);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    XLSX.utils.book_append_sheet(wb, ws, brand.slice(0,31));
+  });
+  XLSX.writeFile(wb, `products_${Date.now()}.xlsx`);
+}
+
+function updateTotals(){
+  const t = computeTotals(QTY);
+  document.getElementById("totalPieces").textContent = t.pieces;
+  document.getElementById("totalAmount").textContent = fmt(t.amount);
+}
+
+function clearAll(){
+  if(!confirm("متأكد تريد تمسح كل الطلبية؟")) return;
+  QTY = {};
+  previewCustomerName = "";
+  saveQty();
+  setEditingOrder(null);
+  buildPanels();
+}
+
+// SEARCH
+document.getElementById("searchBox").addEventListener("input", (e)=>{
+  const q = e.target.value.trim().toLowerCase();
+  document.querySelectorAll(".block").forEach(b=>{
+    b.style.display = (!q || b.dataset.code.includes(q)) ? "" : "none";
+  });
+  document.querySelectorAll("table.price-table tbody tr").forEach(tr=>{
+    const codeInput = tr.querySelector(".code-input");
+    const code = codeInput ? codeInput.value.toLowerCase() : "";
+    tr.style.display = (!q || code.includes(q)) ? "" : "none";
+  });
+});
+
+// EXPORT & PREVIEW
+function hasAnyQty(qtySource){
+  const src = qtySource || QTY;
+  return Object.values(src).some(b=>b && Object.values(b).some(c=>c && Object.keys(c).length>0));
+}
+function computeTotals(qtySource){
+  let pieces=0, amount=0;
+  Object.entries(qtySource||{}).forEach(([brand, codes])=>{
+    Object.entries(codes||{}).forEach(([code, items])=>{
+      const block = (DATA[brand]||[]).find(b=>b.code===code);
+      const basePrice = block ? parsePrices(block.price).small : 0;
+      Object.entries(items||{}).forEach(([label, qty])=>{
+        if(/::N$/.test(label)) return; // note text, never counted
+        // Tester/Gift markers (::T / ::G) count as pieces but carry no price
+        const isFree = /::(T|G)$/.test(label);
+        pieces += qty;
+        if(!isFree) amount += qty * basePrice;
+      });
+    });
+  });
+  return {pieces, amount};
+}
+
+// qtySource = snapshot of quantities to render (defaults to live QTY)
+// customerName = optional name printed on the sheet header
+async function renderOrderCanvas(qtySource, customerName){
+  const srcQty = qtySource || QTY;
+  if(!hasAnyQty(srcQty)){ alert("ما فيه اي كمية مدخلة للطلبية"); return null; }
+
+  const container = document.createElement("div");
+  container.id = "exportCanvas";
+  container.style.width = "800px";
+  container.style.fontFamily = "Tahoma, sans-serif";
+  container.style.direction = "rtl";
+
+  let html = `<h2 style="text-align:center;border-bottom:3px solid #b5442e;padding-bottom:10px;">طلبية - ${new Date().toLocaleDateString('ar-IQ')}</h2>`;
+  if(customerName){
+    html += `<h3 style="text-align:center;color:#2f6b52;margin-top:-6px;">الزبون: ${customerName}</h3>`;
+  }
+
+  Object.entries(srcQty).forEach(([brand, codes])=>{
+    const entries = Object.entries(codes).filter(([c,items])=>Object.keys(items).length>0);
+    if(!entries.length) return;
+    html += `<div class="exp-header" style="margin-top:14px;">${brand}</div>`;
+    html += `<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:10px;">
+      <tr style="background:#f1ede3;"><th style="border:1px solid #ccc;padding:4px;">الصورة / الباركود</th><th style="border:1px solid #ccc;padding:4px;">الكود</th><th style="border:1px solid #ccc;padding:4px;">الدرجة</th><th style="border:1px solid #ccc;padding:4px;">الكمية</th><th style="border:1px solid #ccc;padding:4px;">السعر</th><th style="border:1px solid #ccc;padding:4px;">المجموع</th></tr>`;
+    entries.forEach(([code, items])=>{
+      const block = (DATA[brand]||[]).find(b=>b.code===code);
+      const basePrice = block ? parsePrices(block.price).small : 0;
+      const notes = {}, realItems = {};
+      Object.entries(items).forEach(([k,v])=>{
+        const nm = k.match(/^(.*)::N$/);
+        if(nm){ notes[nm[1]] = String(v); } else { realItems[k] = v; }
+      });
+      // a note-only product still prints as its base row (qty shows –)
+      Object.keys(notes).forEach(nl=>{ if(!(nl in realItems)) realItems[nl] = 0; });
+      if(!Object.keys(realItems).length) return;
+      Object.entries(realItems).forEach(([label, qty])=>{
+        const meta = label.match(/^(.*)::(T|G)$/);
+        const showLabel = meta ? `${meta[1]} · ${meta[2]==="T" ? "Tester" : "Gift"}` : label;
+        const price = meta ? 0 : basePrice;
+        const noteHtml = !meta && notes[label] ? `<div style="font-size:10px;color:#666;margin-top:2px;">📝 ${escHtml(notes[label])}</div>` : "";
+        const variantBarcode = !meta && block && block.itemBarcodes && block.itemBarcodes[label] ? block.itemBarcodes[label] : (block && block.barcode ? block.barcode : "");
+          html += `<tr>
+          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${block && block.image ? `<img src="${block.image}" style="width:38px;height:38px;object-fit:contain;border-radius:4px;">` : "📦"}${variantBarcode ? `<div style="direction:ltr;font-family:monospace;font-size:11px;font-weight:bold;margin-top:3px;">${escHtml(String(variantBarcode))}</div>` : ""}</td>
+          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${code}</td>
+          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${showLabel}${noteHtml}</td>
+          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${qty>0?qty:"–"}</td>
+          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${fmt(price)}</td>
+          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${fmt(qty*price)}</td>
+        </tr>`;
+      });
+    });
+    html += `</table>`;
+  });
+
+  const t = computeTotals(srcQty);
+  html += `<h3 style="text-align:left;border-top:2px solid #333;padding-top:8px;">الإجمالي: ${fmt(t.amount)} | القطع: ${t.pieces}</h3>`;
+
+  container.innerHTML = html;
+  container.style.position = "fixed";
+  container.style.left = "-9999px";
+  document.body.appendChild(container);
+
+  const canvas = await html2canvas(container, {scale:2, backgroundColor:"#ffffff"});
+  document.body.removeChild(container);
+  return canvas;
+}
+
+function orderFileName(customer){
+  const safeName = customer ? String(customer).replace(/[^a-zA-Z0-9ء-ي_ -]/g,"").trim().replace(/\s+/g,"_") : "";
+  return `${safeName || "order"}.pdf`;
+}
+
+function buildOrderPdf(canvas){
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({unit:"mm", format:"a4"});
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const imgWidth = pageWidth;
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+  const imgData = canvas.toDataURL("image/png");
+
+  let heightLeft = imgHeight;
+  let position = 0;
+
+  pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+  heightLeft -= pageHeight;
+
+  while(heightLeft > 0){
+    position = heightLeft - imgHeight;
+    pdf.addPage();
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+  }
+  return pdf;
+}
+
+// Mandatory customer-name prompt. Resolves with the trimmed name, or null if cancelled.
+function askCustomerName(prefill){
+  return new Promise(resolve=>{
+    const overlay = document.createElement("div");
+    overlay.className = "variants-modal";
+    overlay.innerHTML = `
+      <div class="variants-panel">
+        <div class="variants-panel-head">
+          <div class="variants-panel-title"><i class="bi bi-person"></i> اسم الزبون</div>
+          <button type="button" class="close-variants" aria-label="إلغاء">×</button>
+        </div>
+        <div class="add-item-bar" style="border-top:none;">
+          <input type="text" class="custreq-input" placeholder="اكتب اسم الزبون…" autocomplete="off">
+          <button type="button" class="custreq-ok">✅ تصدير</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const input = overlay.querySelector(".custreq-input");
+    if(prefill) input.value = prefill;
+
+    const done = (val)=>{
+      overlay.remove();
+      document.removeEventListener("keydown", onKey);
+      resolve(val);
+    };
+    const submit = ()=>{
+      const v = input.value.trim();
+      if(!v){ alert("اسم الزبون مطلوب للتصدير ✍️"); input.focus(); return; }
+      done(v);
+    };
+    const close = ()=>done(null);
+
+    overlay.querySelector(".custreq-ok").addEventListener("click", submit);
+    input.addEventListener("keydown", (e)=>{ if(e.key === "Enter") submit(); });
+    overlay.querySelector(".close-variants").addEventListener("click", close);
+    overlay.addEventListener("click", (e)=>{ if(e.target === overlay) close(); });
+    const onKey = (e)=>{ if(e.key === "Escape") close(); };
+    document.addEventListener("keydown", onKey);
+    setTimeout(()=>{ try{ input.focus(); }catch(e){} }, 60);
+  });
+}
+
+function editingPrefill(){
+  if(!editingOrderId) return "";
+  const o = ORDERS.find(x=>x.id===editingOrderId);
+  return o ? (o.customer||"") : "";
+}
+
+// Live order preview: asks the customer name, SAVES the order to history right away
+// (same as the old export), then shows the sheet with the name printed on it.
+let previewCustomerName = "";
+
+async function previewOrder(){
+  try{
+    if(!hasAnyQty()){ alert("ما فيه اي كمية مدخلة للطلبية"); return; }
+    const name = await askCustomerName(editingPrefill());
+    if(!name) return;
+    previewCustomerName = name;
+    commitOrderToLog(name);
+    const modal = ensurePreviewModal('<i class="bi bi-eye"></i> معاينة - ' + name, null);
+    modal.querySelector("#previewBody").innerHTML = "<div class='history-empty'>جاري التحضير…</div>";
+    const canvas = await renderOrderCanvas(QTY, name);
+    if(!canvas){ closePreview(); return; }
+    putPreviewImage(modal, canvas);
+  }catch(err){
+    alert("⚠️ خطأ ببناء المعاينة:\n" + err.message);
+    closePreview();
+  }
+}
+
+// orderId = null → buttons act on the LIVE order; otherwise on the SAVED entry
+function ensurePreviewModal(titleHtml, orderId){
+  let modal = document.getElementById("previewModal");
+  if(!modal){
+    modal = document.createElement("div");
+    modal.className = "preview-modal";
+    modal.id = "previewModal";
+    modal.innerHTML = `
+      <div class="preview-panel">
+        <div class="preview-panel-head">
+          <div class="preview-panel-title" id="previewTitle"></div>
+          <button class="preview-close" onclick="closePreview()" title="إغلاق"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="preview-body" id="previewBody"></div>
+        <div class="preview-actions" id="previewActions">
+          <button class="pv-btn pv-edit"><i class="bi bi-pencil"></i> تعديل</button>
+          <button class="pv-btn pv-share"><i class="bi bi-share"></i> مشاركة</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+  const live = !orderId;
+  modal.querySelector(".pv-edit").onclick = ()=>{ live ? closePreview() : editSavedOrder(orderId); };
+  modal.querySelector(".pv-share").onclick = ()=>{ live ? shareLiveOrder() : shareSavedOrder(orderId); };
+  modal.querySelector("#previewTitle").innerHTML = titleHtml;
+  return modal;
+}
+
+function putPreviewImage(modal, canvas){
+  const body = modal.querySelector("#previewBody");
+  body.innerHTML = "";
+  const img = document.createElement("img");
+  img.className = "preview-img";
+  img.alt = "معاينة الطلبية";
+  img.src = canvas.toDataURL("image/jpeg", 0.85);
+  body.appendChild(img);
+}
+
+// Preview of a SAVED history entry — rendered from its stored snapshot
+async function previewSavedOrder(id){
+  try{
+    const o = ORDERS.find(x=>x.id===id);
+    if(!o) return;
+    if(!hasAnyQty(o.qty)){ alert("هذي الطلبية ما فيها كميات محفوظة"); return; }
+    const modal = ensurePreviewModal(`<i class="bi bi-clock-history"></i> معاينة: ${o.customer || "بدون اسم"}`, id);
+    modal.querySelector("#previewBody").innerHTML = "<div class='history-empty'>جاري التحضير…</div>";
+    const canvas = await renderOrderCanvas(o.qty||{}, o.customer||"");
+    if(!canvas){ closePreview(); return; }
+    putPreviewImage(modal, canvas);
+  }catch(err){
+    alert("⚠️ خطأ ببناء المعاينة:\n" + err.message);
+    closePreview();
+  }
+}
+
+// ===== Saved-order actions (act on the stored snapshot, no name dialog needed) =====
+function savedOrderOrNull(id){
+  const o = ORDERS.find(x=>x.id===id);
+  if(!o){ alert("هذي الطلبية ما موجودة بالسجل"); return null; }
+  if(!hasAnyQty(o.qty)){ alert("هذي الطلبية ما فيها كميات محفوظة"); return null; }
+  return o;
+}
+
+// Edit a saved order: close preview, load its quantities onto the main screen
+function editSavedOrder(id){
+  closePreview();
+  loadOrder(id);
+}
+
+// ===== Sharing: native share sheet when available, viewer tab as fallback =====
+async function shareOrderPdf(qtySource, customerName){
+  const canvas = await renderOrderCanvas(qtySource, customerName);
+  if(!canvas) return false;
+  const pdf = buildOrderPdf(canvas);
+  const blob = pdf.output("blob");
+  const fname = orderFileName(customerName);
+  try{
+    const file = new File([blob], fname, {type:"application/pdf"});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:"طلبية " + (customerName||""), text:"طلبية " + (customerName||"")});
+      return true; // user completed (or cancelled) the native share sheet
+    }
+  }catch(err){
+    if(err && err.name === "AbortError") return true; // user closed the share sheet
+    // fall through to viewer fallback
+  }
+  const win = window.open("", "_blank");
+  if(win){
+    const url = URL.createObjectURL(blob);
+    win.location.href = url;
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  }else{
+    pdf.save(fname);
+    alert("المتصفح منع المشاركة — تم تحميل الـ PDF بدلاً من ذلك، شاركه من ملفات الجهاز.");
+  }
+  return true;
+}
+async function shareLiveOrder(){
+  try{
+    if(!hasAnyQty()){ alert("ما فيه اي كمية مدخلة للطلبية"); return; }
+    await shareOrderPdf(QTY, previewCustomerName || "");
+  }catch(err){
+    alert("⚠️ خطأ بالمشاركة:\n" + err.message);
+  }
+}
+async function shareSavedOrder(id){
+  try{
+    const o = savedOrderOrNull(id);
+    if(!o) return;
+    await shareOrderPdf(o.qty||{}, o.customer||"");
+  }catch(err){
+    alert("⚠️ خطأ بالمشاركة:\n" + err.message);
+  }
+}
+
+function closePreview(){
+  const m = document.getElementById("previewModal");
+  if(m) m.remove();
+}
+
+normalizeAllProducts();
+buildTabs();
+buildPanels();
+updateTotals();
+initCloud();
+applyThemeIcon();
+updateStickyOffsets();
+updateHistoryCount();
+
+// Fallback: clicking any product image always opens the enlarged image
+// when not in edit mode. This also works after the cards are re-rendered.
+document.addEventListener("click", (e)=>{
+  const img = e.target.closest(".product-image");
+  if(!img || editMode) return;
+  e.preventDefault();
+  e.stopPropagation();
+  showProductImage(img.currentSrc || img.src);
+}, true);
+
+// THEME (dark/light)
+const LS_THEME_KEY = "orderapp_theme_v1";
+function applyThemeIcon(){
+  const dark = document.documentElement.classList.contains("dark");
+  const btn = document.getElementById("themeBtn");
+  if(btn) btn.innerHTML = dark ? '<i class="bi bi-sun"></i> المظهر الفاتح' : '<i class="bi bi-moon-stars"></i> المظهر الداكن';
+}
+function toggleTheme(){
+  const dark = document.documentElement.classList.toggle("dark");
+  try{ localStorage.setItem(LS_THEME_KEY, dark ? "dark" : "light"); }catch(e){}
+  applyThemeIcon();
+}
+
+// STICKY OFFSETS: real header/tabs heights so stacked bars never overlap
+function updateStickyOffsets(){
+  const hdr = document.querySelector("header");
+  const tabs = document.querySelector(".tabs");
+  const rs = document.documentElement.style;
+  rs.setProperty("--hdr-h", (hdr ? hdr.offsetHeight : 56) + "px");
+  rs.setProperty("--tabs-h", (tabs ? tabs.offsetHeight : 50) + "px");
+}
+window.addEventListener("resize", updateStickyOffsets);
+window.addEventListener("orientationchange", ()=>setTimeout(updateStickyOffsets,200));
+window.addEventListener("load", updateStickyOffsets);
+
+// SIDE DRAWER
+function openDrawer(){
+  document.getElementById("drawer").classList.add("open");
+  document.getElementById("drawerBackdrop").classList.add("show");
+}
+function closeDrawer(){
+  document.getElementById("drawer").classList.remove("open");
+  document.getElementById("drawerBackdrop").classList.remove("show");
+}
+
+// ORDER HISTORY (saved on PDF export — new entries or updates while editing)
+function loadOrders(){
+  try{
+    const raw = localStorage.getItem(LS_ORDERS_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return [];
+}
+function saveOrders(){
+  try{ localStorage.setItem(LS_ORDERS_KEY, JSON.stringify(ORDERS)); }
+  catch(e){ console.warn("تعذر حفظ السجل محلياً", e); }
+}
+
+// EDIT MODE: when an old order is opened for editing, exporting updates the same entry
+let editingOrderId = null;
+function setEditingOrder(id){
+  editingOrderId = id;
+  updateEditBanner();
+}
+function updateEditBanner(){
+  const banner = document.getElementById("editOrderBanner");
+  if(!banner) return;
+  const o = editingOrderId ? ORDERS.find(x=>x.id===editingOrderId) : null;
+  if(o){
+    document.getElementById("editOrderLabel").textContent = "✏️ تعدل طلبية: " + (o.customer || "بدون اسم");
+    banner.style.display = "flex";
+  }else{
+    banner.style.display = "none";
+  }
+}
+function cancelEditOrder(){
+  setEditingOrder(null);
+}
+
+function commitOrderToLog(customerName){
+  const t = computeTotals(QTY);
+  let updated = false;
+  if(editingOrderId){
+    const o = ORDERS.find(x=>x.id===editingOrderId);
+    if(o){
+      o.customer = customerName;
+      o.qty = JSON.parse(JSON.stringify(QTY));
+      o.pieces = String(t.pieces);
+      o.amount = fmt(t.amount);
+      o.ts = new Date().toISOString();
+      updated = true;
+    }
+    editingOrderId = null;
+  }
+  if(!updated){
+    ORDERS.unshift({
+      id: Date.now(),
+      ts: new Date().toISOString(),
+      customer: customerName,
+      qty: JSON.parse(JSON.stringify(QTY)),
+      pieces: String(t.pieces),
+      amount: fmt(t.amount)
+    });
+    if(ORDERS.length > 50) ORDERS.length = 50;
+  }
+  saveOrders();
+  updateHistoryCount();
+  updateEditBanner();
+  if(updated) alert("تم تحديث الطلبية نفسها بالسجل ✅");
+}
+function fmtOrderDate(ts){
+  const d = new Date(ts);
+  return d.toLocaleDateString("ar-IQ") + " • " + d.toLocaleTimeString("ar-IQ",{hour:"2-digit",minute:"2-digit"});
+}
+function updateHistoryCount(){
+  const el = document.getElementById("historyCount");
+  if(el) el.textContent = ORDERS.length ? String(ORDERS.length) : "";
+}
+function buildHistoryModal(){
+  const wrap = document.createElement("div");
+  wrap.className = "history-modal";
+  wrap.id = "historyModal";
+  wrap.innerHTML = `
+    <div class="history-panel">
+      <div class="history-panel-head">
+        <div class="history-panel-title"><i class="bi bi-clock-history"></i> سجل الطلبيات</div>
+        <button class="history-close" onclick="closeHistory()" title="إغلاق"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="history-list" id="historyList"></div>
+    </div>`;
+  return wrap;
+}
+function renderHistory(){
+  let list;
+  try{
+    let modal = document.getElementById("historyModal");
+    if(!modal){
+      modal = buildHistoryModal();
+      document.body.appendChild(modal);
+    }
+    list = modal.querySelector("#historyList");
+    if(!ORDERS.length){
+      list.innerHTML = `<div class="history-empty">ماكو طلبيات محفوظة بعد.<br>صدّر طلبية PDF وبتنحفظ تلقائياً هنا 📜</div>`;
+      return;
+    }
+    list.innerHTML = "";
+    ORDERS.forEach(o=>{
+      const row = document.createElement("div");
+      row.className = "history-row";
+      row.innerHTML = `
+        <div class="history-info">
+          <div class="history-title">${o.customer ? o.customer : "بدون اسم"}</div>
+          <div class="history-sub">${fmtOrderDate(o.ts)}<br>القطع: ${o.pieces} • المبلغ: ${o.amount}</div>
+        </div>
+        <div class="history-actions">
+          <button class="hact-view" title="معاينة"><i class="bi bi-eye"></i></button>
+          <button class="hact-open" title="فتح للتعديل"><i class="bi bi-folder2-open"></i></button>
+          <button class="hact-del" title="حذف"><i class="bi bi-trash3"></i></button>
+        </div>`;
+      row.querySelector(".hact-view").addEventListener("click", ()=>previewSavedOrder(o.id));
+      row.querySelector(".hact-open").addEventListener("click", ()=>loadOrder(o.id));
+      row.querySelector(".hact-del").addEventListener("click", ()=>deleteOrder(o.id));
+      list.appendChild(row);
+    });
+  }catch(err){
+    alert("⚠️ خطأ بعرض السجل:\n" + err.message);
+    if(list) list.innerHTML = `<div class="history-empty">صار خطأ بالعرض: ${err.message}</div>`;
+  }
+}
+function openHistory(){
+  closeDrawer();
+  try{ renderHistory(); }
+  catch(err){ alert("⚠️ خطأ بفتح السجل:\n" + err.message); }
+}
+function closeHistory(){
+  const m = document.getElementById("historyModal");
+  if(m) m.remove();
+}
+function loadOrder(id){
+  try{
+    const o = ORDERS.find(x=>x.id===id);
+    if(!o) return;
+    if(!confirm(`فتح طلبيه "${o.customer||"بدون اسم"}" للتعديل؟\nراح تستبدل الكميات الحالية، والتصدير الجاي يحدث نفس هذي الطلبية بالسجل.`)) return;
+    QTY = JSON.parse(JSON.stringify(o.qty||{}));
+    Object.keys(DATA||{}).forEach(b=>{ if(!QTY[b]) QTY[b]={}; });
+    saveQty();
+    setEditingOrder(id);
+    buildPanels();
+    closeHistory();
+  }catch(err){
+    alert("⚠️ خطأ بفتح الطلبية:\n" + err.message);
+  }
+}
+function deleteOrder(id){
+  try{
+    if(!confirm("متأكد تريد تحذف هذي الطلبية من السجل؟")) return;
+    ORDERS = ORDERS.filter(x=>x.id!==id);
+    if(editingOrderId === id) editingOrderId = null;
+    saveOrders();
+    updateHistoryCount();
+    updateEditBanner();
+    renderHistory();
+  }catch(err){
+    alert("⚠️ خطأ بحذف الطلبية:\n" + err.message);
+  }
+}
+
+// Prevent pinch-zoom and double-tap zoom
+document.addEventListener("gesturestart", e => e.preventDefault());
+document.addEventListener("gesturechange", e => e.preventDefault());
+let lastTouchEnd = 0;
+document.addEventListener("touchend", e => {
+  const now = Date.now();
+  const onControl = e.target && e.target.closest && e.target.closest("button,input,a,label,select,textarea");
+  if(!onControl && now - lastTouchEnd <= 300) e.preventDefault();
+  lastTouchEnd = now;
+}, {passive:false});
+document.addEventListener("touchmove", e => {
+  if(e.touches.length > 1) e.preventDefault();
+}, {passive:false});
+</script>
+</body>
+</html>
+
+
+
+

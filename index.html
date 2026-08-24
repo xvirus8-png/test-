@@ -1,4 +1,4 @@
-<!-- index v1.18 -->
+<!-- index v1.19 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -524,7 +524,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز</h1>
-  <span class="version">v1.18</span>
+  <span class="version">v1.19</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -558,11 +558,11 @@
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
   </nav>
-  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.18</span></div>
+  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.19</span></div>
 </aside>
 
 <script>
-const APP_VERSION = "1.18";
+const APP_VERSION = "1.19";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1162,6 +1162,7 @@ function normalizeProductBlock(block){
   block.barcode = block.barcode || "";
   if(!Array.isArray(block.items) || !block.items.length) block.items = ["-"];
   if(!block.itemImages || typeof block.itemImages !== "object") block.itemImages = {};
+  if(!block.itemBarcodes || typeof block.itemBarcodes !== "object") block.itemBarcodes = {};
   return block;
 }
 
@@ -1733,20 +1734,27 @@ function openItemsEditor(brand, block){
       const row = document.createElement("div");
       row.className = "variant-row";
       const src = getVariantImage(block, item);
+      const barcodeVal = block.itemBarcodes[item] || "";
       row.innerHTML = `
         <div class="variant-thumb">
           ${src ? `<img src="${src}">` : `<span>📷</span>`}
         </div>
         <label>${item}</label>
+        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="20" class="variant-barcode-input" placeholder="باركود (اختياري)" value="${escHtml(barcodeVal)}" style="width:140px;text-align:center;">
         <button type="button" class="variant-del" title="حذف الدرجة">🗑</button>
       `;
       row.querySelector(".variant-thumb").addEventListener("click", ()=>{
         chooseVariantImage(block, item, ()=>renderList());
       });
+      row.querySelector(".variant-barcode-input").addEventListener("change", ()=>{
+        block.itemBarcodes[item] = row.querySelector(".variant-barcode-input").value.trim();
+        saveData();
+      });
       row.querySelector(".variant-del").addEventListener("click", ()=>{
         if(!confirm(`حذف الدرجة "${item}"؟`)) return;
         block.items.splice(i,1);
         if(block.itemImages) delete block.itemImages[item];
+        if(block.itemBarcodes) delete block.itemBarcodes[item];
         if(!block.items.length) block.items = ["-"];
         saveData();
         renderList();
@@ -1925,8 +1933,9 @@ async function renderOrderCanvas(qtySource, customerName){
         const showLabel = meta ? `${meta[1]} · ${meta[2]==="T" ? "Tester" : "Gift"}` : label;
         const price = meta ? 0 : basePrice;
         const noteHtml = !meta && notes[label] ? `<div style="font-size:10px;color:#666;margin-top:2px;">📝 ${escHtml(notes[label])}</div>` : "";
-        html += `<tr>
-          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${block && block.image ? `<img src="${block.image}" style="width:38px;height:38px;object-fit:contain;border-radius:4px;">` : "📦"}${!meta && block && block.barcode ? `<div style="direction:ltr;font-family:monospace;font-size:11px;font-weight:bold;margin-top:3px;">${escHtml(String(block.barcode))}</div>` : ""}</td>
+        const variantBarcode = !meta && block && block.itemBarcodes && block.itemBarcodes[label] ? block.itemBarcodes[label] : (block && block.barcode ? block.barcode : "");
+          html += `<tr>
+          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${block && block.image ? `<img src="${block.image}" style="width:38px;height:38px;object-fit:contain;border-radius:4px;">` : "📦"}${variantBarcode ? `<div style="direction:ltr;font-family:monospace;font-size:11px;font-weight:bold;margin-top:3px;">${escHtml(String(variantBarcode))}</div>` : ""}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${code}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${showLabel}${noteHtml}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${qty>0?qty:"–"}</td>
