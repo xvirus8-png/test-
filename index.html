@@ -1,4 +1,4 @@
-﻿<!-- index v1.13 -->
+﻿<!-- index v1.14 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -167,10 +167,10 @@
   .barcode-preview{font-family:monospace;font-size:11px;letter-spacing:1px;color:var(--subtext);margin-inline-start:auto;display:flex;align-items:baseline;gap:6px;}
   .price-big{font-size:15px;font-weight:800;color:var(--primary);}
   .price-small{font-size:12px;font-weight:600;color:var(--subtext);}
-  .rows{display:grid;grid-template-columns:1fr;gap:6px;}
+  .rows{display:grid;grid-template-columns:1fr;gap:2px;}
   .row-item{
     display:flex;align-items:center;justify-content:flex-start;
-    background:var(--soft);border-radius:10px;padding:5px 8px;font-size:13px;
+    background:var(--soft);border-radius:10px;padding:3px 8px;font-size:13px;
     border:1.5px solid transparent;
   }
   .row-item.filled{border-color:var(--success);background:rgba(22,163,74,.10);}
@@ -281,8 +281,10 @@
   }
   .add-extra-btn:active{transform:scale(.94);}
   .qty-side{display:flex;flex-direction:column;gap:3px;margin-inline-start:auto;}
-  .meta-badges{display:inline-flex;gap:4px;align-self:flex-end;}
-  .meta-badges:empty{display:none;}
+  .meta-badges{
+    display:flex;gap:4px;align-self:flex-end;
+    min-height:18px;align-items:center;
+  }
   .meta-badge{
     display:inline-flex;align-items:center;justify-content:center;pointer-events:none;
     background:var(--success);color:#fff;border-radius:8px;
@@ -521,7 +523,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز</h1>
-  <span class="version">v1.13</span>
+  <span class="version">v1.14</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -555,11 +557,11 @@
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
   </nav>
-  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.13</span></div>
+  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.14</span></div>
 </aside>
 
 <script>
-const APP_VERSION = "1.13";
+const APP_VERSION = "1.14";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1377,8 +1379,8 @@ function codeHasRealQty(obj){
 }
 function badgeHtml(tOn, gOn){
   let s = "";
-  if(tOn) s += '<span class="meta-badge" title="Tester">t</span>';
-  if(gOn) s += '<span class="meta-badge" title="Gift">gift</span>';
+  if(tOn) s += '<span class="meta-badge" title="Tester">TESTER</span>';
+  if(gOn) s += '<span class="meta-badge" title="Gift">GIFT</span>';
   return s;
 }
 function getNoteVal(brand, code, item){
@@ -2369,4 +2371,5 @@ document.addEventListener("touchmove", e => {
 </script>
 </body>
 </html>
+
 
