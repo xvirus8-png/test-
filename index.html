@@ -1,4 +1,4 @@
-<!-- index v1.11 -->
+<!-- index v1.12 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -169,7 +169,7 @@
   .price-small{font-size:12px;font-weight:600;color:var(--subtext);}
   .rows{display:grid;grid-template-columns:1fr;gap:6px;}
   .row-item{
-    display:flex;align-items:center;justify-content:space-between;
+    display:flex;align-items:center;justify-content:flex-start;
     background:var(--soft);border-radius:10px;padding:5px 8px;font-size:13px;
     border:1.5px solid transparent;
   }
@@ -275,19 +275,21 @@
   .qty-ctrl button:active{transform:scale(.92);}
   .add-extra-btn{
     width:36px;height:42px;border:1.5px solid var(--border);background:var(--soft);color:var(--text);
-    border-radius:12px;font-weight:800;font-size:18px;
+    border-radius:12px;font-weight:800;font-size:15px;
     cursor:pointer;font-family:inherit;padding:0;line-height:1;
+    display:inline-flex;align-items:center;justify-content:center;
   }
   .add-extra-btn:active{transform:scale(.94);}
-  .meta-badges{display:inline-flex;gap:4px;margin-inline-start:5px;vertical-align:middle;}
+  .qty-side{display:flex;flex-direction:column;gap:3px;margin-inline-start:auto;}
+  .meta-badges{display:inline-flex;gap:4px;margin-inline-start:6px;}
   .meta-badge{
     display:inline-flex;align-items:center;justify-content:center;pointer-events:none;
-    background:var(--success);color:#fff;border-radius:6px;
-    font-size:9px;font-weight:800;padding:2px 5px;line-height:1;
+    background:var(--success);color:#fff;border-radius:8px;
+    font-size:12px;font-weight:800;padding:3px 8px;line-height:1;
   }
   .row-note{
-    flex-basis:100%;display:none;font-size:12px;font-weight:700;color:#b45309;
-    padding:3px 4px 0;line-height:1.5;word-break:break-word;
+    display:none;font-size:13px;font-weight:700;color:#b45309;text-align:right;
+    padding:0 2px;line-height:1.5;word-break:break-word;
   }
   .row-note.has{display:block;}
   .extra-menu-modal{
@@ -518,7 +520,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز</h1>
-  <span class="version">v1.11</span>
+  <span class="version">v1.12</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -552,11 +554,11 @@
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
   </nav>
-  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.11</span></div>
+  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.12</span></div>
 </aside>
 
 <script>
-const APP_VERSION = "1.11";
+const APP_VERSION = "1.12";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1446,7 +1448,7 @@ function buildGrid(grid, brand, blocks){
       const savedQty = QTY[brand][block.code][item] || 0;
       const hasVariantImg = !!getVariantImage(block, item);
       const noteVal = typeof QTY[brand][block.code][item+"::N"] === "string" ? QTY[brand][block.code][item+"::N"] : "";
-      row.innerHTML = `<label class="variant-label${hasVariantImg?' has-image':''}">${item}<span class="meta-badges"></span></label><div class="qty-ctrl"><button type="button" class="add-extra-btn" title="تيستر / هدية / ملاحظة">＋</button><button type="button" class="btn-dec">−</button><input type="number" min="0" inputmode="numeric" placeholder="0" value="${savedQty>0?savedQty:''}"><button type="button" class="btn-inc">+</button></div><div class="row-note${noteVal?' has':''}">${noteVal?"📝 "+escHtml(noteVal):""}</div>`;
+      row.innerHTML = `<label class="variant-label${hasVariantImg?' has-image':''}">${item}</label><div class="qty-side"><div class="qty-ctrl"><button type="button" class="add-extra-btn" title="تيستر / هدية / ملاحظة"><i class="bi bi-three-dots"></i></button><button type="button" class="btn-dec">−</button><input type="number" min="0" inputmode="numeric" placeholder="0" value="${savedQty>0?savedQty:''}"><button type="button" class="btn-inc">+</button></div><div class="row-note${noteVal?' has':''}">${noteVal?"📝 "+escHtml(noteVal):""}</div></div><span class="meta-badges"></span>`;
       const input = row.querySelector("input");
       if(savedQty>0) row.classList.add("filled");
 
@@ -1480,7 +1482,7 @@ function buildGrid(grid, brand, blocks){
         input.value = v > 0 ? v : "";
         applyChange();
       });
-      // ＋ opens the extra menu: Tester / Gift / Note (item::T / ::G = 1, item::N = note text)
+      // ⋯ opens the extra menu: Tester / Gift / Note (item::T / ::G = 1, item::N = note text)
       row.querySelector(".add-extra-btn").addEventListener("click", ()=>{
         openExtraMenu(brand, block.code, item, row);
       });
