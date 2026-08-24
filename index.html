@@ -1,4 +1,4 @@
-﻿<!-- index v1.14 -->
+﻿<!-- index v1.16 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -523,7 +523,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز</h1>
-  <span class="version">v1.14</span>
+  <span class="version">v1.16</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -557,11 +557,11 @@
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
   </nav>
-  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.14</span></div>
+  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.16</span></div>
 </aside>
 
 <script>
-const APP_VERSION = "1.14";
+const APP_VERSION = "1.16";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1377,6 +1377,22 @@ function escHtml(s){
 function codeHasRealQty(obj){
   return Object.keys(obj||{}).some(k=>!/::N$/.test(k));
 }
+// press-and-hold auto-repeat: fires fn immediately, then repeats every 90ms after 450ms hold
+function attachHoldRepeat(btn, fn){
+  let hold = null, rep = null;
+  const stop = ()=>{
+    if(hold){ clearTimeout(hold); hold = null; }
+    if(rep){ clearInterval(rep); rep = null; }
+  };
+  btn.addEventListener("pointerdown", (e)=>{
+    if(e.button !== undefined && e.button !== 0) return;
+    e.preventDefault();
+    try{ btn.setPointerCapture(e.pointerId); }catch(err){}
+    fn();
+    hold = setTimeout(()=>{ rep = setInterval(fn, 90); }, 450);
+  });
+  ["pointerup","pointercancel","lostpointercapture"].forEach(ev=>btn.addEventListener(ev, stop));
+}
 function badgeHtml(tOn, gOn){
   let s = "";
   if(tOn) s += '<span class="meta-badge" title="Tester">TESTER</span>';
@@ -1454,6 +1470,11 @@ function buildGrid(grid, brand, blocks){
       row.innerHTML = `<label class="variant-label${hasVariantImg?' has-image':''}">${item}</label><div class="qty-side"><span class="meta-badges"></span><div class="qty-ctrl"><button type="button" class="add-extra-btn" title="تيستر / هدية / ملاحظة"><i class="bi bi-three-dots"></i></button><button type="button" class="btn-dec">−</button><input type="number" min="0" inputmode="numeric" placeholder="0" value="${savedQty>0?savedQty:''}"><button type="button" class="btn-inc">+</button></div><div class="row-note${noteVal?' has':''}">${noteVal?"📝 "+escHtml(noteVal):""}</div></div>`;
       const input = row.querySelector("input");
       if(savedQty>0) row.classList.add("filled");
+      // tapping the field pre-selects its value so typing replaces it instead of appending
+      input.addEventListener("focus", ()=>{
+        try{ input.select(); }catch(err){}
+        requestAnimationFrame(()=>{ try{ input.select(); }catch(err){} });
+      });
 
       const labelEl = row.querySelector(".variant-label");
       labelEl.addEventListener("click", ()=>{
@@ -1476,11 +1497,11 @@ function buildGrid(grid, brand, blocks){
         updateTotals();
       };
       input.addEventListener("input", applyChange);
-      row.querySelector(".btn-inc").addEventListener("click", ()=>{
+      attachHoldRepeat(row.querySelector(".btn-inc"), ()=>{
         input.value = (parseInt(input.value)||0) + 1;
         applyChange();
       });
-      row.querySelector(".btn-dec").addEventListener("click", ()=>{
+      attachHoldRepeat(row.querySelector(".btn-dec"), ()=>{
         const v = (parseInt(input.value)||0) - 1;
         input.value = v > 0 ? v : "";
         applyChange();
@@ -2371,5 +2392,7 @@ document.addEventListener("touchmove", e => {
 </script>
 </body>
 </html>
+
+
 
 
