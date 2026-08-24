@@ -1,4 +1,4 @@
-<!-- index v1.10 -->
+<!-- index v1.11 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -273,13 +273,51 @@
   }
   .qty-ctrl button.btn-dec{background:var(--danger);}
   .qty-ctrl button:active{transform:scale(.92);}
-  .tg-btn{
-    border:1.5px solid var(--border);background:var(--soft);color:var(--subtext);
-    min-width:34px;height:42px;border-radius:12px;font-weight:800;font-size:11px;
-    cursor:pointer;font-family:inherit;padding:0 6px;line-height:1;
+  .add-extra-btn{
+    width:36px;height:42px;border:1.5px solid var(--border);background:var(--soft);color:var(--text);
+    border-radius:12px;font-weight:800;font-size:18px;
+    cursor:pointer;font-family:inherit;padding:0;line-height:1;
   }
-  .tg-btn.on{background:var(--success);border-color:var(--success);color:#fff;}
-  .tg-btn:active{transform:scale(.94);}
+  .add-extra-btn:active{transform:scale(.94);}
+  .meta-badges{display:inline-flex;gap:4px;margin-inline-start:5px;vertical-align:middle;}
+  .meta-badge{
+    display:inline-flex;align-items:center;justify-content:center;pointer-events:none;
+    background:var(--success);color:#fff;border-radius:6px;
+    font-size:9px;font-weight:800;padding:2px 5px;line-height:1;
+  }
+  .row-note{
+    flex-basis:100%;display:none;font-size:12px;font-weight:700;color:#b45309;
+    padding:3px 4px 0;line-height:1.5;word-break:break-word;
+  }
+  .row-note.has{display:block;}
+  .extra-menu-modal{
+    position:fixed;inset:0;background:rgba(15,17,23,.5);z-index:230;
+    display:flex;align-items:center;justify-content:center;padding:20px;
+  }
+  .extra-menu{
+    background:var(--card);border-radius:16px;width:min(300px,88vw);
+    box-shadow:0 12px 40px rgba(0,0,0,.4);padding:8px;display:flex;flex-direction:column;gap:2px;
+  }
+  .xm-opt{
+    display:flex;align-items:center;gap:10px;background:transparent;border:none;
+    padding:13px 12px;min-height:48px;font-size:15px;font-weight:700;color:var(--text);
+    cursor:pointer;border-radius:10px;text-align:right;font-family:inherit;
+  }
+  .xm-opt:active{background:var(--soft);}
+  .xm-opt .st{margin-inline-start:auto;font-size:11px;color:var(--success);font-weight:800;}
+  .xm-cancel{
+    margin-top:4px;background:var(--soft);border:none;border-radius:10px;padding:12px;
+    min-height:44px;font-weight:800;font-size:14px;color:var(--subtext);cursor:pointer;font-family:inherit;
+  }
+  .note-input{
+    width:100%;padding:11px 12px;border-radius:10px;border:1.5px solid var(--border);
+    font-size:15px;font-weight:600;font-family:inherit;background:var(--bg);color:var(--text);
+  }
+  .note-del{
+    background:rgba(220,53,69,.14);color:var(--danger);border:none;border-radius:10px;
+    padding:11px 14px;min-height:44px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;
+  }
+  .note-save{flex:1;}
   .brand-title{
     font-size:20px;font-weight:800;text-align:center;margin:10px 0 14px;
     color:var(--primary);
@@ -480,7 +518,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز</h1>
-  <span class="version">v1.10</span>
+  <span class="version">v1.11</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -514,11 +552,11 @@
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
   </nav>
-  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.10</span></div>
+  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.11</span></div>
 </aside>
 
 <script>
-const APP_VERSION = "1.10";
+const APP_VERSION = "1.11";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1328,6 +1366,36 @@ function chooseVariantImage(block, item, onDone){
   setTimeout(()=>input.remove(), 1000);
 }
 
+function escHtml(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function codeHasRealQty(obj){
+  return Object.keys(obj||{}).some(k=>!/::N$/.test(k));
+}
+function badgeHtml(tOn, gOn){
+  let s = "";
+  if(tOn) s += '<span class="meta-badge" title="Tester">t</span>';
+  if(gOn) s += '<span class="meta-badge" title="Gift">gift</span>';
+  return s;
+}
+function getNoteVal(brand, code, item){
+  const v = QTY[brand] && QTY[brand][code] ? QTY[brand][code][item+"::N"] : undefined;
+  return typeof v === "string" ? v : "";
+}
+function refreshRowExtras(rowEl, brand, code, item){
+  const bag = rowEl.querySelector(".meta-badges");
+  if(bag) bag.innerHTML = badgeHtml(
+    !!(QTY[brand] && QTY[brand][code] && QTY[brand][code][item+"::T"] > 0),
+    !!(QTY[brand] && QTY[brand][code] && QTY[brand][code][item+"::G"] > 0)
+  );
+  const noteEl = rowEl.querySelector(".row-note");
+  if(noteEl){
+    const nv = getNoteVal(brand, code, item);
+    noteEl.innerHTML = nv ? "📝 " + escHtml(nv) : "";
+    noteEl.classList.toggle("has", !!nv);
+  }
+}
+
 function buildGrid(grid, brand, blocks){
   blocks.forEach(block=>{
     if(!QTY[brand][block.code]) QTY[brand][block.code] = {};
@@ -1377,9 +1445,8 @@ function buildGrid(grid, brand, blocks){
       row.className = "row-item";
       const savedQty = QTY[brand][block.code][item] || 0;
       const hasVariantImg = !!getVariantImage(block, item);
-      const tOn = QTY[brand][block.code][item+"::T"] > 0;
-      const gOn = QTY[brand][block.code][item+"::G"] > 0;
-      row.innerHTML = `<label class="variant-label${hasVariantImg?' has-image':''}">${item}</label><div class="qty-ctrl"><button type="button" class="tg-btn tg-t${tOn?" on":""}" title="Tester">T</button><button type="button" class="tg-btn tg-g${gOn?" on":""}" title="Gift">Gift</button><button type="button" class="btn-dec">−</button><input type="number" min="0" inputmode="numeric" placeholder="0" value="${savedQty>0?savedQty:''}"><button type="button" class="btn-inc">+</button></div>`;
+      const noteVal = typeof QTY[brand][block.code][item+"::N"] === "string" ? QTY[brand][block.code][item+"::N"] : "";
+      row.innerHTML = `<label class="variant-label${hasVariantImg?' has-image':''}">${item}<span class="meta-badges"></span></label><div class="qty-ctrl"><button type="button" class="add-extra-btn" title="تيستر / هدية / ملاحظة">＋</button><button type="button" class="btn-dec">−</button><input type="number" min="0" inputmode="numeric" placeholder="0" value="${savedQty>0?savedQty:''}"><button type="button" class="btn-inc">+</button></div><div class="row-note${noteVal?' has':''}">${noteVal?"📝 "+escHtml(noteVal):""}</div>`;
       const input = row.querySelector("input");
       if(savedQty>0) row.classList.add("filled");
 
@@ -1388,6 +1455,7 @@ function buildGrid(grid, brand, blocks){
         const src = getVariantImage(block, item);
         if(src) showProductImage(src);
       });
+      refreshRowExtras(row, brand, block.code, item);
 
       const applyChange = ()=>{
         const val = parseInt(input.value)||0;
@@ -1398,7 +1466,7 @@ function buildGrid(grid, brand, blocks){
           delete QTY[brand][block.code][item];
           row.classList.remove("filled");
         }
-        el.classList.toggle("has-qty", Object.keys(QTY[brand][block.code]).length>0);
+        el.classList.toggle("has-qty", codeHasRealQty(QTY[brand][block.code]));
         saveQty();
         updateTotals();
       };
@@ -1412,28 +1480,97 @@ function buildGrid(grid, brand, blocks){
         input.value = v > 0 ? v : "";
         applyChange();
       });
-      // Tester / Gift: one free piece per toggle, stored as item::T / item::G
-      const toggleMeta = (suffix, btn)=>{
-        const key = item + suffix;
-        if(QTY[brand][block.code][key]){
-          delete QTY[brand][block.code][key];
-          btn.classList.remove("on");
-        }else{
-          QTY[brand][block.code][key] = 1;
-          btn.classList.add("on");
-        }
-        el.classList.toggle("has-qty", Object.keys(QTY[brand][block.code]).length>0);
-        saveQty();
-        updateTotals();
-      };
-      row.querySelector(".tg-t").addEventListener("click", (e)=>toggleMeta("::T", e.currentTarget));
-      row.querySelector(".tg-g").addEventListener("click", (e)=>toggleMeta("::G", e.currentTarget));
+      // ＋ opens the extra menu: Tester / Gift / Note (item::T / ::G = 1, item::N = note text)
+      row.querySelector(".add-extra-btn").addEventListener("click", ()=>{
+        openExtraMenu(brand, block.code, item, row);
+      });
       rows.appendChild(row);
     });
-    if(Object.keys(QTY[brand][block.code]).length>0){
+    if(codeHasRealQty(QTY[brand][block.code])){
       el.classList.add("has-qty");
     }
     grid.appendChild(el);
+  });
+}
+
+function openExtraMenu(brand, code, item, rowEl){
+  const bucket = QTY[brand][code];
+  const overlay = document.createElement("div");
+  overlay.className = "extra-menu-modal";
+  const tOn = bucket[item+"::T"] > 0;
+  const gOn = bucket[item+"::G"] > 0;
+  overlay.innerHTML = `
+    <div class="extra-menu">
+      <button type="button" class="xm-opt" data-x="T">🧪 تيستر${tOn?'<span class="st">✓ مفعّل</span>':""}</button>
+      <button type="button" class="xm-opt" data-x="G">🎁 هدية${gOn?'<span class="st">✓ مفعّل</span>':""}</button>
+      <button type="button" class="xm-opt" data-x="N">📝 ملاحظة</button>
+      <button type="button" class="xm-cancel">إلغاء</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const onKey = (e)=>{ if(e.key === "Escape") close(); };
+  const close = ()=>{ overlay.remove(); document.removeEventListener("keydown", onKey); };
+  overlay.addEventListener("click", (e)=>{ if(e.target === overlay) close(); });
+  document.addEventListener("keydown", onKey);
+  overlay.querySelector(".xm-cancel").addEventListener("click", close);
+  const syncBlock = ()=>{
+    const blk = rowEl.closest(".block");
+    if(blk) blk.classList.toggle("has-qty", codeHasRealQty(bucket));
+  };
+  overlay.querySelectorAll(".xm-opt").forEach(btn=>{
+    btn.addEventListener("click", async ()=>{
+      const x = btn.dataset.x;
+      if(x === "N"){
+        close();
+        const res = await askNote(getNoteVal(brand, code, item));
+        if(res === null) return;
+        if(res){ bucket[item+"::N"] = res; } else { delete bucket[item+"::N"]; }
+        saveQty();
+        refreshRowExtras(rowEl, brand, code, item);
+        syncBlock();
+      }else{
+        const key = item + "::" + x;
+        if(bucket[key]){ delete bucket[key]; } else { bucket[key] = 1; }
+        saveQty();
+        refreshRowExtras(rowEl, brand, code, item);
+        syncBlock();
+        updateTotals();
+        close();
+      }
+    });
+  });
+}
+
+// resolves: string = save note, "" = delete note, null = cancelled
+function askNote(current){
+  return new Promise(resolve=>{
+    const overlay = document.createElement("div");
+    overlay.className = "variants-modal";
+    overlay.innerHTML = `
+      <div class="variants-panel">
+        <div class="variants-panel-head">
+          <div class="variants-panel-title">📝 ملاحظة على الدرجة</div>
+          <button type="button" class="close-variants" aria-label="إغلاق">×</button>
+        </div>
+        <div class="variants-list" style="padding:14px;">
+          <input type="text" class="note-input" placeholder="اكتب الملاحظة…" maxlength="120" autocomplete="off" value="${current?escHtml(current):""}">
+        </div>
+        <div class="add-item-bar">
+          ${current?'<button type="button" class="note-del">🗑 حذف</button>':""}
+          <button type="button" class="note-save">💾 حفظ</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const input = overlay.querySelector(".note-input");
+    const done = (v)=>{ overlay.remove(); document.removeEventListener("keydown", onKey); resolve(v); };
+    const onKey = (e)=>{ if(e.key === "Escape") done(null); };
+    overlay.querySelector(".note-save").addEventListener("click", ()=>done(input.value.trim()));
+    const delBtn = overlay.querySelector(".note-del");
+    if(delBtn) delBtn.addEventListener("click", ()=>done(""));
+    overlay.querySelector(".close-variants").addEventListener("click", ()=>done(null));
+    overlay.addEventListener("click", (e)=>{ if(e.target === overlay) done(null); });
+    input.addEventListener("keydown", (e)=>{ if(e.key === "Enter") overlay.querySelector(".note-save").click(); });
+    document.addEventListener("keydown", onKey);
+    setTimeout(()=>{ try{ input.focus(); }catch(err){} }, 60);
   });
 }
 
@@ -1699,6 +1836,7 @@ function computeTotals(qtySource){
       const block = (DATA[brand]||[]).find(b=>b.code===code);
       const basePrice = block ? parsePrices(block.price).small : 0;
       Object.entries(items||{}).forEach(([label, qty])=>{
+        if(/::N$/.test(label)) return; // note text, never counted
         // Tester/Gift markers (::T / ::G) count as pieces but carry no price
         const isFree = /::(T|G)$/.test(label);
         pieces += qty;
@@ -1735,15 +1873,24 @@ async function renderOrderCanvas(qtySource, customerName){
     entries.forEach(([code, items])=>{
       const block = (DATA[brand]||[]).find(b=>b.code===code);
       const basePrice = block ? parsePrices(block.price).small : 0;
-      Object.entries(items).forEach(([label, qty])=>{
+      const notes = {}, realItems = {};
+      Object.entries(items).forEach(([k,v])=>{
+        const nm = k.match(/^(.*)::N$/);
+        if(nm){ notes[nm[1]] = String(v); } else { realItems[k] = v; }
+      });
+      // a note-only product still prints as its base row (qty shows –)
+      Object.keys(notes).forEach(nl=>{ if(!(nl in realItems)) realItems[nl] = 0; });
+      if(!Object.keys(realItems).length) return;
+      Object.entries(realItems).forEach(([label, qty])=>{
         const meta = label.match(/^(.*)::(T|G)$/);
         const showLabel = meta ? `${meta[1]} · ${meta[2]==="T" ? "Tester" : "Gift"}` : label;
         const price = meta ? 0 : basePrice;
+        const noteHtml = !meta && notes[label] ? `<div style="font-size:10px;color:#666;margin-top:2px;">📝 ${escHtml(notes[label])}</div>` : "";
         html += `<tr>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${block && block.image ? `<img src="${block.image}" style="width:38px;height:38px;object-fit:contain;border-radius:4px;">` : "📦"}${!meta && block && block.barcode ? `<svg class="invoice-barcode" data-barcode="${block.barcode}" style="width:105px;height:34px;display:block;margin:3px auto 0;"></svg>` : ""}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${code}</td>
-          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${showLabel}</td>
-          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${qty}</td>
+          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${showLabel}${noteHtml}</td>
+          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${qty>0?qty:"–"}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${fmt(price)}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${fmt(qty*price)}</td>
         </tr>`;
