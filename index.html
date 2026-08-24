@@ -1,4 +1,4 @@
-﻿<!-- index v1.16 -->
+<!-- index v1.17 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -523,7 +523,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز</h1>
-  <span class="version">v1.16</span>
+  <span class="version">v1.17</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -557,11 +557,11 @@
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
   </nav>
-  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.16</span></div>
+  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.17</span></div>
 </aside>
 
 <script>
-const APP_VERSION = "1.16";
+const APP_VERSION = "1.17";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1074,6 +1074,14 @@ function fmt(n){
   if(!n) return "0";
   return n.toLocaleString("en-US", {maximumFractionDigits:3});
 }
+// iPhone/Arabic keyboards emit Arabic-Indic (٠-٩) or Persian (۰-۹) digits which
+// parseInt() rejects — normalize any input to plain Latin digits before use.
+function normDigits(v){
+  return String(v==null?"":v)
+    .replace(/[٠-٩]/g, d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d))
+    .replace(/[۰-۹]/g, d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+    .replace(/[^0-9]/g,"");
+}
 
 function buildTabs(){
   const tabsEl = document.getElementById("tabs");
@@ -1467,7 +1475,7 @@ function buildGrid(grid, brand, blocks){
       const savedQty = QTY[brand][block.code][item] || 0;
       const hasVariantImg = !!getVariantImage(block, item);
       const noteVal = typeof QTY[brand][block.code][item+"::N"] === "string" ? QTY[brand][block.code][item+"::N"] : "";
-      row.innerHTML = `<label class="variant-label${hasVariantImg?' has-image':''}">${item}</label><div class="qty-side"><span class="meta-badges"></span><div class="qty-ctrl"><button type="button" class="add-extra-btn" title="تيستر / هدية / ملاحظة"><i class="bi bi-three-dots"></i></button><button type="button" class="btn-dec">−</button><input type="number" min="0" inputmode="numeric" placeholder="0" value="${savedQty>0?savedQty:''}"><button type="button" class="btn-inc">+</button></div><div class="row-note${noteVal?' has':''}">${noteVal?"📝 "+escHtml(noteVal):""}</div></div>`;
+      row.innerHTML = `<label class="variant-label${hasVariantImg?' has-image':''}">${item}</label><div class="qty-side"><span class="meta-badges"></span><div class="qty-ctrl"><button type="button" class="add-extra-btn" title="تيستر / هدية / ملاحظة"><i class="bi bi-three-dots"></i></button><button type="button" class="btn-dec">−</button><input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="0" value="${savedQty>0?savedQty:''}"><button type="button" class="btn-inc">+</button></div><div class="row-note${noteVal?' has':''}">${noteVal?"📝 "+escHtml(noteVal):""}</div></div>`;
       const input = row.querySelector("input");
       if(savedQty>0) row.classList.add("filled");
       // tapping the field pre-selects its value so typing replaces it instead of appending
@@ -1484,7 +1492,7 @@ function buildGrid(grid, brand, blocks){
       refreshRowExtras(row, brand, block.code, item);
 
       const applyChange = ()=>{
-        const val = parseInt(input.value)||0;
+        const val = parseInt(normDigits(input.value))||0;
         if(val>0){
           QTY[brand][block.code][item] = val;
           row.classList.add("filled");
@@ -1496,13 +1504,17 @@ function buildGrid(grid, brand, blocks){
         saveQty();
         updateTotals();
       };
-      input.addEventListener("input", applyChange);
+      input.addEventListener("input", ()=>{
+        const clean = normDigits(input.value);
+        if(clean !== input.value) input.value = clean;
+        applyChange();
+      });
       attachHoldRepeat(row.querySelector(".btn-inc"), ()=>{
-        input.value = (parseInt(input.value)||0) + 1;
+        input.value = (parseInt(normDigits(input.value))||0) + 1;
         applyChange();
       });
       attachHoldRepeat(row.querySelector(".btn-dec"), ()=>{
-        const v = (parseInt(input.value)||0) - 1;
+        const v = (parseInt(normDigits(input.value))||0) - 1;
         input.value = v > 0 ? v : "";
         applyChange();
       });
