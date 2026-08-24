@@ -1,11 +1,14 @@
 آخر جلسة: 2026-08-24
-الحالة: index.html v1.12 - توزيع جديد لصف الدرجة + أيقونة ⋯:
-- بنية الصف: [اسم الدرجة][.qty-side ← عمودي: العداد ثم الملاحظة تحته مباشرة][.meta-badges أقصى اليسار]
-- .row-item صارت justify-content:flex-start و .qty-side تدفع نفسها لليسار بـ margin-inline-start:auto — الشارات بعدها بمحاذاة سعر الجملة/المفرد
-- الملاحظة .row-note داخل .qty-side (بسطر جديد تحت العداد تماماً، text-align:right، خط 13px برتقالي)
-- شارات t/gift كبرت: font-size:12px + padding:3px 8px + border-radius:8px
-- زر الإضافة أصبح أيقونة «⋯» (bi-three-dots) بدل ＋ — display:inline-flex تمركز
-- refreshRowExtras لم تتأثر (نفس الكلاسات، أماكن جديدة فقط)
+الحالة: index.html v1.13 - إصلاح زحف العداد + فحص آلي بمتصفح حقيقي:
+- مشكلة v1.12: شارات t/gift بنفس المحور الأفقي للعداد → تفعيلها زحلقه 62.6px (قِيس فعلياً)
+- الحل: .meta-badges صار أول ابن داخل .qty-side (ترتيب عمودي: شارات ثم عداد ثم ملاحظة) — الظهور يطول الصف عمودياً فقط، صفر زحف أفقي (مثبت بالقياس)
+- .meta-badges{align-self:flex-end} للتصاقها يسار تحت الأسعار + :empty{display:none} لعدم حجز فراغ وهي فاضية
+- ⚠️ درس مهم: الموديل لا يقرأ الصور — الفحص البصري يتم هكذا:
+  * puppeteer-core مثبتة بـ %TEMP%\opencode\pptr (تشغل كروم الموجود C:\Program Files\Google\Chrome\Application\chrome.exe بدون تحميل)
+  * نسخة اختبار بـ %TEMP%\opencode\v113test\index.html = نسخة التطبيق + حقن DATA/QTY وهمية + سكربت قياس getBoundingClientRect يطبع تقرير JSON
+  * سكربتات measure_v113.js / diag_v113.js جاهزة هناك لإعادة الاستخدام (بدّل مسار الملف فقط)
+  * ⚠️ حقن buildPanels() بعد التحميل: التطبيق يسحب الكتالوج الحقيقي من السحابة ويبني تابات كثيرة — لازم قبل القياس تفعيل تاب الماركة المفحوصة: document.querySelectorAll('.brand-panel').forEach(p=>p.classList.toggle('active', p.dataset.brand==='اسم الماركة'))
+  * --dump-dom مع virtual-time يعيد إحداثيات صفرية (لا layout) — puppeteer هو الطريق الموثوق
 - openExtraMenu(brand,code,item,rowEl): قائمة وسط الشاشة 🧪 تيستر / 🎁 هدية / 📝 ملاحظة / إلغاء — الخيار المفعّل عليه «✓ مفعّل»
 - الملاحظة: askNote(current) نافذة إدخال (maxlength 120) → يحفظ/يحذف("")/يلغي(null) — تخزين QTY[brand][code][item+"::N"]=نص
 - نص الملاحظة يُطبع بالفاتورة تحت اسم الدرجة بخط صغير (منذ v1.11)
@@ -74,7 +77,7 @@
 الريبو: https://github.com/xvirus8-png/test-.git (فرع main)
 
 الإصدار الحالي:
-- index.html: v1.12 (+ نسخ احتياطية v1.11 / v1.10 / v1.9 / v1.8 / v1.7 / v1.6 / v1.5 / v1.4 / v1.3.2 / v1.3.1 / v1.3 / v1.2 / v1.1 / v1)
+- index.html: v1.13 (+ نسخ احتياطية v1.12 / v1.11 / v1.10 / v1.9 / v1.8 / v1.7 / v1.6 / v1.5 / v1.4 / v1.3.2 / v1.3.1 / v1.3 / v1.2 / v1.1 / v1)
 - زر ＋ الموحد: قائمة تيستر/هدية/ملاحظة — المفاتيح «درجة::T» و«درجة::G» بقيمة 1 و«درجة::N» بنص الملاحظة
   * الفاتورة تعرض T/G بـ«الدرجة · Tester/Gift» بـ0 (regex /^(.*)::(T\|G)$/) والملاحظة ::N تحت اسم الدرجة
   * computeTotals يتجاهل ::N — لا قطع ولا مبلغ
