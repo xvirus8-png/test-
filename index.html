@@ -1,4 +1,4 @@
-<!-- index v1.17 -->
+<!-- index v1.18 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -164,7 +164,6 @@
   .price-line strong{font-size:16px;letter-spacing:.2px;}
   .barcode-input{direction:ltr;text-align:center;min-width:120px;}
   .items-input{min-width:140px;}
-  .barcode-preview{font-family:monospace;font-size:11px;letter-spacing:1px;color:var(--subtext);margin-inline-start:auto;display:flex;align-items:baseline;gap:6px;}
   .price-big{font-size:15px;font-weight:800;color:var(--primary);}
   .price-small{font-size:12px;font-weight:600;color:var(--subtext);}
   .rows{display:grid;grid-template-columns:1fr;gap:2px;}
@@ -367,8 +366,9 @@
   }
   .edit-toolbar #exportExcelBtn{background:var(--warning);}
   .edit-hint{font-size:12px;color:var(--subtext);}
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   table.price-table{
-    width:100%;border-collapse:separate;border-spacing:0;background:var(--card);border-radius:12px;overflow:hidden;
+    width:100%;min-width:700px;border-collapse:separate;border-spacing:0;background:var(--card);border-radius:12px;overflow:hidden;
     margin-bottom:10px;border:1px solid var(--border);
   }
   table.price-table th{
@@ -381,7 +381,8 @@
     width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 6px;font-size:16px;
     text-align:center;background:var(--card);
   }
-  table.price-table .code-input{text-align:right;font-weight:700;}
+  table.price-table .code-input{text-align:right;font-weight:700;min-width:110px;}
+  table.price-table .small-input,table.price-table .big-input{min-width:96px;}
   table.price-table .row-del{
     background:var(--danger);color:#fff;border:none;border-radius:8px;
     width:36px;height:36px;cursor:pointer;font-size:15px;
@@ -523,7 +524,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز</h1>
-  <span class="version">v1.17</span>
+  <span class="version">v1.18</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -557,11 +558,11 @@
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
   </nav>
-  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.17</span></div>
+  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.18</span></div>
 </aside>
 
 <script>
-const APP_VERSION = "1.17";
+const APP_VERSION = "1.18";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1616,12 +1617,14 @@ function buildEditTable(panel, brand){
   const blocks = Array.isArray(DATA[brand]) ? DATA[brand] : [];
   panel.innerHTML = `
     <div class="brand-title">${brand} — جدول الأسعار</div>
+    <div class="table-scroll">
     <table class="price-table">
       <thead>
         <tr><th>الصورة</th><th>اسم المنتج</th><th>الدرجات</th><th>مبلغ الجملة</th><th>مبلغ المفرد</th><th>الباركود</th><th></th></tr>
       </thead>
       <tbody id="tbody-${brand}"></tbody>
     </table>
+    </div>
     <button type="button" class="add-row-btn">+ إضافة منتج</button>
   `;
   const tbody = panel.querySelector(`#tbody-${brand}`);
@@ -1639,7 +1642,7 @@ function buildEditTable(panel, brand){
       <td><button type="button" class="open-items-btn">▤ الدرجات (${block.items.length})</button></td>
       <td><input type="text" inputmode="numeric" pattern="[0-9,]*" class="small-input" value="${small?fmt(small):''}"></td>
       <td><input type="text" inputmode="numeric" pattern="[0-9,]*" class="big-input" value="${big?fmt(big):''}"></td>
-      <td><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="20" class="barcode-input" placeholder="اختياري" value="${getBarcode(block)}"><svg class="barcode-preview" width="110" height="24" style="display:none;width:110px;height:24px;margin-top:3px;"></svg></td>
+      <td><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="20" class="barcode-input" placeholder="اختياري" value="${getBarcode(block)}"></td>
       <td><button type="button" class="row-del">🗑</button></td>
     `;
     const imageBtn = tr.querySelector(".product-img-btn");
@@ -1682,8 +1685,6 @@ function buildEditTable(panel, brand){
     bigInput.addEventListener("blur", ()=>formatOnBlur(bigInput));
 
     const barcodeInput = tr.querySelector(".barcode-input");
-    const barcodePreview = tr.querySelector(".barcode-preview");
-    barcodeInput.addEventListener("input", ()=>renderBarcode(barcodePreview, barcodeInput.value.trim()));
     barcodeInput.addEventListener("change", ()=>{
       block.barcode = barcodeInput.value.trim();
       saveData();
@@ -1925,7 +1926,7 @@ async function renderOrderCanvas(qtySource, customerName){
         const price = meta ? 0 : basePrice;
         const noteHtml = !meta && notes[label] ? `<div style="font-size:10px;color:#666;margin-top:2px;">📝 ${escHtml(notes[label])}</div>` : "";
         html += `<tr>
-          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${block && block.image ? `<img src="${block.image}" style="width:38px;height:38px;object-fit:contain;border-radius:4px;">` : "📦"}${!meta && block && block.barcode ? `<svg class="invoice-barcode" data-barcode="${block.barcode}" style="width:105px;height:34px;display:block;margin:3px auto 0;"></svg>` : ""}</td>
+          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${block && block.image ? `<img src="${block.image}" style="width:38px;height:38px;object-fit:contain;border-radius:4px;">` : "📦"}${!meta && block && block.barcode ? `<div style="direction:ltr;font-family:monospace;font-size:11px;font-weight:bold;margin-top:3px;">${escHtml(String(block.barcode))}</div>` : ""}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${code}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${showLabel}${noteHtml}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${qty>0?qty:"–"}</td>
@@ -1941,9 +1942,6 @@ async function renderOrderCanvas(qtySource, customerName){
   html += `<h3 style="text-align:left;border-top:2px solid #333;padding-top:8px;">الإجمالي: ${fmt(t.amount)} | القطع: ${t.pieces}</h3>`;
 
   container.innerHTML = html;
-  container.querySelectorAll(".invoice-barcode").forEach(svg=>{
-    renderBarcode(svg, svg.getAttribute("data-barcode"));
-  });
   container.style.position = "fixed";
   container.style.left = "-9999px";
   document.body.appendChild(container);
