@@ -1,4 +1,4 @@
-<!-- index v1.19 -->
+<!-- index v1.20 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -162,7 +162,6 @@
   .wholesale-price{color:var(--success);}
   .retail-price{color:var(--primary);}
   .price-line strong{font-size:16px;letter-spacing:.2px;}
-  .barcode-input{direction:ltr;text-align:center;min-width:120px;}
   .items-input{min-width:140px;}
   .price-big{font-size:15px;font-weight:800;color:var(--primary);}
   .price-small{font-size:12px;font-weight:600;color:var(--subtext);}
@@ -368,7 +367,7 @@
   .edit-hint{font-size:12px;color:var(--subtext);}
   .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   table.price-table{
-    width:100%;min-width:700px;border-collapse:separate;border-spacing:0;background:var(--card);border-radius:12px;overflow:hidden;
+    width:100%;min-width:560px;border-collapse:separate;border-spacing:0;background:var(--card);border-radius:12px;overflow:hidden;
     margin-bottom:10px;border:1px solid var(--border);
   }
   table.price-table th{
@@ -524,7 +523,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز</h1>
-  <span class="version">v1.19</span>
+  <span class="version">v1.20</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -558,11 +557,11 @@
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
   </nav>
-  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.19</span></div>
+  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.20</span></div>
 </aside>
 
 <script>
-const APP_VERSION = "1.19";
+const APP_VERSION = "1.20";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1159,15 +1158,10 @@ function normalizeProductBlock(block){
   block.big = Number(block.big || parsed.big || 0);
   block.small = Number(block.small || parsed.small || 0);
   block.image = block.image || "";
-  block.barcode = block.barcode || "";
   if(!Array.isArray(block.items) || !block.items.length) block.items = ["-"];
   if(!block.itemImages || typeof block.itemImages !== "object") block.itemImages = {};
   if(!block.itemBarcodes || typeof block.itemBarcodes !== "object") block.itemBarcodes = {};
   return block;
-}
-
-function getBarcode(block){
-  return (block && block.barcode) ? String(block.barcode) : "";
 }
 
 const EAN_L = ["0001101","0011001","0010011","0111101","0100011","0110001","0101111","0111011","0110111","0001011"];
@@ -1621,7 +1615,7 @@ function buildEditTable(panel, brand){
     <div class="table-scroll">
     <table class="price-table">
       <thead>
-        <tr><th>الصورة</th><th>اسم المنتج</th><th>الدرجات</th><th>مبلغ الجملة</th><th>مبلغ المفرد</th><th>الباركود</th><th></th></tr>
+        <tr><th>الصورة</th><th>اسم المنتج</th><th>الدرجات</th><th>مبلغ الجملة</th><th>مبلغ المفرد</th><th></th></tr>
       </thead>
       <tbody id="tbody-${brand}"></tbody>
     </table>
@@ -1643,7 +1637,6 @@ function buildEditTable(panel, brand){
       <td><button type="button" class="open-items-btn">▤ الدرجات (${block.items.length})</button></td>
       <td><input type="text" inputmode="numeric" pattern="[0-9,]*" class="small-input" value="${small?fmt(small):''}"></td>
       <td><input type="text" inputmode="numeric" pattern="[0-9,]*" class="big-input" value="${big?fmt(big):''}"></td>
-      <td><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="20" class="barcode-input" placeholder="اختياري" value="${getBarcode(block)}"></td>
       <td><button type="button" class="row-del">🗑</button></td>
     `;
     const imageBtn = tr.querySelector(".product-img-btn");
@@ -1684,12 +1677,6 @@ function buildEditTable(panel, brand){
     bigInput.addEventListener("input", applyRow);
     smallInput.addEventListener("blur", ()=>formatOnBlur(smallInput));
     bigInput.addEventListener("blur", ()=>formatOnBlur(bigInput));
-
-    const barcodeInput = tr.querySelector(".barcode-input");
-    barcodeInput.addEventListener("change", ()=>{
-      block.barcode = barcodeInput.value.trim();
-      saveData();
-    });
 
     tr.querySelector(".row-del").addEventListener("click", ()=>{
       if(!confirm(`حذف "${block.code}"؟`)) return;
@@ -1933,9 +1920,9 @@ async function renderOrderCanvas(qtySource, customerName){
         const showLabel = meta ? `${meta[1]} · ${meta[2]==="T" ? "Tester" : "Gift"}` : label;
         const price = meta ? 0 : basePrice;
         const noteHtml = !meta && notes[label] ? `<div style="font-size:10px;color:#666;margin-top:2px;">📝 ${escHtml(notes[label])}</div>` : "";
-        const variantBarcode = !meta && block && block.itemBarcodes && block.itemBarcodes[label] ? block.itemBarcodes[label] : (block && block.barcode ? block.barcode : "");
+        const variantBarcode = !meta && block && block.itemBarcodes && block.itemBarcodes[label] ? String(block.itemBarcodes[label]).trim() : "";
           html += `<tr>
-          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${block && block.image ? `<img src="${block.image}" style="width:38px;height:38px;object-fit:contain;border-radius:4px;">` : "📦"}${variantBarcode ? `<div style="direction:ltr;font-family:monospace;font-size:11px;font-weight:bold;margin-top:3px;">${escHtml(String(variantBarcode))}</div>` : ""}</td>
+          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${block && block.image ? `<img src="${block.image}" style="width:38px;height:38px;object-fit:contain;border-radius:4px;">` : "📦"}${variantBarcode ? `<div style="direction:ltr;font-family:monospace;font-size:11px;font-weight:bold;color:#000;margin-top:3px;">${escHtml(variantBarcode)}</div>` : ""}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${code}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${showLabel}${noteHtml}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${qty>0?qty:"–"}</td>
