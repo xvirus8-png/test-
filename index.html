@@ -1,4 +1,4 @@
-<!-- index v1.20 -->
+<!-- index v1.21 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -523,7 +523,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز</h1>
-  <span class="version">v1.20</span>
+  <span class="version">v1.21</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -557,11 +557,11 @@
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
   </nav>
-  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.20</span></div>
+  <div class="drawer-foot"><span>فيروز — طلبية</span><span>v1.21</span></div>
 </aside>
 
 <script>
-const APP_VERSION = "1.20";
+const APP_VERSION = "1.21";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -838,7 +838,6 @@ function saveQty(){
   }catch(e){
     console.warn("تحذير: مساحة التخزين المحلي ممتلئة", e);
   }
-  scheduleCloudPush();
 }
 
 /* ================= CLOUD SYNC =================
@@ -915,16 +914,12 @@ async function cloudPull(){
   cloudStatus = "connecting"; cloudUi();
   try{
     cloudSupress = true;
-    const [p,q] = await Promise.all([
-      httpJson("GET","products"),
-      httpJson("GET","qty")
-    ]);
+    const p = await httpJson("GET","products");
     if(p && typeof p==="object"){
       DATA = mergeSavedData(p);
       normalizeAllProducts();
       saveData();
     }
-    if(q && typeof q==="object"){ QTY = decodeQty(q); saveQty(); }
     buildTabs();
     buildPanels();
     updateTotals();
@@ -965,10 +960,8 @@ function decodeQty(q){
 }
 
 async function cloudPushAll(){
-  const hasQty = Object.keys(QTY).length > 0;
   await Promise.all([
     httpJson("PUT","products",DATA),
-    httpJson("PUT","qty", hasQty ? encodeQty(QTY) : null),
     httpJson("PUT","customer",null),
     httpJson("PUT","updatedAt",Date.now())
   ]);
