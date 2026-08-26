@@ -641,19 +641,20 @@
   .nafed-filter-btn{border:1.5px solid var(--border);background:var(--soft);color:var(--subtext);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .15s;}
   .nafed-filter-btn.active{background:var(--danger);color:#fff;border-color:var(--danger);}
   .row-item.nafed-row-item{opacity:.55;background:rgba(239,68,68,.08);border:1.5px solid rgba(239,68,68,.25);pointer-events:none;}
-  /* === PIN MODAL — iPhone-style numpad === */
-  .pin-modal{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:240;display:flex;align-items:center;justify-content:center;padding:20px;}
-  .pin-panel{background:#1c1c1e;width:100%;max-width:300px;border-radius:28px;padding:32px 24px 24px;display:flex;flex-direction:column;align-items:center;gap:16px;}
-  .pin-title{font-weight:700;font-size:16px;color:#fff;text-align:center;}
-  .pin-sub{font-size:12px;color:#8e8e93;text-align:center;margin-top:-8px;}
-  .pin-dots{display:flex;gap:14px;margin:8px 0 12px;}
-  .pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid #555;transition:all .15s;}
-  .pin-dot.filled{background:#fff;border-color:#fff;}
-  .pin-dot.error{background:#ff3b30;border-color:#ff3b30;}
-  .pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;}
-  .pin-key{width:72px;height:72px;border:none;border-radius:50%;font-size:28px;font-weight:400;cursor:pointer;font-family:inherit;background:#333;color:#fff;transition:background .08s;margin:0 auto;display:flex;align-items:center;justify-content:center;}
-  .pin-key:active{background:#555;}
-  .pin-key.pin-sub{font-size:12px;color:#8e8e93;background:transparent;box-shadow:none;}
+  /* === PIN MODAL — native numpad === */
+  .pin-modal{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:240;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .pin-panel{background:var(--card);width:100%;max-width:320px;border-radius:20px;padding:28px 20px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 12px 40px rgba(0,0,0,.4);}
+  .pin-title{font-weight:800;font-size:16px;color:var(--text);text-align:center;}
+  .pin-sub{font-size:12px;color:var(--subtext);text-align:center;}
+  .pin-dots{display:flex;gap:12px;margin:4px 0;}
+  .pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);transition:all .15s;}
+  .pin-dot.filled{background:var(--primary);border-color:var(--primary);}
+  .pin-dot.error{background:var(--danger);border-color:var(--danger);}
+  .pin-input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;}
+  .pin-actions{display:flex;gap:10px;width:100%;margin-top:4px;}
+  .pin-actions button{flex:1;min-height:48px;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;}
+  .pin-ok{background:var(--primary);color:#fff;}
+  .pin-cancel{background:var(--soft);color:var(--text);}
 
   /* === SPLASH SCREEN v2.16 === */
   .splash{position:fixed;inset:0;z-index:999;background:linear-gradient(135deg,#e0f7fa,#b2ebf2,#c8e6c9,#e0f7fa);background-size:400% 400%;animation:splashAurora 8s ease infinite;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .5s ease;}
@@ -714,10 +715,10 @@
   </div>
   <nav class="drawer-body">
     <button class="drawer-item" onclick="openHistory()"><i class="bi bi-clock-history"></i> السجل<span class="drawer-count" id="historyCount"></span></button>
+    <button class="drawer-item" id="nafedBtn" onclick="openNafedPin();closeDrawer()"><i class="bi bi-box-seam"></i> المنتجات النافذة</button>
     <button class="drawer-item" id="editBtn" onclick="toggleEditMode();closeDrawer()"><i class="bi bi-pencil-square"></i> تعديل الأسعار</button>
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="backupsBtn" onclick="openBackups();closeDrawer()"><i class="bi bi-download"></i> نسخة احتياطية</button>
-    <button class="drawer-item" id="nafedBtn" onclick="openNafedPin();closeDrawer()"><i class="bi bi-box-seam"></i> المنتجات النافذة</button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
   </nav>
   <div class="drawer-foot"><span>by:MAHMOOD TARQ</span></div>
@@ -1319,29 +1320,34 @@ function hideSplashGuard(){
 
 // === NAFED PIN + MANAGER ===
 function openNafedPin(){
-  var pin="";
   var overlay=document.createElement("div");
   overlay.className="pin-modal";
-  overlay.innerHTML='<div class="pin-panel"><div class="pin-title">أدخل الرمز</div><div class="pin-sub">للوصول للمنتجات النافذة</div><div class="pin-dots"><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span></div><div class="pin-keypad"><button class="pin-key" data-k="1">1</button><button class="pin-key" data-k="2">2</button><button class="pin-key" data-k="3">3</button><button class="pin-key" data-k="4">4</button><button class="pin-key" data-k="5">5</button><button class="pin-key" data-k="6">6</button><button class="pin-key" data-k="7">7</button><button class="pin-key" data-k="8">8</button><button class="pin-key" data-k="9">9</button><button class="pin-key pin-sub" data-k="cancel">iskr</button><button class="pin-key" data-k="0">0</button><button class="pin-key" data-k="del" style="font-size:22px;">⌫</button></div></div>';
+  overlay.innerHTML='<div class="pin-panel"><div class="pin-title">🔐 أدخل الرمز السري</div><div class="pin-sub">للوصول للمنتجات النافذة</div><div class="pin-dots" id="pinDots"><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span></div><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" class="pin-input" id="pinInput" autocomplete="off"><div class="pin-actions"><button class="pin-ok" id="pinOkBtn">تأكيد</button><button class="pin-cancel" id="pinCancelBtn">إلغاء</button></div></div>';
   document.body.appendChild(overlay);
+  var pinInput=overlay.querySelector("#pinInput");
   var dots=overlay.querySelectorAll(".pin-dot");
-  function updateDots(){for(var i=0;i<4;i++){dots[i].classList.toggle("filled",i<pin.length);dots[i].classList.remove("error");}}
+  function updateDots(val){
+    var len=(val||"").length;
+    for(var i=0;i<4;i++){dots[i].classList.toggle("filled",i<len);dots[i].classList.remove("error");}
+  }
   function checkPin(){
-    if(pin===NAFED_PIN){overlay.remove();openNafedManager();}
+    var v=pinInput.value;
+    if(v===NAFED_PIN){overlay.remove();openNafedManager();}
     else{
       dots.forEach(function(d){d.classList.add("error");});
-      setTimeout(function(){pin="";updateDots();},500);
+      setTimeout(function(){pinInput.value="";updateDots("");pinInput.focus();},500);
     }
   }
-  overlay.querySelectorAll(".pin-key").forEach(function(btn){
-    btn.addEventListener("click",function(){
-      var k=btn.getAttribute("data-k");
-      if(k==="del"){pin=pin.slice(0,-1);updateDots();}
-      else if(k==="cancel"){overlay.remove();}
-      else if(pin.length<4){pin+=k;updateDots();if(pin.length===4)setTimeout(checkPin,150);}
-    });
+  pinInput.addEventListener("input",function(){
+    var clean=pinInput.value.replace(/[^0-9]/g,"");
+    if(clean!==pinInput.value) pinInput.value=clean;
+    updateDots(clean);
+    if(clean.length===4) setTimeout(checkPin,150);
   });
+  overlay.querySelector("#pinOkBtn").addEventListener("click",function(){if(pinInput.value.length===4)checkPin();});
+  overlay.querySelector("#pinCancelBtn").addEventListener("click",function(){overlay.remove();});
   overlay.addEventListener("click",function(e){if(e.target===overlay)overlay.remove();});
+  setTimeout(function(){pinInput.focus();},100);
 }
 
 function openNafedManager(){
