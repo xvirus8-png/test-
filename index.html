@@ -1,4 +1,4 @@
-<!-- index v2.4 -->
+<!-- index v2.5 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -95,7 +95,7 @@
   .tab-btn{
     flex:none;padding:9px 16px;min-height:38px;border-radius:20px;border:1.5px solid var(--border);
     background:var(--card);font-weight:700;font-size:13px;cursor:pointer;color:var(--subtext);
-    white-space:nowrap;
+    white-space:nowrap;position:relative;
   }
   .tab-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
   .search-bar{padding:10px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:calc(var(--hdr-h,58px) + var(--tabs-h,50px));z-index:48;}
@@ -328,14 +328,12 @@
   .note-save{flex:1;}
   .brand-title{
     font-size:20px;font-weight:800;text-align:center;margin:10px 0 14px;
-    color:var(--primary);cursor:pointer;user-select:none;-webkit-user-select:none;
-    position:relative;display:inline-block;
+    color:var(--primary);
   }
-  .brand-title-wrap{text-align:center;position:relative;}
   .filter-dropdown{
-    position:absolute;left:50%;transform:translateX(-50%);top:100%;margin-top:4px;
+    position:absolute;right:0;top:100%;margin-top:4px;
     background:var(--card);border:1.5px solid var(--border);border-radius:12px;
-    box-shadow:0 4px 16px var(--shadow);z-index:100;min-width:200px;max-width:90vw;
+    box-shadow:0 4px 16px var(--shadow);z-index:200;min-width:200px;max-width:90vw;
     max-height:50vh;overflow-y:auto;padding:6px 0;
   }
   .filter-dropdown-item{
@@ -597,7 +595,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.4</span>
+  <span class="version">v2.5</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -636,7 +634,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.4";
+const APP_VERSION = "2.5";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1192,8 +1190,20 @@ function buildTabs(){
     const btn = document.createElement("button");
     btn.className = "tab-btn" + (i===0?" active":"");
     btn.textContent = brand;
-    btn.onclick = ()=>switchTab(brand);
     btn.dataset.brand = brand;
+    let longPressTimer = null;
+    let didLongPress = false;
+    btn.addEventListener("pointerdown", ()=>{
+      didLongPress = false;
+      longPressTimer = setTimeout(()=>{ didLongPress = true; openTabFilterDropdown(brand, btn); }, 450);
+    });
+    btn.addEventListener("pointerup", ()=>clearTimeout(longPressTimer));
+    btn.addEventListener("pointercancel", ()=>clearTimeout(longPressTimer));
+    btn.addEventListener("pointerleave", ()=>clearTimeout(longPressTimer));
+    btn.addEventListener("click", (e)=>{
+      if(didLongPress){ e.preventDefault(); e.stopPropagation(); return; }
+      switchTab(brand);
+    });
     tabsEl.appendChild(btn);
   });
 }
@@ -1248,25 +1258,11 @@ function buildPanels(){
       buildEditTable(panel, brand);
     } else {
       const brandFilters = ensureFilters(brand);
-      panel.innerHTML = `<div class="brand-title-wrap"><span class="brand-title" data-brand="${brand}">${brand}</span></div><div class="grid" id="grid-${brand}"></div>`;
+      panel.innerHTML = `<div class="brand-title">${brand}</div><div class="grid" id="grid-${brand}"></div>`;
       buildGrid(panel.querySelector(".grid"), brand, blocks);
       const current = ACTIVE_FILTER[brand] || "";
       if(!brandFilters.some(f=>f.id===current)) ACTIVE_FILTER[brand] = "";
       applyFilterToGrid(panel, brand, ACTIVE_FILTER[brand] || "");
-      const titleEl = panel.querySelector(".brand-title");
-      let longPressTimer = null;
-      let didLongPress = false;
-      const openDropdown = ()=>openFilterDropdown(brand, titleEl, panel);
-      titleEl.addEventListener("pointerdown", (e)=>{
-        didLongPress = false;
-        longPressTimer = setTimeout(()=>{ didLongPress = true; openDropdown(); }, 450);
-      });
-      titleEl.addEventListener("pointerup", ()=>clearTimeout(longPressTimer));
-      titleEl.addEventListener("pointercancel", ()=>clearTimeout(longPressTimer));
-      titleEl.addEventListener("pointerleave", ()=>clearTimeout(longPressTimer));
-      titleEl.addEventListener("click", (e)=>{
-        if(didLongPress){ e.preventDefault(); e.stopPropagation(); }
-      });
     }
   });
   updateTotals();
@@ -1322,7 +1318,7 @@ function applyFilterToGrid(panel, brand, filterId){
   });
 }
 
-function openFilterDropdown(brand, titleEl, panel){
+function openTabFilterDropdown(brand, tabBtn){
   document.querySelectorAll(".filter-dropdown").forEach(d=>d.remove());
   const brandFilters = ensureFilters(brand);
   const dd = document.createElement("div");
@@ -1333,7 +1329,8 @@ function openFilterDropdown(brand, titleEl, panel){
   allItem.innerHTML = `<span>كل المنتجات</span>`;
   allItem.addEventListener("click", ()=>{
     ACTIVE_FILTER[brand] = "";
-    applyFilterToGrid(panel, brand, "");
+    const panel = document.querySelector(`.brand-panel[data-brand="${brand}"]`);
+    if(panel) applyFilterToGrid(panel, brand, "");
     updateFilterBadge();
     dd.remove();
   });
@@ -1344,17 +1341,17 @@ function openFilterDropdown(brand, titleEl, panel){
     item.innerHTML = `<span>${escHtml(f.name)}</span><span class="fd-count">${f.codes.length} منتج</span>`;
     item.addEventListener("click", ()=>{
       ACTIVE_FILTER[brand] = f.id;
-      applyFilterToGrid(panel, brand, f.id);
+      const panel = document.querySelector(`.brand-panel[data-brand="${brand}"]`);
+      if(panel) applyFilterToGrid(panel, brand, f.id);
       updateFilterBadge();
       dd.remove();
     });
     dd.appendChild(item);
   });
-  const wrap = titleEl.closest(".brand-title-wrap") || titleEl.parentElement;
-  wrap.style.position = "relative";
-  wrap.appendChild(dd);
+  tabBtn.style.position = "relative";
+  tabBtn.appendChild(dd);
   const closeDD = (e)=>{
-    if(!dd.contains(e.target) && e.target !== titleEl){ dd.remove(); document.removeEventListener("pointerdown", closeDD); }
+    if(!dd.contains(e.target) && e.target !== tabBtn){ dd.remove(); document.removeEventListener("pointerdown", closeDD); }
   };
   setTimeout(()=>document.addEventListener("pointerdown", closeDD), 0);
 }
