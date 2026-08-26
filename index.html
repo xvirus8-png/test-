@@ -1,4 +1,4 @@
-<!-- index v2.6 -->
+<!-- index v2.7 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -344,15 +344,15 @@
   .filter-dropdown-item.active{color:var(--primary);font-weight:800;}
   .filter-dropdown-item .fd-count{font-size:11px;color:var(--subtext);font-weight:700;}
   .filter-badge{
-    display:none;align-items:center;justify-content:center;gap:8px;
-    padding:6px 14px;background:var(--pl);color:var(--primary);font-size:13px;font-weight:700;
-    border-bottom:1px solid var(--border);
+    display:none;align-items:center;justify-content:center;gap:5px;
+    padding:4px 12px;background:var(--pl);color:var(--primary);font-size:12px;font-weight:700;
+    border-radius:20px;margin:6px auto 0;width:fit-content;
   }
   .filter-badge.visible{display:flex;}
   .filter-badge span{flex:0 0 auto;}
   .filter-badge .fb-clear{
-    background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer;
-    padding:2px 6px;border-radius:6px;font-weight:800;
+    background:none;border:none;color:var(--danger);font-size:13px;cursor:pointer;
+    padding:0 2px;border-radius:50%;font-weight:800;line-height:1;
   }
   footer.bar{
     position:fixed;bottom:0;left:0;right:0;background:var(--card);
@@ -595,7 +595,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.6</span>
+  <span class="version">v2.7</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -634,7 +634,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.6";
+const APP_VERSION = "2.7";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
