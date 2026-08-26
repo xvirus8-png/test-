@@ -1080,14 +1080,6 @@ async function cloudPull(){
     buildTabs();
     buildPanels();
     updateTotals();
-    const cb = await httpJson("GET","backups");
-    if(Array.isArray(cb)){
-      const localIds = new Set(backups.map(b=>b.id));
-      cb.filter(b=>b && b.id && !localIds.has(b.id)).forEach(b=>backups.push(b));
-      backups.sort((a,b)=>(b.ts||0)-(a.ts||0));
-      pruneLocalBackups();
-      saveBackups();
-    }
     cloudSupress = false;
     cloudStatus = "on"; cloudUi();
     scheduleCloudPush();
@@ -1125,13 +1117,11 @@ function decodeQty(q){
 }
 
 async function cloudPushAll(){
-  const c3 = backups.slice(0, MAX_CLOUD_BACKUPS).map(b=>({id:b.id,ts:b.ts,data:b.data,size:b.size}));
   await Promise.all([
     httpJson("PUT","products",DATA),
     httpJson("PUT","filters",FILTERS),
     httpJson("PUT","customer",null),
-    httpJson("PUT","updatedAt",Date.now()),
-    httpJson("PUT","backups", c3.length ? c3 : null)
+    httpJson("PUT","updatedAt",Date.now())
   ]);
 }
 
@@ -2984,9 +2974,7 @@ async function createBackup(){
   backups.unshift(b);
   pruneLocalBackups();
   saveBackups();
-  if(cloudCfg){
-    try{ await syncCloudBackups(); }catch(e){}
-  }
+  syncCloudBackups().catch(function(){});
   alert("✅ تم إنشاء النسخة الاحتياطية!\nالحجم: ~" + (size/1024).toFixed(1) + " KB\n(الصور بالسحابة فقط)");
   location.reload();
 }
@@ -3054,6 +3042,23 @@ function importBackupFile(){
 }
 function openBackups(){
   loadBackups();
+  if(cloudCfg){
+    pullCloudBackups().then(function(cb){
+      if(Array.isArray(cb)){
+        var localIds = {};
+        backups.forEach(function(b){ localIds[b.id]=1; });
+        cb.forEach(function(b){ if(b && b.id && !localIds[b.id]) backups.push(b); });
+        backups.sort(function(a,b){return (b.ts||0)-(a.ts||0);});
+        pruneLocalBackups();
+        saveBackups();
+      }
+      renderBackupModal();
+    }).catch(function(){ renderBackupModal(); });
+  } else {
+    renderBackupModal();
+  }
+}
+function renderBackupModal(){
   const cloud3 = backups.slice(0, MAX_CLOUD_BACKUPS);
   const listHtml = backups.length === 0
     ? '<p style="text-align:center;color:var(--subtext);padding:20px;">لا توجد نسخ احتياطية بعد</p>'
