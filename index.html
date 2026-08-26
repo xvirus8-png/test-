@@ -1,4 +1,4 @@
-<!-- index v1.26 -->
+<!-- index v1.25 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -401,6 +401,38 @@
   .order-cell .order-btn:active{transform:scale(.92);}
   .order-cell .order-btn:disabled{opacity:.35;cursor:not-allowed;}
   .order-cell .order-input{width:44px;padding:5px 2px;font-size:14px;min-width:0;}
+  .filter-bar{display:flex;align-items:center;gap:8px;margin:0 0 12px;}
+  .filter-bar select{
+    flex:1;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);
+    background:var(--card);font-size:14px;font-weight:700;color:var(--text);
+  }
+  .filter-manage-btn{
+    background:var(--soft);border:1.5px solid var(--border);color:var(--text);border-radius:10px;
+    padding:10px 12px;min-height:42px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;
+  }
+  .fm-row{
+    display:flex;align-items:center;gap:10px;
+    padding:11px 6px;border-bottom:1px solid var(--soft);
+  }
+  .fm-row .fm-name{flex:1;font-weight:700;font-size:14.5px;color:var(--text);}
+  .fm-row .fm-count{font-size:11.5px;color:var(--subtext);font-weight:700;}
+  .fm-row .fm-del{
+    background:rgba(239,68,68,.12);color:var(--danger);border:none;border-radius:8px;
+    width:38px;height:38px;font-size:14px;cursor:pointer;flex:none;
+  }
+  .fm-row .fm-open{
+    background:var(--pl);color:var(--primary);border:none;border-radius:8px;
+    padding:8px 12px;min-height:38px;font-size:12.5px;font-weight:700;cursor:pointer;flex:none;
+  }
+  .fm-check-row{
+    display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--soft);
+  }
+  .fm-check-row input[type=checkbox]{width:20px;height:20px;flex:none;}
+  .fm-check-row label{flex:1;font-weight:600;font-size:14px;color:var(--text);}
+  .fm-back{
+    background:var(--soft);border:none;border-radius:8px;padding:8px 12px;min-height:38px;
+    font-size:12.5px;font-weight:700;color:var(--text);cursor:pointer;font-family:inherit;
+  }
   .add-row-btn{
     display:block;margin:0 auto 20px;background:var(--primary);color:#fff;border:none;
     padding:11px 18px;min-height:44px;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;
@@ -544,7 +576,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v1.26</span>
+  <span class="version">v1.27</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -582,7 +614,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "1.26";
+const APP_VERSION = "1.27";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -814,6 +846,31 @@ let QTY  = loadQty(); // QTY[brand][code][item] = number
 const LS_ORDERS_KEY = "orderapp_orders_v1";
 let ORDERS = loadOrders();
 
+// PRODUCT FILTERS (custom named groups of codes per brand, e.g. "عارضه 50")
+// FILTERS[brand] = [{id, name, codes:[...]}]  — a code can belong to more than one filter.
+const LS_FILTERS_KEY = "orderapp_filters_v1";
+let FILTERS = loadFilters();
+let ACTIVE_FILTER = {}; // brand -> filterId currently shown in the normal (non-edit) view
+function loadFilters(){
+  try{
+    const raw = localStorage.getItem(LS_FILTERS_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(parsed && typeof parsed === "object") return parsed;
+    }
+  }catch(e){}
+  return {};
+}
+function saveFilters(){
+  try{ localStorage.setItem(LS_FILTERS_KEY, JSON.stringify(FILTERS)); }
+  catch(e){ console.warn("تعذر حفظ الفلاتر محلياً", e); }
+  scheduleCloudPush();
+}
+function ensureFilters(brand){
+  if(!Array.isArray(FILTERS[brand])) FILTERS[brand] = [];
+  return FILTERS[brand];
+}
+
 function mergeSavedData(saved){
   // Keep the user's saved data, but restore any old/default brand whose
   // product list was accidentally saved empty by an earlier version.
@@ -944,6 +1001,11 @@ async function cloudPull(){
       normalizeAllProducts();
       saveData();
     }
+    const f = await httpJson("GET","filters");
+    if(f && typeof f==="object"){
+      FILTERS = f;
+      saveFilters();
+    }
     buildTabs();
     buildPanels();
     updateTotals();
@@ -986,6 +1048,7 @@ function decodeQty(q){
 async function cloudPushAll(){
   await Promise.all([
     httpJson("PUT","products",DATA),
+    httpJson("PUT","filters",FILTERS),
     httpJson("PUT","customer",null),
     httpJson("PUT","updatedAt",Date.now())
   ]);
@@ -1161,8 +1224,24 @@ function buildPanels(){
     if(editMode){
       buildEditTable(panel, brand);
     } else {
-      panel.innerHTML = `<div class="brand-title">${brand}</div><div class="grid" id="grid-${brand}"></div>`;
+      const brandFilters = ensureFilters(brand);
+      const filterBarHtml = brandFilters.length ? `
+        <div class="filter-bar">
+          <select class="filter-select"><option value="">كل المنتجات</option>${brandFilters.map(f=>`<option value="${f.id}">${escHtml(f.name)} (${f.codes.length})</option>`).join("")}</select>
+        </div>` : "";
+      panel.innerHTML = `<div class="brand-title">${brand}</div>${filterBarHtml}<div class="grid" id="grid-${brand}"></div>`;
       buildGrid(panel.querySelector(".grid"), brand, blocks);
+      const filterSelect = panel.querySelector(".filter-select");
+      if(filterSelect){
+        const current = ACTIVE_FILTER[brand] || "";
+        if(brandFilters.some(f=>f.id===current)) filterSelect.value = current;
+        else ACTIVE_FILTER[brand] = "";
+        applyFilterToGrid(panel, brand, filterSelect.value);
+        filterSelect.addEventListener("change", ()=>{
+          ACTIVE_FILTER[brand] = filterSelect.value;
+          applyFilterToGrid(panel, brand, filterSelect.value);
+        });
+      }
     }
   });
   updateTotals();
@@ -1200,6 +1279,123 @@ function swapBlocks(brand, idxA, idxB){
   [arr[idxA], arr[idxB]] = [arr[idxB], arr[idxA]];
   saveData();
   buildPanels();
+}
+
+// ===== PRODUCT FILTERS (custom named groups, e.g. "عارضه 50") =====
+function applyFilterToGrid(panel, brand, filterId){
+  const grid = panel.querySelector(".grid");
+  if(!grid) return;
+  if(!filterId){
+    grid.querySelectorAll(".block").forEach(b=>{ b.style.display = ""; });
+    return;
+  }
+  const f = ensureFilters(brand).find(x=>x.id===filterId);
+  const codeSet = new Set((f ? f.codes : []).map(c=>String(c).toLowerCase()));
+  grid.querySelectorAll(".block").forEach(b=>{
+    b.style.display = codeSet.has(b.dataset.code) ? "" : "none";
+  });
+}
+
+function openFilterManager(brand){
+  const overlay = document.createElement("div");
+  overlay.className = "variants-modal";
+  overlay.innerHTML = `
+    <div class="variants-panel">
+      <div class="variants-panel-head">
+        <div class="variants-panel-title">🗂 فلاتر ${escHtml(brand)}</div>
+        <button type="button" class="close-variants" aria-label="إغلاق">×</button>
+      </div>
+      <div class="variants-list" id="fmBody"></div>
+      <div class="add-item-bar" id="fmFooter"></div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const close = ()=>{
+    overlay.remove();
+    document.removeEventListener("keydown", onKey);
+    buildPanels();
+  };
+  const onKey = (e)=>{ if(e.key === "Escape") close(); };
+  overlay.addEventListener("click", (e)=>{ if(e.target === overlay) close(); });
+  overlay.querySelector(".close-variants").addEventListener("click", close);
+  document.addEventListener("keydown", onKey);
+
+  renderFilterListView();
+
+  function renderFilterListView(){
+    const body = overlay.querySelector("#fmBody");
+    const footer = overlay.querySelector("#fmFooter");
+    const list = ensureFilters(brand);
+    body.innerHTML = "";
+    if(!list.length){
+      body.innerHTML = `<div class="history-empty">ماكو فلاتر بعد.<br>سوي فلتر جديد وضيفله المنتجات اللي تريدها 🗂</div>`;
+    }
+    list.forEach(f=>{
+      const row = document.createElement("div");
+      row.className = "fm-row";
+      row.innerHTML = `
+        <span class="fm-name">${escHtml(f.name)}</span>
+        <span class="fm-count">${f.codes.length} منتج</span>
+        <button type="button" class="fm-open">✏ المنتجات</button>
+        <button type="button" class="fm-del">🗑</button>
+      `;
+      row.querySelector(".fm-open").addEventListener("click", ()=>renderFilterProductsView(f.id));
+      row.querySelector(".fm-del").addEventListener("click", ()=>{
+        if(!confirm(`حذف فلتر "${f.name}"؟`)) return;
+        FILTERS[brand] = list.filter(x=>x.id!==f.id);
+        saveFilters();
+        renderFilterListView();
+      });
+      body.appendChild(row);
+    });
+    footer.innerHTML = `<input type="text" class="new-filter-input" placeholder="اسم الفلتر الجديد… مثلاً عارضه 50"><button type="button" class="new-filter-btn">+ إضافة</button>`;
+    const input = footer.querySelector(".new-filter-input");
+    const addBtn = footer.querySelector(".new-filter-btn");
+    const doAdd = ()=>{
+      const name = input.value.trim();
+      if(!name) return;
+      list.push({id: "f" + Date.now(), name, codes: []});
+      FILTERS[brand] = list;
+      saveFilters();
+      input.value = "";
+      renderFilterListView();
+    };
+    addBtn.addEventListener("click", doAdd);
+    input.addEventListener("keydown", (e)=>{ if(e.key === "Enter") doAdd(); });
+  }
+
+  function renderFilterProductsView(filterId){
+    const body = overlay.querySelector("#fmBody");
+    const footer = overlay.querySelector("#fmFooter");
+    const list = ensureFilters(brand);
+    const f = list.find(x=>x.id===filterId);
+    if(!f){ renderFilterListView(); return; }
+    const codeSet = new Set(f.codes.map(c=>String(c).toLowerCase()));
+    const products = Array.isArray(DATA[brand]) ? DATA[brand] : [];
+    body.innerHTML = "";
+    const backRow = document.createElement("div");
+    backRow.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:4px 2px 10px;";
+    backRow.innerHTML = `<button type="button" class="fm-back">→ رجوع للفلاتر</button><span class="fm-count">${escHtml(f.name)}</span>`;
+    backRow.querySelector(".fm-back").addEventListener("click", ()=>renderFilterListView());
+    body.appendChild(backRow);
+    products.forEach(block=>{
+      const row = document.createElement("div");
+      row.className = "fm-check-row";
+      const cid = "fmchk_" + Math.random().toString(36).slice(2);
+      row.innerHTML = `<input type="checkbox" id="${cid}" ${codeSet.has(block.code.toLowerCase())?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>`;
+      row.querySelector("input").addEventListener("change", (e)=>{
+        if(e.target.checked){
+          if(!f.codes.some(c=>c.toLowerCase()===block.code.toLowerCase())) f.codes.push(block.code);
+        }else{
+          f.codes = f.codes.filter(c=>c.toLowerCase()!==block.code.toLowerCase());
+        }
+        saveFilters();
+      });
+      body.appendChild(row);
+    });
+    footer.innerHTML = `<button type="button" class="new-filter-btn" style="flex:1;">✅ تم</button>`;
+    footer.querySelector("button").addEventListener("click", ()=>renderFilterListView());
+  }
 }
 
 const EAN_L = ["0001101","0011001","0010011","0111101","0100011","0110001","0101111","0111011","0110111","0001011"];
@@ -1650,6 +1846,7 @@ function buildEditTable(panel, brand){
   const blocks = Array.isArray(DATA[brand]) ? DATA[brand] : [];
   panel.innerHTML = `
     <div class="brand-title">${brand} — جدول الأسعار</div>
+    <div class="filter-bar"><button type="button" class="filter-manage-btn" id="fmOpenBtn">🗂 إدارة الفلاتر</button></div>
     <div class="table-scroll">
     <table class="price-table">
       <thead>
@@ -1661,6 +1858,7 @@ function buildEditTable(panel, brand){
     <button type="button" class="add-row-btn">+ إضافة منتج</button>
   `;
   const tbody = panel.querySelector(`#tbody-${brand}`);
+  panel.querySelector("#fmOpenBtn").addEventListener("click", ()=>openFilterManager(brand));
 
   blocks.forEach((block, idx)=>{
     normalizeProductBlock(block);
@@ -1914,8 +2112,19 @@ function clearAll(){
 // SEARCH
 document.getElementById("searchBox").addEventListener("input", (e)=>{
   const q = e.target.value.trim().toLowerCase();
-  document.querySelectorAll(".block").forEach(b=>{
-    b.style.display = (!q || b.dataset.code.includes(q)) ? "" : "none";
+  document.querySelectorAll(".brand-panel").forEach(panelEl=>{
+    const brand = panelEl.dataset.brand;
+    const activeId = ACTIVE_FILTER[brand] || "";
+    let allowedCodes = null;
+    if(activeId){
+      const f = ensureFilters(brand).find(x=>x.id===activeId);
+      allowedCodes = new Set((f?f.codes:[]).map(c=>String(c).toLowerCase()));
+    }
+    panelEl.querySelectorAll(".block").forEach(b=>{
+      const matchesSearch = !q || b.dataset.code.includes(q);
+      const matchesFilter = !allowedCodes || allowedCodes.has(b.dataset.code);
+      b.style.display = (matchesSearch && matchesFilter) ? "" : "none";
+    });
   });
   document.querySelectorAll("table.price-table tbody tr").forEach(tr=>{
     const codeInput = tr.querySelector(".code-input");
@@ -1969,7 +2178,7 @@ async function renderOrderCanvas(qtySource, customerName){
     if(!entries.length) return;
     html += `<div class="exp-header" style="margin-top:14px;">${brand}</div>`;
     html += `<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:10px;">
-      <tr style="background:#f1ede3;"><th style="border:1px solid #ccc;padding:4px;">BARCODE/PIC</th><th style="border:1px solid #ccc;padding:4px;">CODE</th><th style="border:1px solid #ccc;padding:4px;">NUM</th><th style="border:1px solid #ccc;padding:4px;">QTY</th><th style="border:1px solid #ccc;padding:4px;">PRICE</th><th style="border:1px solid #ccc;padding:4px;">TOTAL</th></tr>`;
+      <tr style="background:#f1ede3;"><th style="border:1px solid #ccc;padding:4px;">الصورة / الباركود</th><th style="border:1px solid #ccc;padding:4px;">الكود</th><th style="border:1px solid #ccc;padding:4px;">الدرجة</th><th style="border:1px solid #ccc;padding:4px;">الكمية</th><th style="border:1px solid #ccc;padding:4px;">السعر</th><th style="border:1px solid #ccc;padding:4px;">المجموع</th></tr>`;
     entries.forEach(([code, items])=>{
       const block = (DATA[brand]||[]).find(b=>b.code===code);
       const basePrice = block ? parsePrices(block.price).small : 0;
