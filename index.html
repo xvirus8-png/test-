@@ -1,4 +1,4 @@
-<!-- index v2.10 -->
+<!-- index v2.11 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -452,6 +452,12 @@
     background:rgba(255,193,7,.12);color:#d97706;border:none;border-radius:8px;
     width:38px;height:38px;font-size:14px;cursor:pointer;flex:none;
   }
+  .fm-order-btns{display:flex;flex-direction:column;gap:2px;margin-inline-start:4px;}
+  .fm-order-btns button{
+    background:var(--soft);border:1px solid var(--border);color:var(--text);border-radius:6px;
+    width:28px;height:22px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;
+  }
+  .fm-order-btns button:active{transform:scale(.9);}
   .fm-check-row{
     display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--soft);
   }
@@ -604,7 +610,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.10</span>
+  <span class="version">v2.11</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -645,7 +651,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.10";
+const APP_VERSION = "2.11";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -902,7 +908,8 @@ function ensureFilters(brand){
   if(!Array.isArray(FILTERS[brand])) FILTERS[brand] = [];
   FILTERS[brand].forEach(f=>{
     if(!Array.isArray(f.sub)) f.sub = [];
-    f.sub.forEach(s=>{ if(!Array.isArray(s.codes)) s.codes = []; });
+    if(!Array.isArray(f.order)) f.order = [];
+    f.sub.forEach(s=>{ if(!Array.isArray(s.codes)) s.codes = []; if(!Array.isArray(s.order)) s.order = []; });
   });
   return FILTERS[brand];
 }
@@ -1340,11 +1347,26 @@ function applyFilterToGrid(panel, brand, filterId){
     return;
   }
   const found = findFilterById(brand, filterId);
-  const codes = found ? found.filter.codes : [];
+  if(!found){ grid.querySelectorAll(".block").forEach(b=>{ b.style.display = ""; }); return; }
+  const codes = found.filter.codes || [];
   const codeSet = new Set(codes.map(c=>String(c).toLowerCase()));
   grid.querySelectorAll(".block").forEach(b=>{
     b.style.display = codeSet.has(b.dataset.code) ? "" : "none";
   });
+  const order = found.filter.order || [];
+  if(order.length){
+    const blockMap = {};
+    grid.querySelectorAll(".block").forEach(b=>{ blockMap[b.dataset.code] = b; });
+    const ordered = new Set();
+    order.forEach(code=>{
+      const key = String(code).toLowerCase();
+      const el = blockMap[key];
+      if(el && codeSet.has(key)){ grid.appendChild(el); ordered.add(key); }
+    });
+    grid.querySelectorAll(".block").forEach(b=>{
+      if(!ordered.has(b.dataset.code) && codeSet.has(b.dataset.code)) grid.appendChild(b);
+    });
+  }
 }
 
 function openTabFilterDropdown(brand, tabBtn){
@@ -1599,29 +1621,78 @@ function openFilterManager(brand){
     if(!parent){ renderFilterListView(); return; }
     const sub = parent.sub.find(x=>x.id===subId);
     if(!sub){ renderSubFilterView(filterId); return; }
+    if(!Array.isArray(sub.codes)) sub.codes = [];
+    if(!Array.isArray(sub.order)) sub.order = [];
     const codeSet = new Set(sub.codes.map(c=>String(c).toLowerCase()));
     const products = Array.isArray(DATA[brand]) ? DATA[brand] : [];
-    body.innerHTML = "";
-    const backRow = document.createElement("div");
-    backRow.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:4px 2px 10px;";
-    backRow.innerHTML = `<button type="button" class="fm-back">→ رجوع للفرعيات</button><span class="fm-count">${escHtml(sub.name)}</span>`;
-    backRow.querySelector(".fm-back").addEventListener("click", ()=>renderSubFilterView(filterId));
-    body.appendChild(backRow);
-    products.forEach(block=>{
-      const row = document.createElement("div");
-      row.className = "fm-check-row";
-      const cid = "fmschk_" + Math.random().toString(36).slice(2);
-      row.innerHTML = `<input type="checkbox" id="${cid}" ${codeSet.has(block.code.toLowerCase())?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>`;
-      row.querySelector("input").addEventListener("change", (e)=>{
-        if(e.target.checked){
-          if(!sub.codes.some(c=>c.toLowerCase()===block.code.toLowerCase())) sub.codes.push(block.code);
-        }else{
-          sub.codes = sub.codes.filter(c=>c.toLowerCase()!==block.code.toLowerCase());
-        }
-        saveFilters();
+    function rebuildSubCheckList(){
+      body.innerHTML = "";
+      const backRow = document.createElement("div");
+      backRow.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:4px 2px 10px;";
+      backRow.innerHTML = `<button type="button" class="fm-back">→ رجوع للفرعيات</button><span class="fm-count">${escHtml(sub.name)}</span>`;
+      backRow.querySelector(".fm-back").addEventListener("click", ()=>renderSubFilterView(filterId));
+      body.appendChild(backRow);
+      const included = products.filter(bl=>codeSet.has(bl.code.toLowerCase()));
+      const excluded = products.filter(bl=>!codeSet.has(bl.code.toLowerCase()));
+      const ordered = included.sort((a,b)=>{
+        const ai = sub.order.findIndex(c=>c.toLowerCase()===a.code.toLowerCase());
+        const bi = sub.order.findIndex(c=>c.toLowerCase()===b.code.toLowerCase());
+        const aOrd = ai >= 0 ? ai : 99999;
+        const bOrd = bi >= 0 ? bi : 99999;
+        return aOrd - bOrd;
       });
-      body.appendChild(row);
-    });
+      const orderedPlusExcluded = [...ordered, ...excluded];
+      orderedPlusExcluded.forEach((block)=>{
+        const isIn = codeSet.has(block.code.toLowerCase());
+        const row = document.createElement("div");
+        row.className = "fm-check-row";
+        const cid = "fmschk_" + Math.random().toString(36).slice(2);
+        const orderBtns = isIn ? `<span class="fm-order-btns"><button type="button" class="fm-ou" data-code="${block.code}" title="أعلى">▲</button><button type="button" class="fm-od" data-code="${block.code}" title="أسفل">▼</button></span>` : "";
+        row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderBtns}`;
+        row.querySelector("input").addEventListener("change", (e)=>{
+          if(e.target.checked){
+            if(!sub.codes.some(c=>c.toLowerCase()===block.code.toLowerCase())) sub.codes.push(block.code);
+            codeSet.add(block.code.toLowerCase());
+          }else{
+            sub.codes = sub.codes.filter(c=>c.toLowerCase()!==block.code.toLowerCase());
+            sub.order = sub.order.filter(c=>c.toLowerCase()!==block.code.toLowerCase());
+            codeSet.delete(block.code.toLowerCase());
+          }
+          saveFilters();
+          rebuildSubCheckList();
+        });
+        body.appendChild(row);
+      });
+      body.querySelectorAll(".fm-ou").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const code = btn.dataset.code;
+          const idx = sub.order.findIndex(c=>c.toLowerCase()===code.toLowerCase());
+          if(idx > 0){
+            [sub.order[idx-1], sub.order[idx]] = [sub.order[idx], sub.order[idx-1]];
+            saveFilters();
+            rebuildSubCheckList();
+          }
+        });
+      });
+      body.querySelectorAll(".fm-od").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const code = btn.dataset.code;
+          let idx = sub.order.findIndex(c=>c.toLowerCase()===code.toLowerCase());
+          if(idx < 0){
+            sub.codes.forEach(c=>{
+              if(!sub.order.some(o=>o.toLowerCase()===c.toLowerCase())) sub.order.push(c);
+            });
+            idx = sub.order.findIndex(c=>c.toLowerCase()===code.toLowerCase());
+          }
+          if(idx >= 0 && idx < sub.order.length - 1){
+            [sub.order[idx], sub.order[idx+1]] = [sub.order[idx+1], sub.order[idx]];
+            saveFilters();
+            rebuildSubCheckList();
+          }
+        });
+      });
+    }
+    rebuildSubCheckList();
     footer.innerHTML = `<button type="button" class="new-filter-btn" style="flex:1;">✅ تم</button>`;
     footer.querySelector("button").addEventListener("click", ()=>renderSubFilterView(filterId));
   }
@@ -1632,29 +1703,78 @@ function openFilterManager(brand){
     const list = ensureFilters(brand);
     const f = list.find(x=>x.id===filterId);
     if(!f){ renderFilterListView(); return; }
+    if(!Array.isArray(f.codes)) f.codes = [];
+    if(!Array.isArray(f.order)) f.order = [];
     const codeSet = new Set(f.codes.map(c=>String(c).toLowerCase()));
     const products = Array.isArray(DATA[brand]) ? DATA[brand] : [];
-    body.innerHTML = "";
-    const backRow = document.createElement("div");
-    backRow.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:4px 2px 10px;";
-    backRow.innerHTML = `<button type="button" class="fm-back">→ رجوع للفلاتر</button><span class="fm-count">${escHtml(f.name)}</span>`;
-    backRow.querySelector(".fm-back").addEventListener("click", ()=>renderFilterListView());
-    body.appendChild(backRow);
-    products.forEach(block=>{
-      const row = document.createElement("div");
-      row.className = "fm-check-row";
-      const cid = "fmchk_" + Math.random().toString(36).slice(2);
-      row.innerHTML = `<input type="checkbox" id="${cid}" ${codeSet.has(block.code.toLowerCase())?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>`;
-      row.querySelector("input").addEventListener("change", (e)=>{
-        if(e.target.checked){
-          if(!f.codes.some(c=>c.toLowerCase()===block.code.toLowerCase())) f.codes.push(block.code);
-        }else{
-          f.codes = f.codes.filter(c=>c.toLowerCase()!==block.code.toLowerCase());
-        }
-        saveFilters();
+    function rebuildCheckList(){
+      body.innerHTML = "";
+      const backRow = document.createElement("div");
+      backRow.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:4px 2px 10px;";
+      backRow.innerHTML = `<button type="button" class="fm-back">→ رجوع للفلاتر</button><span class="fm-count">${escHtml(f.name)}</span>`;
+      backRow.querySelector(".fm-back").addEventListener("click", ()=>renderFilterListView());
+      body.appendChild(backRow);
+      const included = products.filter(bl=>codeSet.has(bl.code.toLowerCase()));
+      const excluded = products.filter(bl=>!codeSet.has(bl.code.toLowerCase()));
+      const ordered = included.sort((a,b)=>{
+        const ai = f.order.findIndex(c=>c.toLowerCase()===a.code.toLowerCase());
+        const bi = f.order.findIndex(c=>c.toLowerCase()===b.code.toLowerCase());
+        const aOrd = ai >= 0 ? ai : 99999;
+        const bOrd = bi >= 0 ? bi : 99999;
+        return aOrd - bOrd;
       });
-      body.appendChild(row);
-    });
+      const orderedPlusExcluded = [...ordered, ...excluded];
+      orderedPlusExcluded.forEach((block, displayIdx)=>{
+        const isIn = codeSet.has(block.code.toLowerCase());
+        const row = document.createElement("div");
+        row.className = "fm-check-row";
+        const cid = "fmchk_" + Math.random().toString(36).slice(2);
+        const orderBtns = isIn ? `<span class="fm-order-btns"><button type="button" class="fm-ou" data-code="${block.code}" title="أعلى">▲</button><button type="button" class="fm-od" data-code="${block.code}" title="أسفل">▼</button></span>` : "";
+        row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderBtns}`;
+        row.querySelector("input").addEventListener("change", (e)=>{
+          if(e.target.checked){
+            if(!f.codes.some(c=>c.toLowerCase()===block.code.toLowerCase())) f.codes.push(block.code);
+            codeSet.add(block.code.toLowerCase());
+          }else{
+            f.codes = f.codes.filter(c=>c.toLowerCase()!==block.code.toLowerCase());
+            f.order = f.order.filter(c=>c.toLowerCase()!==block.code.toLowerCase());
+            codeSet.delete(block.code.toLowerCase());
+          }
+          saveFilters();
+          rebuildCheckList();
+        });
+        body.appendChild(row);
+      });
+      body.querySelectorAll(".fm-ou").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const code = btn.dataset.code;
+          const idx = f.order.findIndex(c=>c.toLowerCase()===code.toLowerCase());
+          if(idx > 0){
+            [f.order[idx-1], f.order[idx]] = [f.order[idx], f.order[idx-1]];
+            saveFilters();
+            rebuildCheckList();
+          }
+        });
+      });
+      body.querySelectorAll(".fm-od").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const code = btn.dataset.code;
+          let idx = f.order.findIndex(c=>c.toLowerCase()===code.toLowerCase());
+          if(idx < 0){
+            f.codes.forEach(c=>{
+              if(!f.order.some(o=>o.toLowerCase()===c.toLowerCase())) f.order.push(c);
+            });
+            idx = f.order.findIndex(c=>c.toLowerCase()===code.toLowerCase());
+          }
+          if(idx >= 0 && idx < f.order.length - 1){
+            [f.order[idx], f.order[idx+1]] = [f.order[idx+1], f.order[idx]];
+            saveFilters();
+            rebuildCheckList();
+          }
+        });
+      });
+    }
+    rebuildCheckList();
     footer.innerHTML = `<button type="button" class="new-filter-btn" style="flex:1;">✅ تم</button>`;
     footer.querySelector("button").addEventListener("click", ()=>renderFilterListView());
   }
