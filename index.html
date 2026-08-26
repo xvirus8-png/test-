@@ -2942,6 +2942,18 @@ function saveBackups(){
 function pruneLocalBackups(){
   while(backups.length > MAX_LOCAL_BACKUPS) backups.pop();
 }
+async function pullCloudBackups(){
+  if(!cloudCfg) return [];
+  try{
+    cloudSupress = true;
+    var cb = await httpJson("GET","backups");
+    cloudSupress = false;
+    return Array.isArray(cb) ? cb : [];
+  }catch(e){
+    cloudSupress = false;
+    return [];
+  }
+}
 async function syncCloudBackups(){
   if(!cloudCfg || cloudSupress) return;
   try{
