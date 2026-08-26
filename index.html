@@ -1,4 +1,4 @@
-<!-- index v2.12 -->
+<!-- index v2.13 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -103,10 +103,15 @@
     display:none;align-items:center;justify-content:center;gap:5px;flex:0 0 auto;
     padding:4px 12px;background:var(--pl);color:var(--primary);font-size:12px;font-weight:700;
     border-radius:20px;height:42px;white-space:nowrap;cursor:pointer;position:relative;
+    user-select:none;-webkit-user-select:none;
   }
   .search-row .filter-badge:active{transform:scale(.96);}
   .search-row .filter-badge.visible{display:flex;}
   .search-row .filter-badge span{flex:0 0 auto;}
+  .search-row .filter-badge .fb-clear{
+    background:none;border:none;color:var(--danger);font-size:13px;cursor:pointer;
+    padding:0 2px;border-radius:50%;font-weight:800;line-height:1;
+  }
   .search-bar{flex:1;}
   .search-bar input{
     width:100%;padding:11px 12px;border-radius:10px;border:1.5px solid var(--border);
@@ -607,7 +612,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.12</span>
+  <span class="version">v2.13</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -617,7 +622,7 @@
 <div class="tabs" id="tabs"></div>
 <div class="search-row">
   <div class="search-bar"><input id="searchBox" placeholder="ابحث بالكود... مثال: LMM, GT, NG"></div>
-  <div class="filter-badge" id="filterBadge"><i class="bi bi-funnel"></i> <span id="filterBadgeText"></span></div>
+  <div class="filter-badge" id="filterBadge"><i class="bi bi-funnel"></i> <span id="filterBadgeText"></span><button class="fb-clear" id="filterBadgeClear" title="إلغاء الفلتر">✕</button></div>
 </div>
 
 <main id="main"></main>
@@ -648,7 +653,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.12";
+const APP_VERSION = "2.13";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1462,61 +1467,105 @@ function updateFilterBadge(){
   const text = document.getElementById("filterBadgeText");
   if(!badge || !text) return;
   const activePanel = document.querySelector(".brand-panel.active");
-  if(!activePanel){ badge.classList.remove("visible"); badge.onclick = null; return; }
+  if(!activePanel){ badge.classList.remove("visible"); return; }
   const brand = activePanel.dataset.brand;
   const filterId = ACTIVE_FILTER[brand] || "";
   const subId = ACTIVE_SUB[brand] || "";
-  if(!filterId){ badge.classList.remove("visible"); badge.onclick = null; return; }
+  if(!filterId){ badge.classList.remove("visible"); return; }
   const found = findFilterById(brand, subId || filterId);
-  if(!found){ badge.classList.remove("visible"); badge.onclick = null; return; }
+  if(!found){ badge.classList.remove("visible"); return; }
   if(subId && found.parent){
-    text.textContent = found.parent.name + " > " + found.filter.name;
+    text.textContent = found.filter.name;
   } else {
     text.textContent = found.filter.name;
   }
   badge.classList.add("visible");
-  const filterObj = found.filter;
-  badge.onclick = ()=>{
-    document.querySelectorAll(".filter-dropdown").forEach(d=>d.remove());
-    const dd = document.createElement("div");
-    dd.className = "filter-dropdown";
-    dd.style.position = "fixed";
-    const allItem = document.createElement("div");
-    allItem.className = "filter-dropdown-item";
-    allItem.innerHTML = `<span>كل المنتجات</span>`;
-    allItem.addEventListener("click", ()=>{
-      ACTIVE_FILTER[brand] = "";
-      ACTIVE_SUB[brand] = "";
-      applyFilterToGrid(activePanel, brand, "");
+}
+
+document.getElementById("filterBadgeClear").addEventListener("click", ()=>{
+  const activePanel = document.querySelector(".brand-panel.active");
+  if(!activePanel) return;
+  const brand = activePanel.dataset.brand;
+  if(ACTIVE_SUB[brand]){
+    ACTIVE_SUB[brand] = "";
+    const filterId = ACTIVE_FILTER[brand] || "";
+    applyFilterToGrid(activePanel, brand, filterId);
+  } else {
+    ACTIVE_FILTER[brand] = "";
+    ACTIVE_SUB[brand] = "";
+    applyFilterToGrid(activePanel, brand, "");
+  }
+  updateFilterBadge();
+});
+
+(function(){
+  const badge = document.getElementById("filterBadge");
+  if(!badge) return;
+  let longPressTimer = null;
+  let didLongPress = false;
+  badge.addEventListener("pointerdown", ()=>{
+    didLongPress = false;
+    longPressTimer = setTimeout(()=>{ didLongPress = true; openBadgeSubDropdown(); }, 450);
+  });
+  badge.addEventListener("pointerup", ()=>clearTimeout(longPressTimer));
+  badge.addEventListener("pointercancel", ()=>clearTimeout(longPressTimer));
+  badge.addEventListener("pointerleave", ()=>clearTimeout(longPressTimer));
+  badge.addEventListener("click", (e)=>{
+    if(didLongPress){ e.preventDefault(); e.stopPropagation(); }
+  });
+})();
+
+function openBadgeSubDropdown(){
+  const activePanel = document.querySelector(".brand-panel.active");
+  if(!activePanel) return;
+  const brand = activePanel.dataset.brand;
+  const filterId = ACTIVE_FILTER[brand] || "";
+  if(!filterId) return;
+  const found = findFilterById(brand, filterId);
+  if(!found || !found.filter) return;
+  const parentFilter = found.parent || found.filter;
+  const subs = Array.isArray(parentFilter.sub) ? parentFilter.sub : [];
+  if(!subs.length) return;
+  document.querySelectorAll(".filter-dropdown").forEach(d=>d.remove());
+  const dd = document.createElement("div");
+  dd.className = "filter-dropdown";
+  dd.style.position = "fixed";
+  const badge = document.getElementById("filterBadge");
+  const subId = ACTIVE_SUB[brand] || "";
+  const allItem = document.createElement("div");
+  allItem.className = "filter-dropdown-item" + (!subId ? " active" : "");
+  allItem.innerHTML = `<span>كل ${escHtml(parentFilter.name)}</span>`;
+  allItem.addEventListener("click", ()=>{
+    ACTIVE_FILTER[brand] = parentFilter.id;
+    ACTIVE_SUB[brand] = "";
+    applyFilterToGrid(activePanel, brand, parentFilter.id);
+    updateFilterBadge();
+    dd.remove();
+  });
+  dd.appendChild(allItem);
+  subs.forEach(s=>{
+    const item = document.createElement("div");
+    item.className = "filter-dropdown-item" + (s.id === subId ? " active" : "");
+    item.innerHTML = `<span>${escHtml(s.name)}</span><span class="fd-count">${s.codes.length} منتج</span>`;
+    item.addEventListener("click", ()=>{
+      ACTIVE_FILTER[brand] = parentFilter.id;
+      ACTIVE_SUB[brand] = s.id;
+      applyFilterToGrid(activePanel, brand, s.id);
       updateFilterBadge();
       dd.remove();
     });
-    dd.appendChild(allItem);
-    const subs = Array.isArray(filterObj.sub) ? filterObj.sub : [];
-    subs.forEach(s=>{
-      const item = document.createElement("div");
-      item.className = "filter-dropdown-item" + (s.id === subId ? " active" : "");
-      item.innerHTML = `<span>${escHtml(s.name)}</span><span class="fd-count">${s.codes.length} منتج</span>`;
-      item.addEventListener("click", ()=>{
-        ACTIVE_FILTER[brand] = filterObj.id;
-        ACTIVE_SUB[brand] = s.id;
-        applyFilterToGrid(activePanel, brand, s.id);
-        updateFilterBadge();
-        dd.remove();
-      });
-      dd.appendChild(item);
-    });
-    document.body.appendChild(dd);
-    const rect = badge.getBoundingClientRect();
-    dd.style.top = (rect.bottom + 4) + "px";
-    dd.style.right = Math.max(8, window.innerWidth - rect.right) + "px";
-    const closeDD = (e)=>{
-      if(!dd.contains(e.target) && e.target !== badge && !badge.contains(e.target)){
-        dd.remove(); document.removeEventListener("pointerdown", closeDD);
-      }
-    };
-    setTimeout(()=>document.addEventListener("pointerdown", closeDD), 0);
+    dd.appendChild(item);
+  });
+  document.body.appendChild(dd);
+  const rect = badge.getBoundingClientRect();
+  dd.style.top = (rect.bottom + 4) + "px";
+  dd.style.right = Math.max(8, window.innerWidth - rect.right) + "px";
+  const closeDD = (e)=>{
+    if(!dd.contains(e.target) && e.target !== badge && !badge.contains(e.target)){
+      dd.remove(); document.removeEventListener("pointerdown", closeDD);
+    }
   };
+  setTimeout(()=>document.addEventListener("pointerdown", closeDD), 0);
 }
 
 function openFilterManager(brand){
