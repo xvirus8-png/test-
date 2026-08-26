@@ -2966,21 +2966,28 @@ async function syncCloudBackups(){
   }
 }
 async function createBackup(){
-  const payload = {
-    data: JSON.parse(JSON.stringify(DATA)),
+  var cleanData = JSON.parse(JSON.stringify(DATA));
+  Object.keys(cleanData).forEach(function(brand){
+    cleanData[brand].forEach(function(block){
+      delete block.image;
+      delete block.itemImages;
+    });
+  });
+  var payload = {
+    data: cleanData,
     qty: JSON.parse(JSON.stringify(QTY)),
     filters: JSON.parse(JSON.stringify(FILTERS)),
     theme: localStorage.getItem(LS_THEME_KEY)||""
   };
-  const size = JSON.stringify(payload).length;
-  const b = { id: "bk_"+Date.now(), ts: Date.now(), data: payload, size };
+  var size = JSON.stringify(payload).length;
+  var b = { id: "bk_"+Date.now(), ts: Date.now(), data: payload, size: size };
   backups.unshift(b);
   pruneLocalBackups();
   saveBackups();
   if(cloudCfg){
     try{ await syncCloudBackups(); }catch(e){}
   }
-  alert("✅ تم إنشاء النسخة الاحتياطية!\nالحجم: ~" + (size/1024).toFixed(1) + " KB");
+  alert("✅ تم إنشاء النسخة الاحتياطية!\nالحجم: ~" + (size/1024).toFixed(1) + " KB\n(الصور بالسحابة فقط)");
   location.reload();
 }
 function restoreBackup(id){
