@@ -1107,6 +1107,7 @@ async function cloudPull(){
   }catch(e){
     cloudSupress = false;
     cloudStatus = "error"; cloudUi();
+    hideSplash();
     console.warn("سحب من السحابة فشل:", e);
   }
 }
@@ -1226,16 +1227,29 @@ function openCloudSettings(){
   document.addEventListener("keydown", onKey);
 }
 
+var _splashHidden=false;
 function hideSplash(){
+  if(_splashHidden) return;
+  _splashHidden=true;
   var s=document.getElementById("splash");
   if(!s) return;
   s.classList.add("hide");
-  setTimeout(function(){var el=document.getElementById("splash");if(el)el.remove();},500);
+  setTimeout(function(){var el=document.getElementById("splash");if(el)el.remove();},550);
+}
+function hideSplashGuard(){
+  if(_splashHidden) return;
+  var s=document.getElementById("splash");
+  if(s) s.classList.add("hide");
+  setTimeout(function(){var el=document.getElementById("splash");if(el)el.remove();},550);
 }
 function initCloud(){
   cloudUi();
-  if(cloudCfg) cloudPull();
-  else hideSplash();
+  if(cloudCfg){
+    cloudPull();
+    setTimeout(hideSplashGuard,8000);
+  }else{
+    hideSplash();
+  }
 }
 
 function parsePrices(priceStr){
