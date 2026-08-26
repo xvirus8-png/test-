@@ -1,5 +1,7 @@
 آخر جلسة: 2026-08-26
-الحالة: index.html v2.15 - إصلاح cache + النسخ الاحتياطي:
+الحالة: index.html v2.16 - شاشة Splash:
+- v2.16: Splash screen — Aurora gradient + لوقو 160px pulse + Orbit dots + by:MAHMOOD TARQ
+  * تظهر عند تفعيل السحابة — fade out بعد نجاح cloudPull — لو فشل تدوم للأبد
 - v2.15: نقل let backups + const إلى السطور 909-913 (قبل أي استدعاء) — تأكيد عدم تأثير cache
 - v2.14: نظام النسخ الاحتياطي — زر "📥 نسخة احتياطية" بالدرج → نافذة إدارة
   * إنشاء نسخة: data + qty + filters + cloud + theme (بدون orders)

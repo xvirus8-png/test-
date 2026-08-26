@@ -1,4 +1,4 @@
-<!-- index v2.15 -->
+<!-- index v2.16 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -617,14 +617,34 @@
   .pv-btn:active{transform:scale(.97);}
   .pv-edit{background:var(--pl);color:var(--primary);}
   .pv-share{background:var(--warning);}
+
+  /* === SPLASH SCREEN v2.16 === */
+  .splash{position:fixed;inset:0;z-index:999;background:linear-gradient(135deg,#e0f7fa,#b2ebf2,#c8e6c9,#e0f7fa);background-size:400% 400%;animation:splashAurora 8s ease infinite;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .5s ease;}
+  .splash.hide{opacity:0;pointer-events:none;}
+  .splash-logo{width:160px;height:160px;border-radius:28px;animation:splashPulse 2s ease-in-out infinite;box-shadow:0 10px 40px rgba(0,0,0,.12);}
+  .splash-loader{display:flex;gap:10px;margin-top:8px;}
+  .splash-loader span{width:10px;height:10px;border-radius:50%;background:var(--primary);animation:splashOrbit 1.4s ease-in-out infinite;}
+  .splash-loader span:nth-child(2){animation-delay:.2s;}
+  .splash-loader span:nth-child(3){animation-delay:.4s;}
+  .splash-loader span:nth-child(4){animation-delay:.6s;}
+  .splash-sub{font-size:13px;color:#6e7b96;font-weight:600;margin-top:6px;}
+  @keyframes splashAurora{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+  @keyframes splashPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+  @keyframes splashOrbit{0%,100%{transform:translateY(0);opacity:.3}50%{transform:translateY(-14px);opacity:1}}
 </style>
 </head>
 <body>
 
+<div id="splash" class="splash">
+  <img src="icon.png" class="splash-logo">
+  <div class="splash-loader"><span></span><span></span><span></span><span></span></div>
+  <div class="splash-sub">by:MAHMOOD TARQ</div>
+</div>
+
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.15</span>
+  <span class="version">v2.16</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -666,7 +686,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.15";
+const APP_VERSION = "2.16";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1082,6 +1102,7 @@ async function cloudPull(){
     updateTotals();
     cloudSupress = false;
     cloudStatus = "on"; cloudUi();
+    hideSplash();
     scheduleCloudPush();
   }catch(e){
     cloudSupress = false;
@@ -1205,9 +1226,16 @@ function openCloudSettings(){
   document.addEventListener("keydown", onKey);
 }
 
+function hideSplash(){
+  var s=document.getElementById("splash");
+  if(!s) return;
+  s.classList.add("hide");
+  setTimeout(function(){var el=document.getElementById("splash");if(el)el.remove();},500);
+}
 function initCloud(){
   cloudUi();
   if(cloudCfg) cloudPull();
+  else hideSplash();
 }
 
 function parsePrices(priceStr){
