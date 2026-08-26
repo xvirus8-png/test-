@@ -635,6 +635,9 @@
   .nafed-row.nafed-item .nafed-check{background:var(--danger);border-color:var(--danger);color:#fff;}
   .nafed-badge{background:var(--danger);color:#fff;border-radius:8px;font-size:11px;font-weight:800;padding:3px 8px;line-height:1;flex:none;}
   .nafed-empty{text-align:center;color:var(--subtext);padding:30px 10px;font-size:13px;line-height:2;}
+  .nafed-tabs{border-bottom:1px solid var(--border);}
+  .nafed-tab{border:none;background:none;padding:8px 14px;font-size:13px;font-weight:700;color:var(--subtext);cursor:pointer;border-radius:10px;font-family:inherit;white-space:nowrap;}
+  .nafed-tab.active{background:var(--primary);color:#fff;}
   .row-item.nafed-row-item{opacity:.55;background:rgba(239,68,68,.08);border:1.5px solid rgba(239,68,68,.25);pointer-events:none;}
   /* === PIN MODAL === */
   .pin-modal{position:fixed;inset:0;background:rgba(15,17,23,.7);z-index:240;display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -1008,13 +1011,14 @@ function isNafed(brand,code,item){
   if(item){
     var c=b[code];
     if(c && typeof c==="object" && c[item]) return true;
+    if(item==="-" && c===true) return true;
     return false;
   }
   return b[code]===true;
 }
 function setNafed(brand,code,item,on){
   if(!NAFED[brand]) NAFED[brand]={};
-  if(item){
+  if(item && item!=="-"){
     if(!NAFED[brand][code]||typeof NAFED[brand][code]!=="object") NAFED[brand][code]={};
     if(on) NAFED[brand][code][item]=true; else delete NAFED[brand][code][item];
     if(Object.keys(NAFED[brand][code]).length===0) delete NAFED[brand][code];
@@ -1342,44 +1346,78 @@ function openNafedPin(){
 function openNafedManager(){
   var overlay=document.createElement("div");
   overlay.className="nafed-modal";
-  var html='<div class="nafed-panel"><div class="nafed-panel-head"><div class="nafed-panel-title">📦 المنتجات النافذة</div><button class="close-nafed" aria-label="إغلاق">×</button></div><div class="nafed-list">';
-  Object.keys(DATA).forEach(function(brand){
-    html+='<div class="nafed-brand-name">'+escHtml(brand)+'</div>';
-    DATA[brand].forEach(function(block){
-      normalizeProductBlock(block);
-      var singleItem=block.items.length===1&&block.items[0]==="-";
-      if(singleItem){
-        var on=isNafed(brand,block.code);
-        html+='<div class="nafed-row'+(on?' nafed-item':'')+'" data-brand="'+escHtml(brand)+'" data-code="'+escHtml(block.code)+'"><span class="nafed-check">'+(on?'✓':'')+'</span><span class="nafed-label">'+escHtml(block.code)+'</span>'+(on?'<span class="nafed-badge">نافذ</span>':'')+'</div>';
-      }else{
-        html+='<div class="nafed-brand-name" style="font-size:13px;padding:8px 0 4px;border:none;color:var(--subtext);">'+escHtml(block.code)+'</div>';
-        block.items.forEach(function(item){
-          var on=isNafed(brand,block.code,item);
-          html+='<div class="nafed-row'+(on?' nafed-item':'')+'" data-brand="'+escHtml(brand)+'" data-code="'+escHtml(block.code)+'" data-item="'+escHtml(item)+'"><span class="nafed-check">'+(on?'✓':'')+'</span><span class="nafed-label">'+escHtml(item)+'</span>'+(on?'<span class="nafed-badge">نافذ</span>':'')+'</div>';
-        });
-      }
-    });
-  });
-  html+='</div></div>';
+  var brands=Object.keys(DATA);
+  var html='<div class="nafed-panel"><div class="nafed-panel-head"><div class="nafed-panel-title">📦 المنتجات النافذة</div><button class="close-nafed" aria-label="إغلاق">×</button></div>';
+  html+='<div style="padding:10px 14px 0;"><input type="text" id="nafedSearch" placeholder="🔍 بحث عن منتج..." style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);font-size:15px;background:var(--card);box-sizing:border-box;"></div>';
+  html+='<div class="nafed-tabs" style="display:flex;gap:6px;padding:10px 14px;overflow-x:auto;flex-shrink:0;">';
+  html+='<button class="nafed-tab active" data-brand="__all__">الكل</button>';
+  brands.forEach(function(br){html+='<button class="nafed-tab" data-brand="'+escHtml(br)+'">'+escHtml(br)+'</button>';});
+  html+='</div><div class="nafed-list" id="nafedList"></div></div>';
   overlay.innerHTML=html;
   document.body.appendChild(overlay);
-  overlay.querySelector(".close-nafed").addEventListener("click",function(){overlay.remove();buildPanels();});
-  overlay.addEventListener("click",function(e){if(e.target===overlay){overlay.remove();buildPanels();}});
-  overlay.querySelectorAll(".nafed-row").forEach(function(row){
-    row.addEventListener("click",function(){
-      var brand=row.getAttribute("data-brand");
-      var code=row.getAttribute("data-code");
-      var item=row.getAttribute("data-item")||"";
-      var nowOn=!isNafed(brand,code,item||undefined);
-      setNafed(brand,code,item||undefined,nowOn);
-      row.classList.toggle("nafed-item",nowOn);
-      var chk=row.querySelector(".nafed-check");
-      chk.textContent=nowOn?"✓":"";
-      var old=row.querySelector(".nafed-badge");
-      if(nowOn&&!old){var b=document.createElement("span");b.className="nafed-badge";b.textContent="نافذ";row.appendChild(b);}
-      if(!nowOn&&old)old.remove();
+  var listEl=overlay.querySelector("#nafedList");
+  var searchEl=overlay.querySelector("#nafedSearch");
+  function renderList(filterBrand,query){
+    query=(query||"").toLowerCase();
+    var h="";
+    brands.forEach(function(brand){
+      if(filterBrand&&filterBrand!=="__all__"&&brand!==filterBrand) return;
+      var hasAny=false;
+      var brandH='<div class="nafed-brand-name" data-nafed-brand="'+escHtml(brand)+'">'+escHtml(brand)+'</div>';
+      var itemsH="";
+      DATA[brand].forEach(function(block){
+        normalizeProductBlock(block);
+        if(query&&block.code.toLowerCase().indexOf(query)===-1&&!block.items.some(function(it){return it.toLowerCase().indexOf(query)!==-1;})) return;
+        var singleItem=block.items.length===1&&block.items[0]==="-";
+        if(singleItem){
+          var on=isNafed(brand,block.code);
+          hasAny=true;
+          itemsH+='<div class="nafed-row'+(on?' nafed-item':'')+'" data-brand="'+escHtml(brand)+'" data-code="'+escHtml(block.code)+'"><span class="nafed-check">'+(on?'✓':'')+'</span><span class="nafed-label">'+escHtml(block.code)+'</span>'+(on?'<span class="nafed-badge">نافذ</span>':'')+'</div>';
+        }else{
+          var brandCodeH='<div class="nafed-brand-name" style="font-size:13px;padding:8px 0 4px;border:none;color:var(--subtext);">'+escHtml(block.code)+'</div>';
+          var codeRows="";
+          block.items.forEach(function(item){
+            if(query&&item.toLowerCase().indexOf(query)===-1&&block.code.toLowerCase().indexOf(query)===-1) return;
+            hasAny=true;
+            var on=isNafed(brand,block.code,item);
+            codeRows+='<div class="nafed-row'+(on?' nafed-item':'')+'" data-brand="'+escHtml(brand)+'" data-code="'+escHtml(block.code)+'" data-item="'+escHtml(item)+'"><span class="nafed-check">'+(on?'✓':'')+'</span><span class="nafed-label">'+escHtml(item)+'</span>'+(on?'<span class="nafed-badge">نافذ</span>':'')+'</div>';
+          });
+          if(codeRows) itemsH+=brandCodeH+codeRows;
+        }
+      });
+      if(hasAny) h+=brandH+itemsH;
+    });
+    if(!h) h='<div class="nafed-empty">لا توجد نتائج</div>';
+    listEl.innerHTML=h;
+    listEl.querySelectorAll(".nafed-row").forEach(function(row){
+      row.addEventListener("click",function(){
+        var br=row.getAttribute("data-brand");
+        var cd=row.getAttribute("data-code");
+        var it=row.getAttribute("data-item")||"";
+        var nowOn=!isNafed(br,cd,it||undefined);
+        setNafed(br,cd,it||undefined,nowOn);
+        row.classList.toggle("nafed-item",nowOn);
+        row.querySelector(".nafed-check").textContent=nowOn?"✓":"";
+        var old=row.querySelector(".nafed-badge");
+        if(nowOn&&!old){var b=document.createElement("span");b.className="nafed-badge";b.textContent="نافذ";row.appendChild(b);}
+        if(!nowOn&&old)old.remove();
+      });
+    });
+  }
+  renderList("__all__");
+  overlay.querySelectorAll(".nafed-tab").forEach(function(tab){
+    tab.addEventListener("click",function(){
+      overlay.querySelectorAll(".nafed-tab").forEach(function(t){t.classList.remove("active");});
+      tab.classList.add("active");
+      renderList(tab.getAttribute("data-brand"),searchEl.value);
     });
   });
+  searchEl.addEventListener("input",function(){
+    var activeTab=overlay.querySelector(".nafed-tab.active");
+    renderList(activeTab?activeTab.getAttribute("data-brand"):"__all__",searchEl.value);
+  });
+  overlay.querySelector(".close-nafed").addEventListener("click",function(){overlay.remove();buildPanels();});
+  overlay.addEventListener("click",function(e){if(e.target===overlay){overlay.remove();buildPanels();}});
 }
 // === END NAFED ===
 
@@ -2375,56 +2413,53 @@ function buildGrid(grid, brand, blocks){
       const itemNafed = isNafed(brand, block.code, item);
       if(itemNafed){
         row.classList.add("nafed-row-item");
-        row.innerHTML = `<label class="variant-label">${item}</label><div class="qty-side"><span class="meta-badges"><span class="meta-badge" style="background:var(--danger);">نافذ</span></span></div>`;
+        row.innerHTML = '<label class="variant-label">'+escHtml(item)+'</label><div class="qty-side"><span class="meta-badges"><span class="meta-badge" style="background:var(--danger);">نافذ</span></span></div>';
       } else {
-        row.innerHTML = `<label class="variant-label${hasVariantImg?' has-image':''}">${item}</label><div class="qty-side"><span class="meta-badges"></span><div class="qty-ctrl"><button type="button" class="add-extra-btn" title="تيستر / هدية / ملاحظة"><i class="bi bi-tag"></i></button><button type="button" class="btn-dec">−</button><input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="0" value="${savedQty>0?savedQty:''}"><button type="button" class="btn-inc">+</button></div><div class="row-note${noteVal?' has':''}">${noteVal?"📝 "+escHtml(noteVal):""}</div></div>`;
+        row.innerHTML = '<label class="variant-label'+(hasVariantImg?' has-image':'')+'">'+escHtml(item)+'</label><div class="qty-side"><span class="meta-badges"></span><div class="qty-ctrl"><button type="button" class="add-extra-btn" title="تيستر / هدية / ملاحظة"><i class="bi bi-tag"></i></button><button type="button" class="btn-dec">−</button><input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="0" value="'+(savedQty>0?savedQty:'')+'"><button type="button" class="btn-inc">+</button></div><div class="row-note'+(noteVal?' has':'')+'">'+(noteVal?"📝 "+escHtml(noteVal):"")+'</div></div>';
+        const input = row.querySelector("input");
+        if(savedQty>0) row.classList.add("filled");
+        input.addEventListener("focus", ()=>{
+          try{ input.select(); }catch(err){}
+          requestAnimationFrame(()=>{ try{ input.select(); }catch(err){} });
+        });
+        const applyChange = ()=>{
+          const val = parseInt(normDigits(input.value))||0;
+          if(val>0){
+            QTY[brand][block.code][item] = val;
+            row.classList.add("filled");
+          } else {
+            delete QTY[brand][block.code][item];
+            row.classList.remove("filled");
+          }
+          el.classList.toggle("has-qty", codeHasRealQty(QTY[brand][block.code]));
+          saveQty();
+          updateTotals();
+        };
+        input.addEventListener("input", ()=>{
+          const clean = normDigits(input.value);
+          if(clean !== input.value) input.value = clean;
+          applyChange();
+        });
+        attachHoldRepeat(row.querySelector(".btn-inc"), ()=>{
+          input.value = (parseInt(normDigits(input.value))||0) + 1;
+          applyChange();
+        });
+        attachHoldRepeat(row.querySelector(".btn-dec"), ()=>{
+          const v = (parseInt(normDigits(input.value))||0) - 1;
+          input.value = v > 0 ? v : "";
+          applyChange();
+        });
+        row.querySelector(".add-extra-btn").addEventListener("click", ()=>{
+          openExtraMenu(brand, block.code, item, row);
+        });
       }
-      const input = row.querySelector("input");
-      if(savedQty>0) row.classList.add("filled");
-      // tapping the field pre-selects its value so typing replaces it instead of appending
-      input.addEventListener("focus", ()=>{
-        try{ input.select(); }catch(err){}
-        requestAnimationFrame(()=>{ try{ input.select(); }catch(err){} });
-      });
-
       const labelEl = row.querySelector(".variant-label");
       labelEl.addEventListener("click", ()=>{
+        if(itemNafed) return;
         const src = getVariantImage(block, item);
         if(src) showProductImage(src);
       });
-      refreshRowExtras(row, brand, block.code, item);
-
-      const applyChange = ()=>{
-        const val = parseInt(normDigits(input.value))||0;
-        if(val>0){
-          QTY[brand][block.code][item] = val;
-          row.classList.add("filled");
-        } else {
-          delete QTY[brand][block.code][item];
-          row.classList.remove("filled");
-        }
-        el.classList.toggle("has-qty", codeHasRealQty(QTY[brand][block.code]));
-        saveQty();
-        updateTotals();
-      };
-      input.addEventListener("input", ()=>{
-        const clean = normDigits(input.value);
-        if(clean !== input.value) input.value = clean;
-        applyChange();
-      });
-      attachHoldRepeat(row.querySelector(".btn-inc"), ()=>{
-        input.value = (parseInt(normDigits(input.value))||0) + 1;
-        applyChange();
-      });
-      attachHoldRepeat(row.querySelector(".btn-dec"), ()=>{
-        const v = (parseInt(normDigits(input.value))||0) - 1;
-        input.value = v > 0 ? v : "";
-        applyChange();
-      });
-      // ⋯ opens the extra menu: Tester / Gift / Note (item::T / ::G = 1, item::N = note text)
-      row.querySelector(".add-extra-btn").addEventListener("click", ()=>{
-        openExtraMenu(brand, block.code, item, row);
-      });
+      if(!itemNafed) refreshRowExtras(row, brand, block.code, item);
       rows.appendChild(row);
     });
     if(codeHasRealQty(QTY[brand][block.code])){
