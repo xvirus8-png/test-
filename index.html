@@ -904,6 +904,14 @@ const LS_FILTERS_KEY = "orderapp_filters_v1";
 let FILTERS = loadFilters();
 let ACTIVE_FILTER = {}; // brand -> filterId currently shown in the normal (non-edit) view
 let ACTIVE_SUB = {};   // brand -> subFilterId (active sub-filter, if any)
+
+// BACKUP SYSTEM — must be initialized before startup calls
+const LS_BACKUPS_KEY = "orderapp_backups_v1";
+const MAX_LOCAL_BACKUPS = 15;
+const MAX_CLOUD_BACKUPS = 3;
+const BACKUP_PASSWORD = "1564";
+let backups = [];
+
 function loadFilters(){
   try{
     const raw = localStorage.getItem(LS_FILTERS_KEY);
@@ -3151,13 +3159,7 @@ function deleteOrder(id){
   }
 }
 
-let backups = [];
-
 // === BACKUP SYSTEM ===
-const LS_BACKUPS_KEY = "orderapp_backups_v1";
-const MAX_LOCAL_BACKUPS = 15;
-const MAX_CLOUD_BACKUPS = 3;
-const BACKUP_PASSWORD = "1564";
 
 function loadBackups(){
   try{ const r = localStorage.getItem(LS_BACKUPS_KEY); if(r) backups = JSON.parse(r); }catch(e){}
