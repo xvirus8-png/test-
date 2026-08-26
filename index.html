@@ -905,13 +905,6 @@ let FILTERS = loadFilters();
 let ACTIVE_FILTER = {}; // brand -> filterId currently shown in the normal (non-edit) view
 let ACTIVE_SUB = {};   // brand -> subFilterId (active sub-filter, if any)
 
-// BACKUP SYSTEM — must be initialized before startup calls
-const LS_BACKUPS_KEY = "orderapp_backups_v1";
-const MAX_LOCAL_BACKUPS = 15;
-const MAX_CLOUD_BACKUPS = 3;
-const BACKUP_PASSWORD = "1564";
-let backups = [];
-
 function loadFilters(){
   try{
     const raw = localStorage.getItem(LS_FILTERS_KEY);
@@ -2942,6 +2935,164 @@ function closePreview(){
   if(m) m.remove();
 }
 
+// === BACKUP SYSTEM ===
+var backups = [];
+const LS_BACKUPS_KEY = "orderapp_backups_v1";
+const MAX_LOCAL_BACKUPS = 15;
+const MAX_CLOUD_BACKUPS = 3;
+const BACKUP_PASSWORD = "1564";
+
+function loadBackups(){
+  try{ const r = localStorage.getItem(LS_BACKUPS_KEY); if(r) backups = JSON.parse(r); }catch(e){}
+  backups = Array.isArray(backups) ? backups : [];
+}
+function saveBackups(){
+  try{ localStorage.setItem(LS_BACKUPS_KEY, JSON.stringify(backups)); }catch(e){}
+}
+function pruneLocalBackups(){
+  while(backups.length > MAX_LOCAL_BACKUPS) backups.pop();
+}
+async function syncCloudBackups(){
+  if(!cloudCfg || cloudSupress) return;
+  try{
+    cloudSupress = true;
+    const cb = await httpJson("GET","backups");
+    const local3 = backups.slice(0, MAX_CLOUD_BACKUPS).map(b=>({id:b.id,ts:b.ts,data:b.data,size:b.size}));
+    await httpJson("PUT","backups", local3.length ? local3 : null);
+    cloudSupress = false;
+  }catch(e){
+    cloudSupress = false;
+    console.warn("syncCloudBackups فشل:", e);
+  }
+}
+async function createBackup(){
+  const payload = {
+    data: JSON.parse(JSON.stringify(DATA)),
+    qty: JSON.parse(JSON.stringify(QTY)),
+    filters: JSON.parse(JSON.stringify(FILTERS)),
+    theme: localStorage.getItem(LS_THEME_KEY)||""
+  };
+  const size = JSON.stringify(payload).length;
+  const b = { id: "bk_"+Date.now(), ts: Date.now(), data: payload, size };
+  backups.unshift(b);
+  pruneLocalBackups();
+  saveBackups();
+  if(cloudCfg){
+    try{ await syncCloudBackups(); }catch(e){}
+  }
+  alert("✅ تم إنشاء النسخة الاحتياطية!\nالحجم: ~" + (size/1024).toFixed(1) + " KB");
+  location.reload();
+}
+function restoreBackup(id){
+  const pw = prompt("أدخل كلمة المرور للاستعادة:");
+  if(pw !== BACKUP_PASSWORD){ alert("❌ كلمة المرور خاطئة"); return; }
+  if(!confirm("⚠️ راح تستبدل كل بياناتك الحالية! متأكد؟")) return;
+  const b = backups.find(x=>x.id===id);
+  if(!b) return;
+  const d = b.data||{};
+  if(d.data) localStorage.setItem(LS_DATA_KEY, JSON.stringify(d.data));
+  if(d.qty) localStorage.setItem(LS_QTY_KEY, JSON.stringify(d.qty));
+  if(d.filters) localStorage.setItem(LS_FILTERS_KEY, JSON.stringify(d.filters));
+  if(d.theme) localStorage.setItem(LS_THEME_KEY, d.theme);
+  if(d.cloud) localStorage.setItem(LS_CLOUD_KEY, JSON.stringify(d.cloud));
+  alert("✅ تم الاستعادة! يرجع التطبيق.");
+  location.reload();
+}
+function deleteBackup(id){
+  if(!confirm("حذف هذي النسخة الاحتياطية؟")) return;
+  backups = backups.filter(x=>x.id!==id);
+  saveBackups();
+  if(cloudCfg) syncCloudBackups().catch(()=>{});
+  openBackups();
+}
+function downloadBackup(id){
+  const b = backups.find(x=>x.id===id);
+  if(!b) return;
+  const payload = { data: b.data, ts: b.ts, size: b.size };
+  const blob = new Blob([JSON.stringify(payload)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "firouz-backup-" + new Date(b.ts).toLocaleDateString("ar-EG") + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function importBackupFile(){
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".json";
+  input.onchange = (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev)=>{
+      try{
+        const imported = JSON.parse(ev.target.result);
+        if(!imported || !imported.data){ alert("⚠️ الملف غير صالح — لازم نسخة احتياطية من فيروز"); return; }
+        const pw = prompt("أدخل كلمة المرور للاستعادة من الملف:");
+        if(pw !== BACKUP_PASSWORD){ alert("❌ كلمة المرور خاطئة"); return; }
+        if(!confirm("⚠️ راح تستبدل كل بياناتك الحالية! متأكد؟")) return;
+        const d = imported.data||{};
+        if(d.data) localStorage.setItem(LS_DATA_KEY, JSON.stringify(d.data));
+        if(d.qty) localStorage.setItem(LS_QTY_KEY, JSON.stringify(d.qty));
+        if(d.filters) localStorage.setItem(LS_FILTERS_KEY, JSON.stringify(d.filters));
+        if(d.theme) localStorage.setItem(LS_THEME_KEY, d.theme);
+        if(d.cloud) localStorage.setItem(LS_CLOUD_KEY, JSON.stringify(d.cloud));
+        alert("✅ تم الاستعادة من الملف! يرجع التطبيق.");
+        location.reload();
+      }catch(err){ alert("⚠️ خطأ بقراءة الملف:\n" + err.message); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+function openBackups(){
+  loadBackups();
+  const cloud3 = backups.slice(0, MAX_CLOUD_BACKUPS);
+  const listHtml = backups.length === 0
+    ? '<p style="text-align:center;color:var(--subtext);padding:20px;">لا توجد نسخ احتياطية بعد</p>'
+    : backups.map((b,i)=>{
+        const d = new Date(b.ts);
+        const dateStr = d.toLocaleDateString("ar-EG",{year:"numeric",month:"short",day:"numeric"});
+        const timeStr = d.toLocaleTimeString("ar-EG",{hour:"2-digit",minute:"2-digit"});
+        const sz = b.size ? (b.size/1024).toFixed(1)+" KB" : "—";
+        const cloudIcon = cloud3.some(c=>c.id===b.id) ? "🟢" : (cloudCfg ? "⚪" : "⚫");
+        const cloudLabel = cloud3.some(c=>c.id===b.id) ? "سحابي" : (cloudCfg ? "محلي" : "سحابة معطّلة");
+        return '<div class="backup-item">'
+          + '<span class="backup-icon" title="حالة السحابة: '+cloudLabel+'">'+cloudIcon+'</span>'
+          + '<div class="backup-meta">'
+          + '<div class="backup-date">'+dateStr+' — '+timeStr+'</div>'
+          + '<div class="backup-size">'+sz+'</div>'
+          + '</div>'
+          + '<div class="backup-actions">'
+          + (cloudCfg ? '<button class="backup-btn-cl" onclick="downloadBackup(\''+b.id+'\')" title="حمّل سحابياً (JSON)">📤</button>' : '')
+          + '<button class="backup-btn-dl" onclick="downloadBackup(\''+b.id+'\')" title="حمّل ملف JSON">💾</button>'
+          + '<button class="backup-btn-restore" onclick="restoreBackup(\''+b.id+'\')" title="استعادة هذه النسخة">🔄</button>'
+          + '<button class="backup-btn-del" onclick="deleteBackup(\''+b.id+'\')" title="حذف">🗑</button>'
+          + '</div></div>';
+      }).join("");
+  var overlay = document.createElement("div");
+  overlay.className = "cloud-modal";
+  overlay.innerHTML = '<div class="cloud-panel">'
+    + '<div class="cloud-head"><span>📥 النسخ الاحتياطية</span><button type="button" class="close-cloud" aria-label="إغلاق">×</button></div>'
+    + '<div class="cloud-body">'
+    + '<div style="display:flex;gap:8px;">'
+    + '<button type="button" style="flex:1;" onclick="createBackup()">+ إنشاء نسخة جديدة</button>'
+    + '<button type="button" style="flex:1;background:var(--soft);color:var(--text);" onclick="openBackups();importBackupFile()">📂 استعادة من ملف</button>'
+    + '</div>'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">'
+    + '<span style="font-size:12px;font-weight:700;color:var(--subtext);">النسخ المحفوظة ('+backups.length+'/'+MAX_LOCAL_BACKUPS+')</span>'
+    + '<span style="font-size:11px;color:var(--subtext);">☁️ سحابي: '+Math.min(cloud3.length, MAX_CLOUD_BACKUPS)+'/'+MAX_CLOUD_BACKUPS+'</span>'
+    + '</div>'
+    + '<div style="max-height:50vh;overflow-y:auto;">'+listHtml+'</div>'
+    + '</div></div>';
+  document.body.appendChild(overlay);
+  var closeFn = function(){ overlay.remove(); };
+  overlay.querySelector(".close-cloud").addEventListener("click", closeFn);
+  overlay.addEventListener("click",function(e){ if(e.target===overlay) closeFn(); });
+  document.addEventListener("keydown", function onKey(e){ if(e.key==="Escape"){ closeFn(); document.removeEventListener("keydown",onKey); }});
+}
+// === END BACKUP SYSTEM ===
+
 normalizeAllProducts();
 loadBackups();
 buildTabs();
@@ -3158,184 +3309,6 @@ function deleteOrder(id){
     alert("⚠️ خطأ بحذف الطلبية:\n" + err.message);
   }
 }
-
-// === BACKUP SYSTEM ===
-
-function loadBackups(){
-  try{ const r = localStorage.getItem(LS_BACKUPS_KEY); if(r) backups = JSON.parse(r); }catch(e){}
-  backups = Array.isArray(backups) ? backups : [];
-}
-function saveBackups(){
-  try{ localStorage.setItem(LS_BACKUPS_KEY, JSON.stringify(backups)); }catch(e){}
-}
-function pruneLocalBackups(){
-  while(backups.length > MAX_LOCAL_BACKUPS) backups.pop();
-}
-
-async function syncCloudBackups(){
-  if(!cloudCfg || cloudSupress) return;
-  try{
-    cloudSupress = true;
-    const cb = await httpJson("GET","backups");
-    const local3 = backups.slice(0, MAX_CLOUD_BACKUPS).map(b=>({id:b.id,ts:b.ts,data:b.data,size:b.size}));
-    await httpJson("PUT","backups", local3.length ? local3 : null);
-    cloudSupress = false;
-  }catch(e){
-    cloudSupress = false;
-    console.warn("syncCloudBackups فشل:", e);
-  }
-}
-
-async function pullCloudBackups(){
-  if(!cloudCfg) return [];
-  try{
-    cloudSupress = true;
-    const cb = await httpJson("GET","backups");
-    cloudSupress = false;
-    return Array.isArray(cb) ? cb : [];
-  }catch(e){
-    cloudSupress = false;
-    return [];
-  }
-}
-
-async function createBackup(){
-  const payload = {
-    data: JSON.parse(JSON.stringify(DATA)),
-    qty: JSON.parse(JSON.stringify(QTY)),
-    filters: JSON.parse(JSON.stringify(FILTERS)),
-    theme: localStorage.getItem(LS_THEME_KEY)||""
-  };
-  const size = JSON.stringify(payload).length;
-  const b = { id: "bk_"+Date.now(), ts: Date.now(), data: payload, size };
-  backups.unshift(b);
-  pruneLocalBackups();
-  saveBackups();
-  if(cloudCfg){
-    try{ await syncCloudBackups(); }catch(e){}
-  }
-  alert("✅ تم إنشاء النسخة الاحتياطية!\nالحجم: ~" + (size/1024).toFixed(1) + " KB");
-  location.reload();
-}
-
-function restoreBackup(id){
-  const pw = prompt("أدخل كلمة المرور للاستعادة:");
-  if(pw !== BACKUP_PASSWORD){ alert("❌ كلمة المرور خاطئة"); return; }
-  if(!confirm("⚠️ راح تستبدل كل بياناتك الحالية! متأكد؟")) return;
-  const b = backups.find(x=>x.id===id);
-  if(!b) return;
-  const d = b.data||{};
-  if(d.data) localStorage.setItem(LS_DATA_KEY, JSON.stringify(d.data));
-  if(d.qty) localStorage.setItem(LS_QTY_KEY, JSON.stringify(d.qty));
-  if(d.filters) localStorage.setItem(LS_FILTERS_KEY, JSON.stringify(d.filters));
-  if(d.theme) localStorage.setItem(LS_THEME_KEY, d.theme);
-  if(d.cloud) localStorage.setItem(LS_CLOUD_KEY, JSON.stringify(d.cloud));
-  alert("✅ تم الاستعادة! يرجع التطبيق.");
-  location.reload();
-}
-
-function deleteBackup(id){
-  if(!confirm("حذف هذي النسخة الاحتياطية؟")) return;
-  backups = backups.filter(x=>x.id!==id);
-  saveBackups();
-  if(cloudCfg) syncCloudBackups().catch(()=>{});
-  openBackups();
-}
-
-function downloadBackup(id){
-  const b = backups.find(x=>x.id===id);
-  if(!b) return;
-  const payload = { data: b.data, ts: b.ts, size: b.size };
-  const blob = new Blob([JSON.stringify(payload)], {type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "firouz-backup-" + new Date(b.ts).toLocaleDateString("ar-EG") + ".json";
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-function importBackupFile(){
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = ".json";
-  input.onchange = (e)=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev)=>{
-      try{
-        const imported = JSON.parse(ev.target.result);
-        if(!imported || !imported.data){ alert("⚠️ الملف غير صالح — لازم نسخة احتياطية من فيروز"); return; }
-        const pw = prompt("أدخل كلمة المرور للاستعادة من الملف:");
-        if(pw !== BACKUP_PASSWORD){ alert("❌ كلمة المرور خاطئة"); return; }
-        if(!confirm("⚠️ راح تستبدل كل بياناتك الحالية! متأكد؟")) return;
-        const d = imported.data||{};
-        if(d.data) localStorage.setItem(LS_DATA_KEY, JSON.stringify(d.data));
-        if(d.qty) localStorage.setItem(LS_QTY_KEY, JSON.stringify(d.qty));
-        if(d.filters) localStorage.setItem(LS_FILTERS_KEY, JSON.stringify(d.filters));
-        if(d.theme) localStorage.setItem(LS_THEME_KEY, d.theme);
-        if(d.cloud) localStorage.setItem(LS_CLOUD_KEY, JSON.stringify(d.cloud));
-        alert("✅ تم الاستعادة من الملف! يرجع التطبيق.");
-        location.reload();
-      }catch(err){ alert("⚠️ خطأ بقراءة الملف:\n" + err.message); }
-    };
-    reader.readAsText(file);
-  };
-  input.click();
-}
-
-function openBackups(){
-  loadBackups();
-  const cloud3 = backups.slice(0, MAX_CLOUD_BACKUPS);
-  const listHtml = backups.length === 0
-    ? '<p style="text-align:center;color:var(--subtext);padding:20px;">لا توجد نسخ احتياطية بعد</p>'
-    : backups.map((b,i)=>{
-        const d = new Date(b.ts);
-        const dateStr = d.toLocaleDateString("ar-EG",{year:"numeric",month:"short",day:"numeric"});
-        const timeStr = d.toLocaleTimeString("ar-EG",{hour:"2-digit",minute:"2-digit"});
-        const sz = b.size ? (b.size/1024).toFixed(1)+" KB" : "—";
-        const cloudIcon = cloud3.some(c=>c.id===b.id) ? "🟢" : (cloudCfg ? "⚪" : "⚫");
-        const cloudLabel = cloud3.some(c=>c.id===b.id) ? "سحابي" : (cloudCfg ? "محلي" : "سحابة معطّلة");
-        return `<div class="backup-item">
-          <span class="backup-icon" title="حالة السحابة: ${cloudLabel}">${cloudIcon}</span>
-          <div class="backup-meta">
-            <div class="backup-date">${dateStr} — ${timeStr}</div>
-            <div class="backup-size">${sz}</div>
-          </div>
-          <div class="backup-actions">
-            ${cloudCfg ? `<button class="backup-btn-cl" onclick="downloadBackup('${b.id}')" title="حمّل سحابياً (JSON)">📤</button>` : ""}
-            <button class="backup-btn-dl" onclick="downloadBackup('${b.id}')" title="حمّل ملف JSON">💾</button>
-            <button class="backup-btn-restore" onclick="restoreBackup('${b.id}')" title="استعادة هذه النسخة">🔄</button>
-            <button class="backup-btn-del" onclick="deleteBackup('${b.id}')" title="حذف">🗑</button>
-          </div>
-        </div>`;
-      }).join("");
-
-  const overlay = document.createElement("div");
-  overlay.className = "cloud-modal";
-  overlay.innerHTML = `
-    <div class="cloud-panel">
-      <div class="cloud-head"><span>📥 النسخ الاحتياطية</span><button type="button" class="close-cloud" aria-label="إغلاق">×</button></div>
-      <div class="cloud-body">
-        <div style="display:flex;gap:8px;">
-          <button type="button" style="flex:1;" onclick="createBackup()">+ إنشاء نسخة جديدة</button>
-          <button type="button" style="flex:1;background:var(--soft);color:var(--text);" onclick="openBackups();importBackupFile()">📂 استعادة من ملف</button>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-          <span style="font-size:12px;font-weight:700;color:var(--subtext);">النسخ المحفوظة (${backups.length}/${MAX_LOCAL_BACKUPS})</span>
-          <span style="font-size:11px;color:var(--subtext);">☁️ سحابي: ${Math.min(cloud3.length, MAX_CLOUD_BACKUPS)}/${MAX_CLOUD_BACKUPS}</span>
-        </div>
-        <div style="max-height:50vh;overflow-y:auto;">${listHtml}</div>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-
-  const close = ()=> overlay.remove();
-  overlay.querySelector(".close-cloud").addEventListener("click", close);
-  overlay.addEventListener("click",(e)=>{ if(e.target===overlay) close(); });
-  document.addEventListener("keydown", function onKey(e){ if(e.key==="Escape"){ close(); document.removeEventListener("keydown",onKey); }});
-}
-// === END BACKUP SYSTEM ===
 
 // Prevent pinch-zoom and double-tap zoom
 document.addEventListener("gesturestart", e => e.preventDefault());
