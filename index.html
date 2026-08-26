@@ -1,4 +1,4 @@
-<!-- index v2.16 -->
+<!-- index v2.17 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -618,6 +618,39 @@
   .pv-edit{background:var(--pl);color:var(--primary);}
   .pv-share{background:var(--warning);}
 
+  /* === NAFED MODAL === */
+  .nafed-modal{position:fixed;inset:0;background:rgba(15,17,23,.6);z-index:210;display:flex;align-items:flex-end;justify-content:center;}
+  .nafed-panel{background:var(--card);width:100%;max-width:600px;max-height:88vh;border-radius:20px 20px 0 0;display:flex;flex-direction:column;box-shadow:0 -4px 20px rgba(0,0,0,.3);padding-bottom:env(safe-area-inset-bottom);}
+  .nafed-panel-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);}
+  .nafed-panel-title{font-weight:800;font-size:15px;color:var(--text);}
+  .close-nafed{background:var(--soft);border:none;border-radius:50%;width:42px;height:42px;font-size:20px;cursor:pointer;color:var(--text);}
+  .nafed-list{overflow-y:auto;padding:10px 14px;flex:1;}
+  .nafed-brand-name{font-weight:800;font-size:14px;color:var(--primary);padding:12px 0 6px;border-bottom:1.5px solid var(--border);margin-bottom:4px;}
+  .nafed-row{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid var(--soft);cursor:pointer;transition:background .15s;}
+  .nafed-row:active{background:var(--soft);}
+  .nafed-row.nafed-item{opacity:.55;}
+  .nafed-row .nafed-label{flex:1;font-weight:700;font-size:15px;color:var(--text);transition:color .15s;}
+  .nafed-row.nafed-item .nafed-label{color:var(--subtext);text-decoration:line-through;}
+  .nafed-row .nafed-check{width:28px;height:28px;border-radius:8px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;color:transparent;transition:all .15s;flex:none;}
+  .nafed-row.nafed-item .nafed-check{background:var(--danger);border-color:var(--danger);color:#fff;}
+  .nafed-badge{background:var(--danger);color:#fff;border-radius:8px;font-size:11px;font-weight:800;padding:3px 8px;line-height:1;flex:none;}
+  .nafed-empty{text-align:center;color:var(--subtext);padding:30px 10px;font-size:13px;line-height:2;}
+  .row-item.nafed-row-item{opacity:.55;background:rgba(239,68,68,.08);border:1.5px solid rgba(239,68,68,.25);pointer-events:none;}
+  /* === PIN MODAL === */
+  .pin-modal{position:fixed;inset:0;background:rgba(15,17,23,.7);z-index:240;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .pin-panel{background:var(--card);width:100%;max-width:320px;border-radius:20px;padding:28px 20px;display:flex;flex-direction:column;align-items:center;gap:18px;box-shadow:0 12px 40px rgba(0,0,0,.4);}
+  .pin-title{font-weight:800;font-size:16px;color:var(--text);text-align:center;}
+  .pin-sub{font-size:13px;color:var(--subtext);text-align:center;}
+  .pin-dots{display:flex;gap:12px;margin:6px 0;}
+  .pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--border);transition:all .15s;}
+  .pin-dot.filled{background:var(--primary);border-color:var(--primary);}
+  .pin-dot.error{background:var(--danger);border-color:var(--danger);}
+  .pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;}
+  .pin-key{height:52px;border:none;border-radius:12px;font-size:22px;font-weight:800;cursor:pointer;font-family:inherit;background:var(--soft);color:var(--text);transition:background .1s;}
+  .pin-key:active{background:var(--border);transform:scale(.95);}
+  .pin-key.pin-del{font-size:18px;background:rgba(239,68,68,.1);color:var(--danger);}
+  .pin-key.pin-ok{background:var(--primary);color:#fff;font-size:14px;}
+
   /* === SPLASH SCREEN v2.16 === */
   .splash{position:fixed;inset:0;z-index:999;background:linear-gradient(135deg,#e0f7fa,#b2ebf2,#c8e6c9,#e0f7fa);background-size:400% 400%;animation:splashAurora 8s ease infinite;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .5s ease;}
   .splash.hide{opacity:0;pointer-events:none;}
@@ -644,7 +677,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.16</span>
+  <span class="version">v2.17</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -680,13 +713,14 @@
     <button class="drawer-item" id="editBtn" onclick="toggleEditMode();closeDrawer()"><i class="bi bi-pencil-square"></i> تعديل الأسعار</button>
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="backupsBtn" onclick="openBackups();closeDrawer()"><i class="bi bi-download"></i> نسخة احتياطية</button>
+    <button class="drawer-item" id="nafedBtn" onclick="openNafedPin();closeDrawer()"><i class="bi bi-box-seam"></i> المنتجات النافذة</button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
   </nav>
   <div class="drawer-foot"><span>by:MAHMOOD TARQ</span></div>
 </aside>
 
 <script>
-const APP_VERSION = "2.16";
+const APP_VERSION = "2.17";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -962,6 +996,35 @@ function findFilterById(brand, filterId){
   return null;
 }
 
+// NAFED (out of stock) — NAFED[brand][code][item] = true | NAFED[brand][code] = true (no variants)
+const LS_NAFED_KEY = "orderapp_nafed_v1";
+const NAFED_PIN = "2004";
+let NAFED = loadNafed();
+function loadNafed(){try{var r=localStorage.getItem(LS_NAFED_KEY);if(r){var p=JSON.parse(r);if(p&&typeof p==="object")return p;}}catch(e){}return {};}
+function saveNafed(){try{localStorage.setItem(LS_NAFED_KEY,JSON.stringify(NAFED));}catch(e){}scheduleCloudPush();}
+function isNafed(brand,code,item){
+  var b=NAFED[brand];
+  if(!b) return false;
+  if(item){
+    var c=b[code];
+    if(c && typeof c==="object" && c[item]) return true;
+    return false;
+  }
+  return b[code]===true;
+}
+function setNafed(brand,code,item,on){
+  if(!NAFED[brand]) NAFED[brand]={};
+  if(item){
+    if(!NAFED[brand][code]||typeof NAFED[brand][code]!=="object") NAFED[brand][code]={};
+    if(on) NAFED[brand][code][item]=true; else delete NAFED[brand][code][item];
+    if(Object.keys(NAFED[brand][code]).length===0) delete NAFED[brand][code];
+  }else{
+    if(on) NAFED[brand][code]=true; else delete NAFED[brand][code];
+  }
+  if(Object.keys(NAFED[brand]).length===0) delete NAFED[brand];
+  saveNafed();
+}
+
 function mergeSavedData(saved){
   // Keep the user's saved data, but restore any old/default brand whose
   // product list was accidentally saved empty by an earlier version.
@@ -1097,6 +1160,11 @@ async function cloudPull(){
       FILTERS = f;
       saveFilters();
     }
+    const n = await httpJson("GET","nafed");
+    if(n && typeof n==="object"){
+      NAFED = n;
+      try{localStorage.setItem(LS_NAFED_KEY,JSON.stringify(NAFED));}catch(e){}
+    }
     buildTabs();
     buildPanels();
     updateTotals();
@@ -1142,6 +1210,7 @@ async function cloudPushAll(){
   await Promise.all([
     httpJson("PUT","products",DATA),
     httpJson("PUT","filters",FILTERS),
+    httpJson("PUT","nafed",NAFED),
     httpJson("PUT","customer",null),
     httpJson("PUT","updatedAt",Date.now())
   ]);
@@ -1242,6 +1311,78 @@ function hideSplashGuard(){
   if(s) s.classList.add("hide");
   setTimeout(function(){var el=document.getElementById("splash");if(el)el.remove();},550);
 }
+
+// === NAFED PIN + MANAGER ===
+function openNafedPin(){
+  var pin="";
+  var overlay=document.createElement("div");
+  overlay.className="pin-modal";
+  overlay.innerHTML='<div class="pin-panel"><div class="pin-title">🔐 أدخل الرمز السري</div><div class="pin-sub">للوصول للمنتجات النافذة</div><div class="pin-dots"><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span></div><div class="pin-keypad"><button class="pin-key" data-k="1">1</button><button class="pin-key" data-k="2">2</button><button class="pin-key" data-k="3">3</button><button class="pin-key" data-k="4">4</button><button class="pin-key" data-k="5">5</button><button class="pin-key" data-k="6">6</button><button class="pin-key" data-k="7">7</button><button class="pin-key" data-k="8">8</button><button class="pin-key" data-k="9">9</button><button class="pin-key pin-del" data-k="del">⌫</button><button class="pin-key" data-k="0">0</button><button class="pin-key pin-ok" data-k="ok">تأكيد</button></div></div>';
+  document.body.appendChild(overlay);
+  var dots=overlay.querySelectorAll(".pin-dot");
+  function updateDots(){for(var i=0;i<4;i++){dots[i].classList.toggle("filled",i<pin.length);dots[i].classList.remove("error");}}
+  function checkPin(){
+    if(pin===NAFED_PIN){overlay.remove();openNafedManager();}
+    else{
+      dots.forEach(function(d){d.classList.add("error");});
+      setTimeout(function(){pin="";updateDots();},500);
+    }
+  }
+  overlay.querySelectorAll(".pin-key").forEach(function(btn){
+    btn.addEventListener("click",function(){
+      var k=btn.getAttribute("data-k");
+      if(k==="del"){pin=pin.slice(0,-1);updateDots();}
+      else if(k==="ok"){if(pin.length===4) checkPin();}
+      else if(pin.length<4){pin+=k;updateDots();if(pin.length===4)setTimeout(checkPin,150);}
+    });
+  });
+  overlay.addEventListener("click",function(e){if(e.target===overlay)overlay.remove();});
+}
+
+function openNafedManager(){
+  var overlay=document.createElement("div");
+  overlay.className="nafed-modal";
+  var html='<div class="nafed-panel"><div class="nafed-panel-head"><div class="nafed-panel-title">📦 المنتجات النافذة</div><button class="close-nafed" aria-label="إغلاق">×</button></div><div class="nafed-list">';
+  Object.keys(DATA).forEach(function(brand){
+    html+='<div class="nafed-brand-name">'+escHtml(brand)+'</div>';
+    DATA[brand].forEach(function(block){
+      normalizeProductBlock(block);
+      var singleItem=block.items.length===1&&block.items[0]==="-";
+      if(singleItem){
+        var on=isNafed(brand,block.code);
+        html+='<div class="nafed-row'+(on?' nafed-item':'')+'" data-brand="'+escHtml(brand)+'" data-code="'+escHtml(block.code)+'"><span class="nafed-check">'+(on?'✓':'')+'</span><span class="nafed-label">'+escHtml(block.code)+'</span>'+(on?'<span class="nafed-badge">نافذ</span>':'')+'</div>';
+      }else{
+        html+='<div class="nafed-brand-name" style="font-size:13px;padding:8px 0 4px;border:none;color:var(--subtext);">'+escHtml(block.code)+'</div>';
+        block.items.forEach(function(item){
+          var on=isNafed(brand,block.code,item);
+          html+='<div class="nafed-row'+(on?' nafed-item':'')+'" data-brand="'+escHtml(brand)+'" data-code="'+escHtml(block.code)+'" data-item="'+escHtml(item)+'"><span class="nafed-check">'+(on?'✓':'')+'</span><span class="nafed-label">'+escHtml(item)+'</span>'+(on?'<span class="nafed-badge">نافذ</span>':'')+'</div>';
+        });
+      }
+    });
+  });
+  html+='</div></div>';
+  overlay.innerHTML=html;
+  document.body.appendChild(overlay);
+  overlay.querySelector(".close-nafed").addEventListener("click",function(){overlay.remove();buildPanels();});
+  overlay.addEventListener("click",function(e){if(e.target===overlay){overlay.remove();buildPanels();}});
+  overlay.querySelectorAll(".nafed-row").forEach(function(row){
+    row.addEventListener("click",function(){
+      var brand=row.getAttribute("data-brand");
+      var code=row.getAttribute("data-code");
+      var item=row.getAttribute("data-item")||"";
+      var nowOn=!isNafed(brand,code,item||undefined);
+      setNafed(brand,code,item||undefined,nowOn);
+      row.classList.toggle("nafed-item",nowOn);
+      var chk=row.querySelector(".nafed-check");
+      chk.textContent=nowOn?"✓":"";
+      var old=row.querySelector(".nafed-badge");
+      if(nowOn&&!old){var b=document.createElement("span");b.className="nafed-badge";b.textContent="نافذ";row.appendChild(b);}
+      if(!nowOn&&old)old.remove();
+    });
+  });
+}
+// === END NAFED ===
+
 function initCloud(){
   cloudUi();
   if(cloudCfg){
@@ -2231,7 +2372,13 @@ function buildGrid(grid, brand, blocks){
       const savedQty = QTY[brand][block.code][item] || 0;
       const hasVariantImg = !!getVariantImage(block, item);
       const noteVal = typeof QTY[brand][block.code][item+"::N"] === "string" ? QTY[brand][block.code][item+"::N"] : "";
-      row.innerHTML = `<label class="variant-label${hasVariantImg?' has-image':''}">${item}</label><div class="qty-side"><span class="meta-badges"></span><div class="qty-ctrl"><button type="button" class="add-extra-btn" title="تيستر / هدية / ملاحظة"><i class="bi bi-tag"></i></button><button type="button" class="btn-dec">−</button><input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="0" value="${savedQty>0?savedQty:''}"><button type="button" class="btn-inc">+</button></div><div class="row-note${noteVal?' has':''}">${noteVal?"📝 "+escHtml(noteVal):""}</div></div>`;
+      const itemNafed = isNafed(brand, block.code, item);
+      if(itemNafed){
+        row.classList.add("nafed-row-item");
+        row.innerHTML = `<label class="variant-label">${item}</label><div class="qty-side"><span class="meta-badges"><span class="meta-badge" style="background:var(--danger);">نافذ</span></span></div>`;
+      } else {
+        row.innerHTML = `<label class="variant-label${hasVariantImg?' has-image':''}">${item}</label><div class="qty-side"><span class="meta-badges"></span><div class="qty-ctrl"><button type="button" class="add-extra-btn" title="تيستر / هدية / ملاحظة"><i class="bi bi-tag"></i></button><button type="button" class="btn-dec">−</button><input type="text" inputmode="numeric" pattern="[0-9]*" placeholder="0" value="${savedQty>0?savedQty:''}"><button type="button" class="btn-inc">+</button></div><div class="row-note${noteVal?' has':''}">${noteVal?"📝 "+escHtml(noteVal):""}</div></div>`;
+      }
       const input = row.querySelector("input");
       if(savedQty>0) row.classList.add("filled");
       // tapping the field pre-selects its value so typing replaces it instead of appending
