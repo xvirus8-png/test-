@@ -638,6 +638,8 @@
   .nafed-tabs{border-bottom:1px solid var(--border);}
   .nafed-tab{border:none;background:none;padding:8px 14px;font-size:13px;font-weight:700;color:var(--subtext);cursor:pointer;border-radius:10px;font-family:inherit;white-space:nowrap;}
   .nafed-tab.active{background:var(--primary);color:#fff;}
+  .nafed-filter-btn{border:1.5px solid var(--border);background:var(--soft);color:var(--subtext);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .15s;}
+  .nafed-filter-btn.active{background:var(--danger);color:#fff;border-color:var(--danger);}
   .row-item.nafed-row-item{opacity:.55;background:rgba(239,68,68,.08);border:1.5px solid rgba(239,68,68,.25);pointer-events:none;}
   /* === PIN MODAL — iPhone-style numpad === */
   .pin-modal{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:240;display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -1347,7 +1349,7 @@ function openNafedManager(){
   overlay.className="nafed-modal";
   var brands=Object.keys(DATA);
   var html='<div class="nafed-panel"><div class="nafed-panel-head"><div class="nafed-panel-title">📦 المنتجات النافذة</div><button class="close-nafed" aria-label="إغلاق">×</button></div>';
-  html+='<div style="padding:10px 14px 0;"><input type="text" id="nafedSearch" placeholder="🔍 بحث عن منتج..." style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);font-size:15px;background:var(--card);box-sizing:border-box;"></div>';
+  html+='<div style="padding:10px 14px 0;display:flex;gap:8px;"><input type="text" id="nafedSearch" placeholder="🔍 بحث عن منتج..." style="flex:1;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);font-size:15px;background:var(--card);box-sizing:border-box;"><button class="nafed-filter-btn" id="nafedOnlyBtn">نافذ فقط</button></div>';
   html+='<div class="nafed-tabs" style="display:flex;gap:6px;padding:10px 14px;overflow-x:auto;flex-shrink:0;">';
   html+='<button class="nafed-tab active" data-brand="__all__">الكل</button>';
   brands.forEach(function(br){html+='<button class="nafed-tab" data-brand="'+escHtml(br)+'">'+escHtml(br)+'</button>';});
@@ -1356,7 +1358,9 @@ function openNafedManager(){
   document.body.appendChild(overlay);
   var listEl=overlay.querySelector("#nafedList");
   var searchEl=overlay.querySelector("#nafedSearch");
-  function renderList(filterBrand,query){
+  var nafedOnlyBtn=overlay.querySelector("#nafedOnlyBtn");
+  var nafedOnly=false;
+  function renderList(filterBrand,query,onlyNafed){
     query=(query||"").toLowerCase();
     var h="";
     brands.forEach(function(brand){
@@ -1366,22 +1370,26 @@ function openNafedManager(){
       var itemsH="";
       DATA[brand].forEach(function(block){
         normalizeProductBlock(block);
-        if(query&&block.code.toLowerCase().indexOf(query)===-1&&!block.items.some(function(it){return it.toLowerCase().indexOf(query)!==-1;})) return;
         var singleItem=block.items.length===1&&block.items[0]==="-";
         if(singleItem){
           var on=isNafed(brand,block.code);
+          if(onlyNafed&&!on) return;
+          if(query&&block.code.toLowerCase().indexOf(query)===-1) return;
           hasAny=true;
           itemsH+='<div class="nafed-row'+(on?' nafed-item':'')+'" data-brand="'+escHtml(brand)+'" data-code="'+escHtml(block.code)+'"><span class="nafed-check">'+(on?'✓':'')+'</span><span class="nafed-label">'+escHtml(block.code)+'</span>'+(on?'<span class="nafed-badge">نافذ</span>':'')+'</div>';
         }else{
           var brandCodeH='<div class="nafed-brand-name" style="font-size:13px;padding:8px 0 4px;border:none;color:var(--subtext);">'+escHtml(block.code)+'</div>';
           var codeRows="";
+          var codeHasNafed=false;
           block.items.forEach(function(item){
-            if(query&&item.toLowerCase().indexOf(query)===-1&&block.code.toLowerCase().indexOf(query)===-1) return;
-            hasAny=true;
             var on=isNafed(brand,block.code,item);
+            if(onlyNafed&&!on) return;
+            if(query&&item.toLowerCase().indexOf(query)===-1&&block.code.toLowerCase().indexOf(query)===-1) return;
+            if(on) codeHasNafed=true;
             codeRows+='<div class="nafed-row'+(on?' nafed-item':'')+'" data-brand="'+escHtml(brand)+'" data-code="'+escHtml(block.code)+'" data-item="'+escHtml(item)+'"><span class="nafed-check">'+(on?'✓':'')+'</span><span class="nafed-label">'+escHtml(item)+'</span>'+(on?'<span class="nafed-badge">نافذ</span>':'')+'</div>';
           });
-          if(codeRows) itemsH+=brandCodeH+codeRows;
+          if(onlyNafed&&!codeHasNafed) return;
+          if(codeRows){hasAny=true;itemsH+=brandCodeH+codeRows;}
         }
       });
       if(hasAny) h+=brandH+itemsH;
@@ -1403,17 +1411,23 @@ function openNafedManager(){
       });
     });
   }
-  renderList("__all__");
+  function getActiveBrand(){var t=overlay.querySelector(".nafed-tab.active");return t?t.getAttribute("data-brand"):"__all__";}
+  renderList("__all__","",nafedOnly);
+  nafedOnlyBtn.addEventListener("click",function(){
+    nafedOnly=!nafedOnly;
+    nafedOnlyBtn.classList.toggle("active",nafedOnly);
+    nafedOnlyBtn.textContent=nafedOnly?"الكل":"نافذ فقط";
+    renderList(getActiveBrand(),searchEl.value,nafedOnly);
+  });
   overlay.querySelectorAll(".nafed-tab").forEach(function(tab){
     tab.addEventListener("click",function(){
       overlay.querySelectorAll(".nafed-tab").forEach(function(t){t.classList.remove("active");});
       tab.classList.add("active");
-      renderList(tab.getAttribute("data-brand"),searchEl.value);
+      renderList(tab.getAttribute("data-brand"),searchEl.value,nafedOnly);
     });
   });
   searchEl.addEventListener("input",function(){
-    var activeTab=overlay.querySelector(".nafed-tab.active");
-    renderList(activeTab?activeTab.getAttribute("data-brand"):"__all__",searchEl.value);
+    renderList(getActiveBrand(),searchEl.value,nafedOnly);
   });
   overlay.querySelector(".close-nafed").addEventListener("click",function(){overlay.remove();buildPanels();});
   overlay.addEventListener("click",function(e){if(e.target===overlay){overlay.remove();buildPanels();}});
