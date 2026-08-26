@@ -1,4 +1,4 @@
-<!-- index v1.25 -->
+<!-- index v1.27 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -2178,7 +2178,7 @@ async function renderOrderCanvas(qtySource, customerName){
     if(!entries.length) return;
     html += `<div class="exp-header" style="margin-top:14px;">${brand}</div>`;
     html += `<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:10px;">
-      <tr style="background:#f1ede3;"><th style="border:1px solid #ccc;padding:4px;">الصورة / الباركود</th><th style="border:1px solid #ccc;padding:4px;">الكود</th><th style="border:1px solid #ccc;padding:4px;">الدرجة</th><th style="border:1px solid #ccc;padding:4px;">الكمية</th><th style="border:1px solid #ccc;padding:4px;">السعر</th><th style="border:1px solid #ccc;padding:4px;">المجموع</th></tr>`;
+      <tr style="background:#f1ede3;"><th style="border:1px solid #ccc;padding:4px;">BARCODE/PIC</th><th style="border:1px solid #ccc;padding:4px;">CODE</th><th style="border:1px solid #ccc;padding:4px;">NUM</th><th style="border:1px solid #ccc;padding:4px;">QTY</th><th style="border:1px solid #ccc;padding:4px;">PRICE</th><th style="border:1px solid #ccc;padding:4px;">TOTAL</th></tr>`;
     entries.forEach(([code, items])=>{
       const block = (DATA[brand]||[]).find(b=>b.code===code);
       const basePrice = block ? parsePrices(block.price).small : 0;
