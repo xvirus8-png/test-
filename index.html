@@ -1,4 +1,4 @@
-<!-- index v2.7 -->
+<!-- index v2.8 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -98,7 +98,23 @@
     white-space:nowrap;
   }
   .tab-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
-  .search-bar{padding:10px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:calc(var(--hdr-h,58px) + var(--tabs-h,50px));z-index:48;}
+  .search-row{display:flex;align-items:center;gap:8px;padding:10px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:calc(var(--hdr-h,58px) + var(--tabs-h,50px));z-index:48;}
+  .search-row .filter-badge{
+    display:none;align-items:center;justify-content:center;gap:5px;flex:0 0 auto;
+    padding:4px 12px;background:var(--pl);color:var(--primary);font-size:12px;font-weight:700;
+    border-radius:20px;height:42px;white-space:nowrap;
+  }
+  .search-row .filter-badge.visible{display:flex;}
+  .search-row .filter-badge span{flex:0 0 auto;}
+  .search-row .filter-badge .fb-clear{
+    background:none;border:none;color:var(--danger);font-size:13px;cursor:pointer;
+    padding:0 2px;border-radius:50%;font-weight:800;line-height:1;
+  }
+  .search-bar{flex:1;}
+  .search-bar input{
+    width:100%;padding:11px 12px;border-radius:10px;border:1.5px solid var(--border);
+    font-size:16px;background:var(--card);
+  }
   .edit-order-banner{
     position:fixed;left:12px;right:12px;margin:0 auto;max-width:572px;
     bottom:calc(76px + env(safe-area-inset-bottom));z-index:59;
@@ -343,17 +359,6 @@
   .filter-dropdown-item:active{background:var(--soft);}
   .filter-dropdown-item.active{color:var(--primary);font-weight:800;}
   .filter-dropdown-item .fd-count{font-size:11px;color:var(--subtext);font-weight:700;}
-  .filter-badge{
-    display:none;align-items:center;justify-content:center;gap:5px;
-    padding:4px 12px;background:var(--pl);color:var(--primary);font-size:12px;font-weight:700;
-    border-radius:20px;margin:6px auto 0;width:fit-content;
-  }
-  .filter-badge.visible{display:flex;}
-  .filter-badge span{flex:0 0 auto;}
-  .filter-badge .fb-clear{
-    background:none;border:none;color:var(--danger);font-size:13px;cursor:pointer;
-    padding:0 2px;border-radius:50%;font-weight:800;line-height:1;
-  }
   footer.bar{
     position:fixed;bottom:0;left:0;right:0;background:var(--card);
     border-top:1px solid var(--border);padding:10px 14px;
@@ -595,7 +600,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.7</span>
+  <span class="version">v2.8</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -603,8 +608,10 @@
 </header>
 
 <div class="tabs" id="tabs"></div>
-<div class="filter-badge" id="filterBadge"><i class="bi bi-funnel"></i> <span id="filterBadgeText"></span><button class="fb-clear" id="filterBadgeClear" title="إلغاء الفلتر">✕</button></div>
-<div class="search-bar"><input id="searchBox" placeholder="ابحث بالكود... مثال: LMM, GT, NG"></div>
+<div class="search-row">
+  <div class="filter-badge" id="filterBadge"><i class="bi bi-funnel"></i> <span id="filterBadgeText"></span><button class="fb-clear" id="filterBadgeClear" title="إلغاء الفلتر">✕</button></div>
+  <div class="search-bar"><input id="searchBox" placeholder="ابحث بالكود... مثال: LMM, GT, NG"></div>
+</div>
 
 <main id="main"></main>
 
@@ -634,7 +641,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.7";
+const APP_VERSION = "2.8";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
