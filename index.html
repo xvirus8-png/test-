@@ -1,4 +1,4 @@
-<!-- index v1.25 -->
+<!-- index v1.26 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -391,6 +391,16 @@
     background:var(--danger);color:#fff;border:none;border-radius:8px;
     width:36px;height:36px;cursor:pointer;font-size:15px;
   }
+  .order-cell{min-width:64px;}
+  .order-cell .order-ctrl{display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .order-cell .order-btn{
+    width:30px;height:26px;border:1.5px solid var(--border);background:var(--soft);color:var(--text);
+    border-radius:7px;font-weight:800;font-size:12px;cursor:pointer;font-family:inherit;padding:0;
+    display:flex;align-items:center;justify-content:center;line-height:1;
+  }
+  .order-cell .order-btn:active{transform:scale(.92);}
+  .order-cell .order-btn:disabled{opacity:.35;cursor:not-allowed;}
+  .order-cell .order-input{width:44px;padding:5px 2px;font-size:14px;min-width:0;}
   .add-row-btn{
     display:block;margin:0 auto 20px;background:var(--primary);color:#fff;border:none;
     padding:11px 18px;min-height:44px;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;
@@ -534,7 +544,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v1.25</span>
+  <span class="version">v1.26</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -572,7 +582,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "1.25";
+const APP_VERSION = "1.26";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1134,7 +1144,7 @@ function buildPanels(){
         <input type="file" id="importExcelInput" accept=".xlsx,.xls" style="display:none;">
       </label>
       <button type="button" id="exportExcelBtn"><i class="bi bi-file-earmark-arrow-up"></i> تصدير اكسل</button>
-      <span class="edit-hint">عدّل الاسم / مبلغ الجملة / مبلغ المفرد مباشرة بالجدول</span>
+      <span class="edit-hint">عدّل الاسم / مبلغ الجملة / مبلغ المفرد مباشرة بالجدول، ورتب المنتجات من عمود "الترتيب"</span>
     `;
     main.appendChild(toolbar);
     toolbar.querySelector("#importExcelInput").addEventListener("change", handleImportExcel);
@@ -1169,6 +1179,27 @@ function normalizeProductBlock(block){
   if(!block.itemImages || typeof block.itemImages !== "object") block.itemImages = {};
   if(!block.itemBarcodes || typeof block.itemBarcodes !== "object") block.itemBarcodes = {};
   return block;
+}
+
+// ===== PRODUCT CARD ORDERING (edit mode: move-to-position input + up/down arrows) =====
+// Array order in DATA[brand] IS the display order for both the normal grid and the edit table.
+// Moving a product just splices it to a new index in that same array.
+function moveBlockToIndex(brand, fromIdx, toIdx){
+  const arr = DATA[brand];
+  if(!Array.isArray(arr)) return;
+  toIdx = Math.max(0, Math.min(arr.length-1, toIdx));
+  if(toIdx === fromIdx) return;
+  const [item] = arr.splice(fromIdx, 1);
+  arr.splice(toIdx, 0, item);
+  saveData();
+  buildPanels();
+}
+function swapBlocks(brand, idxA, idxB){
+  const arr = DATA[brand];
+  if(!Array.isArray(arr) || idxB<0 || idxB>=arr.length) return;
+  [arr[idxA], arr[idxB]] = [arr[idxB], arr[idxA]];
+  saveData();
+  buildPanels();
 }
 
 const EAN_L = ["0001101","0011001","0010011","0111101","0100011","0110001","0101111","0111011","0110111","0001011"];
@@ -1622,7 +1653,7 @@ function buildEditTable(panel, brand){
     <div class="table-scroll">
     <table class="price-table">
       <thead>
-        <tr><th>الصورة</th><th>اسم المنتج</th><th>الدرجات</th><th>مبلغ الجملة</th><th>مبلغ المفرد</th><th></th></tr>
+        <tr><th>الترتيب</th><th>الصورة</th><th>اسم المنتج</th><th>الدرجات</th><th>مبلغ الجملة</th><th>مبلغ المفرد</th><th></th></tr>
       </thead>
       <tbody id="tbody-${brand}"></tbody>
     </table>
@@ -1636,6 +1667,13 @@ function buildEditTable(panel, brand){
     const {big, small} = {big:block.big, small:block.small};
     const tr = document.createElement("tr");
     tr.innerHTML = `
+      <td class="order-cell">
+        <div class="order-ctrl">
+          <button type="button" class="order-btn order-up" title="نقل لأعلى"${idx===0?" disabled":""}>▲</button>
+          <input type="text" inputmode="numeric" pattern="[0-9]*" class="order-input" value="${idx+1}" title="المرتبة">
+          <button type="button" class="order-btn order-down" title="نقل لأسفل"${idx===blocks.length-1?" disabled":""}>▼</button>
+        </div>
+      </td>
       <td class="edit-image-cell">
         ${getProductImage(block) ? `<img src="${getProductImage(block)}" class="edit-image-preview">` : `<span style="font-size:22px;">📦</span>`}
         <button type="button" class="product-img-btn">📷</button>
@@ -1646,6 +1684,27 @@ function buildEditTable(panel, brand){
       <td><input type="text" inputmode="numeric" pattern="[0-9,]*" class="big-input" value="${big?fmt(big):''}"></td>
       <td><button type="button" class="row-del">🗑</button></td>
     `;
+
+    // ---- Card ordering controls (up/down arrows + go-to-position input) ----
+    tr.querySelector(".order-up").addEventListener("click", ()=>{
+      if(idx<=0) return;
+      swapBlocks(brand, idx, idx-1);
+    });
+    tr.querySelector(".order-down").addEventListener("click", ()=>{
+      if(idx>=blocks.length-1) return;
+      swapBlocks(brand, idx, idx+1);
+    });
+    const orderInput = tr.querySelector(".order-input");
+    orderInput.addEventListener("focus", ()=>{ try{ orderInput.select(); }catch(err){} });
+    orderInput.addEventListener("change", ()=>{
+      let target = parseInt(normDigits(orderInput.value), 10);
+      if(isNaN(target)) target = idx+1;
+      target = Math.max(1, Math.min(blocks.length, target));
+      const newIdx = target - 1;
+      if(newIdx === idx){ orderInput.value = idx+1; return; }
+      moveBlockToIndex(brand, idx, newIdx);
+    });
+
     const imageBtn = tr.querySelector(".product-img-btn");
     imageBtn.addEventListener("click", ()=>{
       chooseProductImage(brand, block, ()=>buildPanels());
@@ -2405,7 +2464,3 @@ document.addEventListener("touchmove", e => {
 </script>
 </body>
 </html>
-
-
-
-
