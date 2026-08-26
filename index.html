@@ -1,4 +1,4 @@
-<!-- index v2.3 -->
+<!-- index v2.4 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -328,7 +328,33 @@
   .note-save{flex:1;}
   .brand-title{
     font-size:20px;font-weight:800;text-align:center;margin:10px 0 14px;
-    color:var(--primary);
+    color:var(--primary);cursor:pointer;user-select:none;-webkit-user-select:none;
+    position:relative;display:inline-block;
+  }
+  .brand-title-wrap{text-align:center;position:relative;}
+  .filter-dropdown{
+    position:absolute;left:50%;transform:translateX(-50%);top:100%;margin-top:4px;
+    background:var(--card);border:1.5px solid var(--border);border-radius:12px;
+    box-shadow:0 4px 16px var(--shadow);z-index:100;min-width:200px;max-width:90vw;
+    max-height:50vh;overflow-y:auto;padding:6px 0;
+  }
+  .filter-dropdown-item{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:11px 14px;cursor:pointer;font-size:14px;font-weight:600;color:var(--text);
+  }
+  .filter-dropdown-item:active{background:var(--soft);}
+  .filter-dropdown-item.active{color:var(--primary);font-weight:800;}
+  .filter-dropdown-item .fd-count{font-size:11px;color:var(--subtext);font-weight:700;}
+  .filter-badge{
+    display:none;align-items:center;justify-content:center;gap:8px;
+    padding:6px 14px;background:var(--pl);color:var(--primary);font-size:13px;font-weight:700;
+    border-bottom:1px solid var(--border);
+  }
+  .filter-badge.visible{display:flex;}
+  .filter-badge span{flex:0 0 auto;}
+  .filter-badge .fb-clear{
+    background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer;
+    padding:2px 6px;border-radius:6px;font-weight:800;
   }
   footer.bar{
     position:fixed;bottom:0;left:0;right:0;background:var(--card);
@@ -401,15 +427,6 @@
   .order-cell .order-btn:active{transform:scale(.92);}
   .order-cell .order-btn:disabled{opacity:.35;cursor:not-allowed;}
   .order-cell .order-input{width:44px;padding:5px 2px;font-size:14px;min-width:0;}
-  .filter-bar{display:flex;align-items:center;gap:8px;margin:0 0 12px;}
-  .filter-bar select{
-    flex:1;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);
-    background:var(--card);font-size:14px;font-weight:700;color:var(--text);
-  }
-  .filter-manage-btn{
-    background:var(--soft);border:1.5px solid var(--border);color:var(--text);border-radius:10px;
-    padding:10px 12px;min-height:42px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;
-  }
   .fm-row{
     display:flex;align-items:center;gap:10px;
     padding:11px 6px;border-bottom:1px solid var(--soft);
@@ -580,7 +597,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.3</span>
+  <span class="version">v2.4</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -588,6 +605,7 @@
 </header>
 
 <div class="tabs" id="tabs"></div>
+<div class="filter-badge" id="filterBadge"><i class="bi bi-funnel"></i> <span id="filterBadgeText"></span><button class="fb-clear" id="filterBadgeClear" title="إلغاء الفلتر">✕</button></div>
 <div class="search-bar"><input id="searchBox" placeholder="ابحث بالكود... مثال: LMM, GT, NG"></div>
 
 <main id="main"></main>
@@ -618,7 +636,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.3";
+const APP_VERSION = "2.4";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1183,6 +1201,7 @@ function buildTabs(){
 function switchTab(brand){
   document.querySelectorAll(".tab-btn").forEach(b=>b.classList.toggle("active", b.dataset.brand===brand));
   document.querySelectorAll(".brand-panel").forEach(p=>p.classList.toggle("active", p.dataset.brand===brand));
+  updateFilterBadge();
 }
 
 let editMode = false;
@@ -1229,26 +1248,29 @@ function buildPanels(){
       buildEditTable(panel, brand);
     } else {
       const brandFilters = ensureFilters(brand);
-      const filterBarHtml = brandFilters.length ? `
-        <div class="filter-bar">
-          <select class="filter-select"><option value="">كل المنتجات</option>${brandFilters.map(f=>`<option value="${f.id}">${escHtml(f.name)} (${f.codes.length})</option>`).join("")}</select>
-        </div>` : "";
-      panel.innerHTML = `<div class="brand-title">${brand}</div>${filterBarHtml}<div class="grid" id="grid-${brand}"></div>`;
+      panel.innerHTML = `<div class="brand-title-wrap"><span class="brand-title" data-brand="${brand}">${brand}</span></div><div class="grid" id="grid-${brand}"></div>`;
       buildGrid(panel.querySelector(".grid"), brand, blocks);
-      const filterSelect = panel.querySelector(".filter-select");
-      if(filterSelect){
-        const current = ACTIVE_FILTER[brand] || "";
-        if(brandFilters.some(f=>f.id===current)) filterSelect.value = current;
-        else ACTIVE_FILTER[brand] = "";
-        applyFilterToGrid(panel, brand, filterSelect.value);
-        filterSelect.addEventListener("change", ()=>{
-          ACTIVE_FILTER[brand] = filterSelect.value;
-          applyFilterToGrid(panel, brand, filterSelect.value);
-        });
-      }
+      const current = ACTIVE_FILTER[brand] || "";
+      if(!brandFilters.some(f=>f.id===current)) ACTIVE_FILTER[brand] = "";
+      applyFilterToGrid(panel, brand, ACTIVE_FILTER[brand] || "");
+      const titleEl = panel.querySelector(".brand-title");
+      let longPressTimer = null;
+      let didLongPress = false;
+      const openDropdown = ()=>openFilterDropdown(brand, titleEl, panel);
+      titleEl.addEventListener("pointerdown", (e)=>{
+        didLongPress = false;
+        longPressTimer = setTimeout(()=>{ didLongPress = true; openDropdown(); }, 450);
+      });
+      titleEl.addEventListener("pointerup", ()=>clearTimeout(longPressTimer));
+      titleEl.addEventListener("pointercancel", ()=>clearTimeout(longPressTimer));
+      titleEl.addEventListener("pointerleave", ()=>clearTimeout(longPressTimer));
+      titleEl.addEventListener("click", (e)=>{
+        if(didLongPress){ e.preventDefault(); e.stopPropagation(); }
+      });
     }
   });
   updateTotals();
+  updateFilterBadge();
 }
 
 
@@ -1298,6 +1320,58 @@ function applyFilterToGrid(panel, brand, filterId){
   grid.querySelectorAll(".block").forEach(b=>{
     b.style.display = codeSet.has(b.dataset.code) ? "" : "none";
   });
+}
+
+function openFilterDropdown(brand, titleEl, panel){
+  document.querySelectorAll(".filter-dropdown").forEach(d=>d.remove());
+  const brandFilters = ensureFilters(brand);
+  const dd = document.createElement("div");
+  dd.className = "filter-dropdown";
+  const current = ACTIVE_FILTER[brand] || "";
+  const allItem = document.createElement("div");
+  allItem.className = "filter-dropdown-item" + (!current ? " active" : "");
+  allItem.innerHTML = `<span>كل المنتجات</span>`;
+  allItem.addEventListener("click", ()=>{
+    ACTIVE_FILTER[brand] = "";
+    applyFilterToGrid(panel, brand, "");
+    updateFilterBadge();
+    dd.remove();
+  });
+  dd.appendChild(allItem);
+  brandFilters.forEach(f=>{
+    const item = document.createElement("div");
+    item.className = "filter-dropdown-item" + (f.id === current ? " active" : "");
+    item.innerHTML = `<span>${escHtml(f.name)}</span><span class="fd-count">${f.codes.length} منتج</span>`;
+    item.addEventListener("click", ()=>{
+      ACTIVE_FILTER[brand] = f.id;
+      applyFilterToGrid(panel, brand, f.id);
+      updateFilterBadge();
+      dd.remove();
+    });
+    dd.appendChild(item);
+  });
+  const wrap = titleEl.closest(".brand-title-wrap") || titleEl.parentElement;
+  wrap.style.position = "relative";
+  wrap.appendChild(dd);
+  const closeDD = (e)=>{
+    if(!dd.contains(e.target) && e.target !== titleEl){ dd.remove(); document.removeEventListener("pointerdown", closeDD); }
+  };
+  setTimeout(()=>document.addEventListener("pointerdown", closeDD), 0);
+}
+
+function updateFilterBadge(){
+  const badge = document.getElementById("filterBadge");
+  const text = document.getElementById("filterBadgeText");
+  if(!badge || !text) return;
+  const activePanel = document.querySelector(".brand-panel.active");
+  if(!activePanel){ badge.classList.remove("visible"); return; }
+  const brand = activePanel.dataset.brand;
+  const filterId = ACTIVE_FILTER[brand] || "";
+  if(!filterId){ badge.classList.remove("visible"); return; }
+  const f = ensureFilters(brand).find(x=>x.id===filterId);
+  if(!f){ badge.classList.remove("visible"); return; }
+  text.textContent = f.name;
+  badge.classList.add("visible");
 }
 
 function openFilterManager(brand){
@@ -2461,6 +2535,15 @@ initCloud();
 applyThemeIcon();
 updateStickyOffsets();
 updateHistoryCount();
+
+document.getElementById("filterBadgeClear").addEventListener("click", ()=>{
+  const activePanel = document.querySelector(".brand-panel.active");
+  if(!activePanel) return;
+  const brand = activePanel.dataset.brand;
+  ACTIVE_FILTER[brand] = "";
+  applyFilterToGrid(activePanel, brand, "");
+  updateFilterBadge();
+});
 
 // Fallback: clicking any product image always opens the enlarged image
 // when not in edit mode. This also works after the cards are re-rendered.
