@@ -655,6 +655,10 @@
   .pin-actions button{flex:1;min-height:48px;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;}
   .pin-ok{background:var(--primary);color:#fff;}
   .pin-cancel{background:var(--soft);color:var(--text);}
+  .pin-divider{display:flex;align-items:center;gap:10px;width:100%;color:var(--subtext);font-size:12px;}
+  .pin-divider::before,.pin-divider::after{content:"";flex:1;height:1px;background:var(--border);}
+  .pin-bio{width:60px;height:60px;border:none;border-radius:50%;background:var(--soft);color:var(--primary);font-size:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s;}
+  .pin-bio:active{transform:scale(.9);}
 
   /* === SPLASH SCREEN v2.16 === */
   .splash{position:fixed;inset:0;z-index:999;background:linear-gradient(135deg,#e0f7fa,#b2ebf2,#c8e6c9,#e0f7fa);background-size:400% 400%;animation:splashAurora 8s ease infinite;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .5s ease;}
@@ -1322,12 +1326,17 @@ function hideSplashGuard(){
 function openNafedPin(){
   var overlay=document.createElement("div");
   overlay.className="pin-modal";
-  overlay.innerHTML='<div class="pin-panel"><div class="pin-title">🔐 أدخل الرمز السري</div><div class="pin-sub">للوصول للمنتجات النافذة</div><input type="tel" maxlength="4" class="pin-input" id="pinInput" placeholder="••••" autocomplete="off" inputmode="numeric"><div class="pin-actions"><button class="pin-ok" id="pinOkBtn">تأكيد</button><button class="pin-cancel" id="pinCancelBtn">إلغاء</button></div></div>';
+  var hasBio=false;
+  try{hasBio=window.PublicKeyCredential!==undefined;}catch(e){}
+  var bioCred=localStorage.getItem("orderapp_nafed_bio");
+  var bioHtml=hasBio?'<div class="pin-divider">أو</div><button class="pin-bio" id="pinBioBtn" title="فتح بالبصمة"><i class="bi bi-fingerprint"></i></button>':'';
+  overlay.innerHTML='<div class="pin-panel"><div class="pin-title">🔐 أدخل الرمز السري</div><div class="pin-sub">للوصول للمنتجات النافذة</div><input type="tel" maxlength="4" class="pin-input" id="pinInput" placeholder="••••" autocomplete="off" inputmode="numeric"><div class="pin-actions"><button class="pin-ok" id="pinOkBtn">تأكيد</button><button class="pin-cancel" id="pinCancelBtn">إلغاء</button></div>'+bioHtml+'</div>';
   document.body.appendChild(overlay);
   var pinInput=overlay.querySelector("#pinInput");
+  function openManager(){overlay.remove();openNafedManager();}
   function checkPin(){
     var v=pinInput.value;
-    if(v===NAFED_PIN){overlay.remove();openNafedManager();}
+    if(v===NAFED_PIN){openManager();}
     else{
       pinInput.style.borderColor="var(--danger)";
       pinInput.style.color="var(--danger)";
@@ -1343,6 +1352,46 @@ function openNafedPin(){
   overlay.querySelector("#pinCancelBtn").addEventListener("click",function(){overlay.remove();});
   overlay.addEventListener("click",function(e){if(e.target===overlay)overlay.remove();});
   setTimeout(function(){pinInput.focus();},100);
+  var bioBtn=overlay.querySelector("#pinBioBtn");
+  if(bioBtn){
+    bioBtn.addEventListener("click",function(){
+      if(bioCred){doBioAuth();}else{doBioRegister();}
+    });
+  }
+  async function doBioRegister(){
+    try{
+      var challenge=new Uint8Array(32);
+      crypto.getRandomValues(challenge);
+      var cred=await navigator.credentials.create({
+        publicKey:{
+          challenge:challenge,
+          rp:{name:"Fayrouz Nafed"},
+          user:{id:new Uint8Array(16),name:"nafed-user",displayName:"Nafed User"},
+          pubKeyCredParams:[{type:"public-key",alg:-7},{type:"public-key",alg:-257}],
+          authenticatorSelection:{authenticatorAttachment:"platform",userVerification:"required"},
+          timeout:60000
+        }
+      });
+      localStorage.setItem("orderapp_nafed_bio",btoa(String.fromCharCode.apply(null,new Uint8Array(cred.rawId))));
+      openManager();
+    }catch(e){console.warn("Bio register failed:",e);}
+  }
+  async function doBioAuth(){
+    try{
+      var rawId=Uint8Array.from(atob(bioCred),function(c){return c.charCodeAt(0);});
+      var challenge=new Uint8Array(32);
+      crypto.getRandomValues(challenge);
+      await navigator.credentials.get({
+        publicKey:{
+          challenge:challenge,
+          allowCredentials:[{type:"public-key",id:rawId,transports:["internal"]}],
+          userVerification:"required",
+          timeout:60000
+        }
+      });
+      openManager();
+    }catch(e){console.warn("Bio auth failed:",e);}
+  }
 }
 
 function openNafedManager(){
