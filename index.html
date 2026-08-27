@@ -1,4 +1,4 @@
-<!-- index v2.28 -->
+<!-- index v2.29 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -484,6 +484,7 @@
     background:rgba(255,193,7,.12);color:#d97706;border:none;border-radius:8px;
     width:38px;height:38px;font-size:14px;cursor:pointer;flex:none;
   }
+  .fm-order-num{width:36px;height:28px;text-align:center;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-weight:700;color:var(--text);background:var(--soft);flex:none;}
   .fm-order-btns{display:flex;flex-direction:column;gap:2px;margin-inline-start:4px;}
   .fm-order-btns button{
     background:var(--soft);border:1px solid var(--border);color:var(--text);border-radius:6px;
@@ -704,7 +705,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.28</span>
+  <span class="version">v2.29</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -739,7 +740,7 @@
     <button class="drawer-item" onclick="openHistory()"><i class="bi bi-clock-history"></i> السجل<span class="drawer-count" id="historyCount"></span></button>
     <button class="drawer-item" id="nafedBtn" onclick="openNafedPin();closeDrawer()"><i class="bi bi-box-seam"></i> المنتجات النافذة</button>
     <button class="drawer-item" id="editBtn" onclick="toggleEditMode();closeDrawer()"><i class="bi bi-pencil-square"></i> تعديل الأسعار</button>
-    <button class="drawer-item" onclick="toggleFilterMode();closeDrawer()"><i class="bi bi-tags"></i> الفلاتر</button>
+    <button class="drawer-item" onclick="toggleFilterMode();closeDrawer()"><i class="bi bi-tags"></i> إدارة المنتجات</button>
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="backupsBtn" onclick="openBackups();closeDrawer()"><i class="bi bi-download"></i> نسخة احتياطية</button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
@@ -748,7 +749,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.28";
+const APP_VERSION = "2.29";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -2073,8 +2074,11 @@ function buildFilterPanel(panel, brand){
       row.dataset.code = block.code.toLowerCase();
       const cid = "fpchk_" + Math.random().toString(36).slice(2);
       const orderBtns = isIn ? `<span class="fm-order-btns"><button type="button" class="fm-ou" data-code="${block.code}" title="أعلى">▲</button><button type="button" class="fm-od" data-code="${block.code}" title="أسفل">▼</button></span>` : "";
-      row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderBtns}`;
-      row.querySelector("input").addEventListener("change", (e)=>{
+      const orderPos = isIn ? (filter.order.findIndex(c=>c.toLowerCase()===block.code.toLowerCase())) : -1;
+      const orderVal = isIn ? (orderPos >= 0 ? orderPos + 1 : "") : "";
+      const orderInput = isIn ? `<input type="number" class="fm-order-num" min="1" value="${orderVal}" data-code="${block.code}">` : "";
+      row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderInput}${orderBtns}`;
+      row.querySelector("input[type=checkbox]").addEventListener("change", (e)=>{
         if(e.target.checked){
           if(!filter.codes.some(c=>c.toLowerCase()===block.code.toLowerCase())) filter.codes.push(block.code);
           codeSet.add(block.code.toLowerCase());
@@ -2086,6 +2090,21 @@ function buildFilterPanel(panel, brand){
         saveFilters();
         render();
       });
+      const numInput = row.querySelector("input.fm-order-num");
+      if(numInput){
+        numInput.addEventListener("change", ()=>{
+          const code = numInput.dataset.code;
+          const newPos = parseInt(numInput.value);
+          if(!newPos || newPos < 1) return;
+          filter.codes.forEach(c=>{
+            if(!filter.order.some(o=>o.toLowerCase()===c.toLowerCase())) filter.order.push(c);
+          });
+          filter.order = filter.order.filter(c=>c.toLowerCase()!==code.toLowerCase());
+          filter.order.splice(newPos - 1, 0, code);
+          saveFilters();
+          render();
+        });
+      }
       panel.querySelector("#fpList").appendChild(row);
     });
     panel.querySelectorAll(".fm-ou").forEach(btn=>{
@@ -2146,8 +2165,11 @@ function buildFilterPanel(panel, brand){
       row.dataset.code = block.code.toLowerCase();
       const cid = "fpschk_" + Math.random().toString(36).slice(2);
       const orderBtns = isIn ? `<span class="fm-order-btns"><button type="button" class="fm-ou" data-code="${block.code}" title="أعلى">▲</button><button type="button" class="fm-od" data-code="${block.code}" title="أسفل">▼</button></span>` : "";
-      row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderBtns}`;
-      row.querySelector("input").addEventListener("change", (e)=>{
+      const orderPos = isIn ? (sub.order.findIndex(c=>c.toLowerCase()===block.code.toLowerCase())) : -1;
+      const orderVal = isIn ? (orderPos >= 0 ? orderPos + 1 : "") : "";
+      const orderInput = isIn ? `<input type="number" class="fm-order-num" min="1" value="${orderVal}" data-code="${block.code}">` : "";
+      row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderInput}${orderBtns}`;
+      row.querySelector("input[type=checkbox]").addEventListener("change", (e)=>{
         if(e.target.checked){
           if(!sub.codes.some(c=>c.toLowerCase()===block.code.toLowerCase())) sub.codes.push(block.code);
           codeSet.add(block.code.toLowerCase());
@@ -2159,6 +2181,21 @@ function buildFilterPanel(panel, brand){
         saveFilters();
         render();
       });
+      const numInput = row.querySelector("input.fm-order-num");
+      if(numInput){
+        numInput.addEventListener("change", ()=>{
+          const code = numInput.dataset.code;
+          const newPos = parseInt(numInput.value);
+          if(!newPos || newPos < 1) return;
+          sub.codes.forEach(c=>{
+            if(!sub.order.some(o=>o.toLowerCase()===c.toLowerCase())) sub.order.push(c);
+          });
+          sub.order = sub.order.filter(c=>c.toLowerCase()!==code.toLowerCase());
+          sub.order.splice(newPos - 1, 0, code);
+          saveFilters();
+          render();
+        });
+      }
       panel.querySelector("#fpList").appendChild(row);
     });
     panel.querySelectorAll(".fm-ou").forEach(btn=>{
@@ -2384,8 +2421,11 @@ function openFilterManager(brand){
         row.className = "fm-check-row";
         const cid = "fmschk_" + Math.random().toString(36).slice(2);
         const orderBtns = isIn ? `<span class="fm-order-btns"><button type="button" class="fm-ou" data-code="${block.code}" title="أعلى">▲</button><button type="button" class="fm-od" data-code="${block.code}" title="أسفل">▼</button></span>` : "";
-        row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderBtns}`;
-        row.querySelector("input").addEventListener("change", (e)=>{
+        const orderPos = isIn ? (sub.order.findIndex(c=>c.toLowerCase()===block.code.toLowerCase())) : -1;
+        const orderVal = isIn ? (orderPos >= 0 ? orderPos + 1 : "") : "";
+        const orderInput = isIn ? `<input type="number" class="fm-order-num" min="1" value="${orderVal}" data-code="${block.code}">` : "";
+        row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderInput}${orderBtns}`;
+        row.querySelector("input[type=checkbox]").addEventListener("change", (e)=>{
           if(e.target.checked){
             if(!sub.codes.some(c=>c.toLowerCase()===block.code.toLowerCase())) sub.codes.push(block.code);
             codeSet.add(block.code.toLowerCase());
@@ -2397,6 +2437,21 @@ function openFilterManager(brand){
           saveFilters();
           rebuildSubCheckList();
         });
+        const numInput = row.querySelector("input.fm-order-num");
+        if(numInput){
+          numInput.addEventListener("change", ()=>{
+            const code = numInput.dataset.code;
+            const newPos = parseInt(numInput.value);
+            if(!newPos || newPos < 1) return;
+            sub.codes.forEach(c=>{
+              if(!sub.order.some(o=>o.toLowerCase()===c.toLowerCase())) sub.order.push(c);
+            });
+            sub.order = sub.order.filter(c=>c.toLowerCase()!==code.toLowerCase());
+            sub.order.splice(newPos - 1, 0, code);
+            saveFilters();
+            rebuildSubCheckList();
+          });
+        }
         body.appendChild(row);
       });
       body.querySelectorAll(".fm-ou").forEach(btn=>{
@@ -2466,8 +2521,11 @@ function openFilterManager(brand){
         row.className = "fm-check-row";
         const cid = "fmchk_" + Math.random().toString(36).slice(2);
         const orderBtns = isIn ? `<span class="fm-order-btns"><button type="button" class="fm-ou" data-code="${block.code}" title="أعلى">▲</button><button type="button" class="fm-od" data-code="${block.code}" title="أسفل">▼</button></span>` : "";
-        row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderBtns}`;
-        row.querySelector("input").addEventListener("change", (e)=>{
+        const orderPos = isIn ? (f.order.findIndex(c=>c.toLowerCase()===block.code.toLowerCase())) : -1;
+        const orderVal = isIn ? (orderPos >= 0 ? orderPos + 1 : "") : "";
+        const orderInput = isIn ? `<input type="number" class="fm-order-num" min="1" value="${orderVal}" data-code="${block.code}">` : "";
+        row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderInput}${orderBtns}`;
+        row.querySelector("input[type=checkbox]").addEventListener("change", (e)=>{
           if(e.target.checked){
             if(!f.codes.some(c=>c.toLowerCase()===block.code.toLowerCase())) f.codes.push(block.code);
             codeSet.add(block.code.toLowerCase());
@@ -2479,6 +2537,21 @@ function openFilterManager(brand){
           saveFilters();
           rebuildCheckList();
         });
+        const numInput = row.querySelector("input.fm-order-num");
+        if(numInput){
+          numInput.addEventListener("change", ()=>{
+            const code = numInput.dataset.code;
+            const newPos = parseInt(numInput.value);
+            if(!newPos || newPos < 1) return;
+            f.codes.forEach(c=>{
+              if(!f.order.some(o=>o.toLowerCase()===c.toLowerCase())) f.order.push(c);
+            });
+            f.order = f.order.filter(c=>c.toLowerCase()!==code.toLowerCase());
+            f.order.splice(newPos - 1, 0, code);
+            saveFilters();
+            rebuildCheckList();
+          });
+        }
         body.appendChild(row);
       });
       body.querySelectorAll(".fm-ou").forEach(btn=>{

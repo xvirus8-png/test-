@@ -1,5 +1,10 @@
 === CHANGELOG - فيروز طلبية ===
 
+[v2.29] 2026-08-27
+- حقل رقمي للترتيب بالفلاتر: حقل inputmode=numeric بجانب كل منتج مُختار يعرض ويغيّر الترتيب مباشرة + أزرار ▲▼ تبقى (4 أماكن: renderFilterProducts + renderSubProducts + rebuildSubCheckList + rebuildCheckList)
+- CSS جديد: .fm-order-num بتصميم موحّد مع باقي العناصر
+- تغيير اسم زر "الفلاتر" بالدرج إلى "إدارة المنتجات"
+
 [v2.28] 2026-08-27
 - شريط البحث الرئيسي يعمل مع المنتجات داخل صفحة الفلاتر (-products + subProducts)
 

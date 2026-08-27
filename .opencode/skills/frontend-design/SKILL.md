@@ -1,6 +1,8 @@
 ﻿---
 name: frontend-design
 description: Mobile-first RTL design system for Firebase dashboard apps with dark mode support
+metadata:
+  opencode/autoinvoke: true
 ---
 
 ## Design Principles
