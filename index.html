@@ -1,4 +1,4 @@
-<!-- index v2.29 -->
+<!-- index v2.30 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -484,13 +484,8 @@
     background:rgba(255,193,7,.12);color:#d97706;border:none;border-radius:8px;
     width:38px;height:38px;font-size:14px;cursor:pointer;flex:none;
   }
-  .fm-order-num{width:36px;height:28px;text-align:center;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-weight:700;color:var(--text);background:var(--soft);flex:none;}
-  .fm-order-btns{display:flex;flex-direction:column;gap:2px;margin-inline-start:4px;}
-  .fm-order-btns button{
-    background:var(--soft);border:1px solid var(--border);color:var(--text);border-radius:6px;
-    width:28px;height:22px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;
-  }
-  .fm-order-btns button:active{transform:scale(.9);}
+  .fm-order-ctrl{margin-inline-start:4px;flex:none;}
+  .fm-order-ctrl .order-input{width:40px;}
   .fm-check-row{
     display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--soft);
   }
@@ -705,7 +700,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.29</span>
+  <span class="version">v2.30</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -749,7 +744,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.29";
+const APP_VERSION = "2.30";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -2079,11 +2074,10 @@ function buildFilterPanel(panel, brand){
       row.className = "fm-check-row";
       row.dataset.code = block.code.toLowerCase();
       const cid = "fpchk_" + Math.random().toString(36).slice(2);
-      const orderBtns = isIn ? `<span class="fm-order-btns"><button type="button" class="fm-ou" data-code="${block.code}" title="أعلى">▲</button><button type="button" class="fm-od" data-code="${block.code}" title="أسفل">▼</button></span>` : "";
       const orderPos = isIn ? (filter.order.findIndex(c=>c.toLowerCase()===block.code.toLowerCase())) : -1;
       const orderVal = isIn ? (orderPos >= 0 ? orderPos + 1 : "") : "";
-      const orderInput = isIn ? `<input type="number" class="fm-order-num" min="1" value="${orderVal}" data-code="${block.code}">` : "";
-      row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderInput}${orderBtns}`;
+      const orderCtrl = isIn ? `<div class="order-ctrl fm-order-ctrl"><button type="button" class="order-btn fm-ou" data-code="${block.code}" title="أعلى">▲</button><input type="number" class="fm-order-num order-input" min="1" value="${orderVal}" data-code="${block.code}"><button type="button" class="order-btn fm-od" data-code="${block.code}" title="أسفل">▼</button></div>` : "";
+      row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderCtrl}`;
       row.querySelector("input[type=checkbox]").addEventListener("change", (e)=>{
         if(e.target.checked){
           if(!filter.codes.some(c=>c.toLowerCase()===block.code.toLowerCase())) filter.codes.push(block.code);
@@ -2171,11 +2165,10 @@ function buildFilterPanel(panel, brand){
       row.className = "fm-check-row";
       row.dataset.code = block.code.toLowerCase();
       const cid = "fpschk_" + Math.random().toString(36).slice(2);
-      const orderBtns = isIn ? `<span class="fm-order-btns"><button type="button" class="fm-ou" data-code="${block.code}" title="أعلى">▲</button><button type="button" class="fm-od" data-code="${block.code}" title="أسفل">▼</button></span>` : "";
       const orderPos = isIn ? (sub.order.findIndex(c=>c.toLowerCase()===block.code.toLowerCase())) : -1;
       const orderVal = isIn ? (orderPos >= 0 ? orderPos + 1 : "") : "";
-      const orderInput = isIn ? `<input type="number" class="fm-order-num" min="1" value="${orderVal}" data-code="${block.code}">` : "";
-      row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderInput}${orderBtns}`;
+      const orderCtrl = isIn ? `<div class="order-ctrl fm-order-ctrl"><button type="button" class="order-btn fm-ou" data-code="${block.code}" title="أعلى">▲</button><input type="number" class="fm-order-num order-input" min="1" value="${orderVal}" data-code="${block.code}"><button type="button" class="order-btn fm-od" data-code="${block.code}" title="أسفل">▼</button></div>` : "";
+      row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderCtrl}`;
       row.querySelector("input[type=checkbox]").addEventListener("change", (e)=>{
         if(e.target.checked){
           if(!sub.codes.some(c=>c.toLowerCase()===block.code.toLowerCase())) sub.codes.push(block.code);
@@ -2428,11 +2421,10 @@ function openFilterManager(brand){
         const row = document.createElement("div");
         row.className = "fm-check-row";
         const cid = "fmschk_" + Math.random().toString(36).slice(2);
-        const orderBtns = isIn ? `<span class="fm-order-btns"><button type="button" class="fm-ou" data-code="${block.code}" title="أعلى">▲</button><button type="button" class="fm-od" data-code="${block.code}" title="أسفل">▼</button></span>` : "";
         const orderPos = isIn ? (sub.order.findIndex(c=>c.toLowerCase()===block.code.toLowerCase())) : -1;
         const orderVal = isIn ? (orderPos >= 0 ? orderPos + 1 : "") : "";
-        const orderInput = isIn ? `<input type="number" class="fm-order-num" min="1" value="${orderVal}" data-code="${block.code}">` : "";
-        row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderInput}${orderBtns}`;
+        const orderCtrl = isIn ? `<div class="order-ctrl fm-order-ctrl"><button type="button" class="order-btn fm-ou" data-code="${block.code}" title="أعلى">▲</button><input type="number" class="fm-order-num order-input" min="1" value="${orderVal}" data-code="${block.code}"><button type="button" class="order-btn fm-od" data-code="${block.code}" title="أسفل">▼</button></div>` : "";
+        row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderCtrl}`;
         row.querySelector("input[type=checkbox]").addEventListener("change", (e)=>{
           if(e.target.checked){
             if(!sub.codes.some(c=>c.toLowerCase()===block.code.toLowerCase())) sub.codes.push(block.code);
@@ -2529,11 +2521,10 @@ function openFilterManager(brand){
         const row = document.createElement("div");
         row.className = "fm-check-row";
         const cid = "fmchk_" + Math.random().toString(36).slice(2);
-        const orderBtns = isIn ? `<span class="fm-order-btns"><button type="button" class="fm-ou" data-code="${block.code}" title="أعلى">▲</button><button type="button" class="fm-od" data-code="${block.code}" title="أسفل">▼</button></span>` : "";
         const orderPos = isIn ? (f.order.findIndex(c=>c.toLowerCase()===block.code.toLowerCase())) : -1;
         const orderVal = isIn ? (orderPos >= 0 ? orderPos + 1 : "") : "";
-        const orderInput = isIn ? `<input type="number" class="fm-order-num" min="1" value="${orderVal}" data-code="${block.code}">` : "";
-        row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderInput}${orderBtns}`;
+        const orderCtrl = isIn ? `<div class="order-ctrl fm-order-ctrl"><button type="button" class="order-btn fm-ou" data-code="${block.code}" title="أعلى">▲</button><input type="number" class="fm-order-num order-input" min="1" value="${orderVal}" data-code="${block.code}"><button type="button" class="order-btn fm-od" data-code="${block.code}" title="أسفل">▼</button></div>` : "";
+        row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderCtrl}`;
         row.querySelector("input[type=checkbox]").addEventListener("change", (e)=>{
           if(e.target.checked){
             if(!f.codes.some(c=>c.toLowerCase()===block.code.toLowerCase())) f.codes.push(block.code);
