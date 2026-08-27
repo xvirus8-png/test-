@@ -1,4 +1,4 @@
-<!-- index v2.30 -->
+<!-- index v2.31 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -700,7 +700,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.30</span>
+  <span class="version">v2.31</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -744,7 +744,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.30";
+const APP_VERSION = "2.31";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -2081,6 +2081,7 @@ function buildFilterPanel(panel, brand){
       row.querySelector("input[type=checkbox]").addEventListener("change", (e)=>{
         if(e.target.checked){
           if(!filter.codes.some(c=>c.toLowerCase()===block.code.toLowerCase())) filter.codes.push(block.code);
+          if(!filter.order.some(c=>c.toLowerCase()===block.code.toLowerCase())) filter.order.push(block.code);
           codeSet.add(block.code.toLowerCase());
         } else {
           filter.codes = filter.codes.filter(c=>c.toLowerCase()!==block.code.toLowerCase());
@@ -2172,6 +2173,7 @@ function buildFilterPanel(panel, brand){
       row.querySelector("input[type=checkbox]").addEventListener("change", (e)=>{
         if(e.target.checked){
           if(!sub.codes.some(c=>c.toLowerCase()===block.code.toLowerCase())) sub.codes.push(block.code);
+          if(!sub.order.some(c=>c.toLowerCase()===block.code.toLowerCase())) sub.order.push(block.code);
           codeSet.add(block.code.toLowerCase());
         } else {
           sub.codes = sub.codes.filter(c=>c.toLowerCase()!==block.code.toLowerCase());
@@ -2428,6 +2430,7 @@ function openFilterManager(brand){
         row.querySelector("input[type=checkbox]").addEventListener("change", (e)=>{
           if(e.target.checked){
             if(!sub.codes.some(c=>c.toLowerCase()===block.code.toLowerCase())) sub.codes.push(block.code);
+            if(!sub.order.some(c=>c.toLowerCase()===block.code.toLowerCase())) sub.order.push(block.code);
             codeSet.add(block.code.toLowerCase());
           }else{
             sub.codes = sub.codes.filter(c=>c.toLowerCase()!==block.code.toLowerCase());
@@ -2528,6 +2531,7 @@ function openFilterManager(brand){
         row.querySelector("input[type=checkbox]").addEventListener("change", (e)=>{
           if(e.target.checked){
             if(!f.codes.some(c=>c.toLowerCase()===block.code.toLowerCase())) f.codes.push(block.code);
+            if(!f.order.some(c=>c.toLowerCase()===block.code.toLowerCase())) f.order.push(block.code);
             codeSet.add(block.code.toLowerCase());
           }else{
             f.codes = f.codes.filter(c=>c.toLowerCase()!==block.code.toLowerCase());
