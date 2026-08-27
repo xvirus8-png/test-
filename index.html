@@ -1,4 +1,4 @@
-<!-- index v2.22 -->
+<!-- index v2.23 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -713,7 +713,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.22</span>
+  <span class="version">v2.23</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -757,7 +757,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.22";
+const APP_VERSION = "2.23";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1931,7 +1931,6 @@ function buildFilterPanel(panel, brand){
     const listNow = ensureFilters(brand);
     panel.innerHTML = `
       <div class="brand-title">🏷️ فلاتر ${escHtml(brand)}</div>
-      <div class="filter-page-search"><input type="search" class="fp-search-input" placeholder="🔍 ابحث عن فلتر…" id="fpSearchInput"></div>
       <div class="filter-page-list" id="fpList"></div>
       <div class="filter-page-add">
         <input type="text" class="new-filter-input" placeholder="اسم الفلتر الجديد… مثلاً عارضه 50" id="fpAddInput">
@@ -1946,7 +1945,6 @@ function buildFilterPanel(panel, brand){
         const subCount = Array.isArray(f.sub) ? f.sub.length : 0;
         const row = document.createElement("div");
         row.className = "fm-row";
-        row.dataset.name = f.name.toLowerCase();
         row.innerHTML = `
           <span class="fm-name">${escHtml(f.name)}${subCount ? ` <small style="color:var(--subtext)">(${subCount} فرعية)</small>` : ""}</span>
           <span class="fm-count">${f.codes.length} منتج</span>
@@ -1978,14 +1976,6 @@ function buildFilterPanel(panel, brand){
         listEl.appendChild(row);
       });
     }
-    const searchInput = panel.querySelector("#fpSearchInput");
-    searchInput.addEventListener("input", ()=>{
-      const q = searchInput.value.trim().toLowerCase();
-      panel.querySelectorAll("#fpList .fm-row").forEach(row=>{
-        if(!row.dataset.name) return;
-        row.style.display = (!q || row.dataset.name.includes(q)) ? "" : "none";
-      });
-    });
     const input = panel.querySelector("#fpAddInput");
     const addBtn = panel.querySelector("#fpAddBtn");
     const doAdd = ()=>{
@@ -2007,7 +1997,6 @@ function buildFilterPanel(panel, brand){
     if(!Array.isArray(parent.sub)) parent.sub = [];
     panel.innerHTML = `
       <div class="brand-title">📁 ${escHtml(parent.name)} — فرعيات</div>
-      <div class="filter-page-search"><input type="search" class="fp-search-input" placeholder="🔍 ابحث عن فلتر فرعي…" id="fpSearchInput"></div>
       <div class="filter-page-list" id="fpList"></div>
       <div class="filter-page-add">
         <input type="text" class="new-filter-input" placeholder="اسم الفلتر الفرعي…" id="fpAddInput">
@@ -2022,7 +2011,6 @@ function buildFilterPanel(panel, brand){
     parent.sub.forEach(s=>{
       const row = document.createElement("div");
       row.className = "fm-row";
-      row.dataset.name = s.name.toLowerCase();
       row.innerHTML = `
         <span class="fm-name">${escHtml(s.name)}</span>
         <span class="fm-count">${s.codes.length} منتج</span>
@@ -2049,14 +2037,6 @@ function buildFilterPanel(panel, brand){
       });
       panel.querySelector("#fpList").appendChild(row);
     });
-    const searchInput = panel.querySelector("#fpSearchInput");
-    searchInput.addEventListener("input", ()=>{
-      const q = searchInput.value.trim().toLowerCase();
-      panel.querySelectorAll("#fpList .fm-row").forEach(row=>{
-        if(!row.dataset.name) return;
-        row.style.display = (!q || row.dataset.name.includes(q)) ? "" : "none";
-      });
-    });
     const input = panel.querySelector("#fpAddInput");
     const addBtn = panel.querySelector("#fpAddBtn");
     const doAdd = ()=>{
@@ -2080,6 +2060,7 @@ function buildFilterPanel(panel, brand){
     const codeSet = new Set(filter.codes.map(c=>String(c).toLowerCase()));
     panel.innerHTML = `
       <div class="brand-title">✏ ${escHtml(filter.name)} — المنتجات</div>
+      <div class="filter-page-search"><input type="search" class="fp-search-input" placeholder="🔍 ابحث عن منتج…" id="fpSearchInput"></div>
       <div class="filter-page-list" id="fpList"></div>
       <div class="filter-page-add"><button type="button" class="new-filter-btn" id="fpDoneBtn">✅ تم</button></div>
     `;
@@ -2099,6 +2080,7 @@ function buildFilterPanel(panel, brand){
       const isIn = codeSet.has(block.code.toLowerCase());
       const row = document.createElement("div");
       row.className = "fm-check-row";
+      row.dataset.code = block.code.toLowerCase();
       const cid = "fpchk_" + Math.random().toString(36).slice(2);
       const orderBtns = isIn ? `<span class="fm-order-btns"><button type="button" class="fm-ou" data-code="${block.code}" title="أعلى">▲</button><button type="button" class="fm-od" data-code="${block.code}" title="أسفل">▼</button></span>` : "";
       row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderBtns}`;
@@ -2115,6 +2097,13 @@ function buildFilterPanel(panel, brand){
         render();
       });
       panel.querySelector("#fpList").appendChild(row);
+    });
+    const searchInput = panel.querySelector("#fpSearchInput");
+    searchInput.addEventListener("input", ()=>{
+      const q = searchInput.value.trim().toLowerCase();
+      panel.querySelectorAll("#fpList .fm-check-row").forEach(row=>{
+        row.style.display = (!q || (row.dataset.code||"").includes(q)) ? "" : "none";
+      });
     });
     panel.querySelectorAll(".fm-ou").forEach(btn=>{
       btn.addEventListener("click", ()=>{
@@ -2152,6 +2141,7 @@ function buildFilterPanel(panel, brand){
     const codeSet = new Set(sub.codes.map(c=>String(c).toLowerCase()));
     panel.innerHTML = `
       <div class="brand-title">✏ ${escHtml(sub.name)} — منتجات فرعية</div>
+      <div class="filter-page-search"><input type="search" class="fp-search-input" placeholder="🔍 ابحث عن منتج…" id="fpSearchInput"></div>
       <div class="filter-page-list" id="fpList"></div>
       <div class="filter-page-add"><button type="button" class="new-filter-btn" id="fpDoneBtn">✅ تم</button></div>
     `;
@@ -2171,6 +2161,7 @@ function buildFilterPanel(panel, brand){
       const isIn = codeSet.has(block.code.toLowerCase());
       const row = document.createElement("div");
       row.className = "fm-check-row";
+      row.dataset.code = block.code.toLowerCase();
       const cid = "fpschk_" + Math.random().toString(36).slice(2);
       const orderBtns = isIn ? `<span class="fm-order-btns"><button type="button" class="fm-ou" data-code="${block.code}" title="أعلى">▲</button><button type="button" class="fm-od" data-code="${block.code}" title="أسفل">▼</button></span>` : "";
       row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderBtns}`;
@@ -2187,6 +2178,13 @@ function buildFilterPanel(panel, brand){
         render();
       });
       panel.querySelector("#fpList").appendChild(row);
+    });
+    const searchInput = panel.querySelector("#fpSearchInput");
+    searchInput.addEventListener("input", ()=>{
+      const q = searchInput.value.trim().toLowerCase();
+      panel.querySelectorAll("#fpList .fm-check-row").forEach(row=>{
+        row.style.display = (!q || (row.dataset.code||"").includes(q)) ? "" : "none";
+      });
     });
     panel.querySelectorAll(".fm-ou").forEach(btn=>{
       btn.addEventListener("click", ()=>{
