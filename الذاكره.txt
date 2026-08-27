@@ -1,6 +1,9 @@
 آخر جلسة: 2026-08-27
-الحالة: index.html v2.19 - تنزيل AppBar:
-- v2.19: زر "إنهاء التعديل" داخل edit-toolbar + حذف أزرار اكسل + إخفاء Footer عند editMode + نقل الفلاتر للدرج (نافذة اختيار البراند)
+الحالة: index.html v2.20 - صفحة الفلاتر الكاملة:
+- v2.20: صفحة الفلاتر الكاملة (مثل تعديل الأسعار) — filterMode + toggleFilterMode() + buildFilterPanel()
+  * تبويبات البراندات + قائمة الفلاتر مع CRUD + فرعيات + منتجات مع checkboxes وترتيب
+  * filterMode و editMode mutually exclusive — إخفاء Footer
+- v2.19: زر "إنهاء التعديل" داخل edit-toolbar + حذف أزرار اكسل + إخفاء Footer عند editMode + نقل الفلاتر للدرج
 - v2.17: زر "📦 المنتجات النافذة" بالقائمة الجانبية → PIN 2004 → نافذة إدارة المنتجات النافذة
   * علامة صح = نافذ (رمادي + badge أحمر + يمنع الإضافة)
   * localStorage + cloud sync (nafed key)

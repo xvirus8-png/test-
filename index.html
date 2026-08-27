@@ -1,4 +1,4 @@
-<!-- index v2.19 -->
+<!-- index v2.20 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -412,6 +412,25 @@
     display:inline-flex;align-items:center;gap:6px;flex-shrink:0;
   }
   .edit-hint{font-size:12px;color:var(--subtext);}
+  body.filter-mode .block{outline:1.5px dashed var(--primary);}
+  .filter-page-list{
+    background:var(--card);border:1.5px solid var(--border);border-radius:14px;
+    overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow);
+  }
+  .filter-page-add{
+    display:flex;gap:10px;align-items:center;
+    background:var(--card);border:1.5px solid var(--border);border-radius:14px;
+    padding:12px;box-shadow:var(--shadow);
+  }
+  .filter-page-add .new-filter-input{
+    flex:1;min-height:42px;border:1.5px solid var(--border);border-radius:10px;
+    padding:8px 12px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--text);
+  }
+  .filter-page-add .new-filter-btn{
+    background:var(--primary);color:#fff;border:none;border-radius:10px;
+    padding:10px 16px;min-height:42px;font-weight:700;font-size:13.5px;cursor:pointer;
+    white-space:nowrap;
+  }
   .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   table.price-table{
     width:100%;min-width:560px;border-collapse:separate;border-spacing:0;background:var(--card);border-radius:12px;overflow:hidden;
@@ -685,7 +704,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.19</span>
+  <span class="version">v2.20</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -720,7 +739,7 @@
     <button class="drawer-item" onclick="openHistory()"><i class="bi bi-clock-history"></i> السجل<span class="drawer-count" id="historyCount"></span></button>
     <button class="drawer-item" id="nafedBtn" onclick="openNafedPin();closeDrawer()"><i class="bi bi-box-seam"></i> المنتجات النافذة</button>
     <button class="drawer-item" id="editBtn" onclick="toggleEditMode();closeDrawer()"><i class="bi bi-pencil-square"></i> تعديل الأسعار</button>
-    <button class="drawer-item" onclick="openFilterPicker();closeDrawer()"><i class="bi bi-tags"></i> الفلاتر</button>
+    <button class="drawer-item" onclick="toggleFilterMode();closeDrawer()"><i class="bi bi-tags"></i> الفلاتر</button>
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="backupsBtn" onclick="openBackups();closeDrawer()"><i class="bi bi-download"></i> نسخة احتياطية</button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
@@ -729,7 +748,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.19";
+const APP_VERSION = "2.20";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1550,12 +1569,22 @@ function switchTab(brand){
 }
 
 let editMode = false;
+let filterMode = false;
 
 function toggleEditMode(){
+  if(filterMode) toggleFilterMode();
   editMode = !editMode;
   document.body.classList.toggle("edit-mode", editMode);
   document.getElementById("editBtn").innerHTML = editMode ? '<i class="bi bi-check2-circle"></i> إنهاء التعديل' : '<i class="bi bi-pencil-square"></i> تعديل الأسعار';
   document.querySelector("footer.bar").style.display = editMode ? "none" : "";
+  buildPanels();
+}
+
+function toggleFilterMode(){
+  if(editMode) toggleEditMode();
+  filterMode = !filterMode;
+  document.body.classList.toggle("filter-mode", filterMode);
+  document.querySelector("footer.bar").style.display = filterMode ? "none" : "";
   buildPanels();
 }
 
@@ -1578,6 +1607,16 @@ function buildPanels(){
     main.appendChild(toolbar);
   }
 
+  if(filterMode){
+    const toolbar = document.createElement("div");
+    toolbar.className = "edit-toolbar";
+    toolbar.innerHTML = `
+      <button type="button" class="edit-end-btn" onclick="toggleFilterMode()"><i class="bi bi-check2-circle"></i> إنهاء</button>
+      <span class="edit-hint">إدارة فلاتر العرض — أضف فلتر وحدد المنتجات اللي تريدها فيه</span>
+    `;
+    main.appendChild(toolbar);
+  }
+
   Object.entries(DATA).forEach(([brand, blocks])=>{
     if(!QTY[brand]) QTY[brand] = {};
     const panel = document.createElement("div");
@@ -1587,6 +1626,8 @@ function buildPanels(){
 
     if(editMode){
       buildEditTable(panel, brand);
+    } else if(filterMode){
+      buildFilterPanel(panel, brand);
     } else {
       const brandFilters = ensureFilters(brand);
       panel.innerHTML = `<div class="brand-title">${brand}</div><div class="grid" id="grid-${brand}"></div>`;
@@ -1860,6 +1901,282 @@ function openBadgeSubDropdown(){
     }
   };
   setTimeout(()=>document.addEventListener("pointerdown", closeDD), 0);
+}
+
+// ===== FULL-PAGE FILTER MANAGEMENT (filterMode) =====
+function buildFilterPanel(panel, brand){
+  const list = ensureFilters(brand);
+  const allProducts = Array.isArray(DATA[brand]) ? DATA[brand] : [];
+  let currentView = "list"; // list | sub | products | subProducts
+  let currentFilterId = null;
+  let currentSubId = null;
+
+  function render(){
+    if(currentView === "list") renderList();
+    else if(currentView === "sub") renderSubList();
+    else if(currentView === "products") renderProducts();
+    else if(currentView === "subProducts") renderSubProducts();
+  }
+
+  function renderList(){
+    const listNow = ensureFilters(brand);
+    panel.innerHTML = `
+      <div class="brand-title">🏷️ فلاتر ${escHtml(brand)}</div>
+      <div class="filter-page-list" id="fpList"></div>
+      <div class="filter-page-add">
+        <input type="text" class="new-filter-input" placeholder="اسم الفلتر الجديد… مثلاً عارضه 50" id="fpAddInput">
+        <button type="button" class="new-filter-btn" id="fpAddBtn">+ إضافة</button>
+      </div>
+    `;
+    const listEl = panel.querySelector("#fpList");
+    if(!listNow.length){
+      listEl.innerHTML = `<div class="history-empty">ماكو فلاتر بعد.<br>سوي فلتر جديد وضيفله المنتجات اللي تريدها 🗂</div>`;
+    } else {
+      listNow.forEach(f=>{
+        const subCount = Array.isArray(f.sub) ? f.sub.length : 0;
+        const row = document.createElement("div");
+        row.className = "fm-row";
+        row.innerHTML = `
+          <span class="fm-name">${escHtml(f.name)}${subCount ? ` <small style="color:var(--subtext)">(${subCount} فرعية)</small>` : ""}</span>
+          <span class="fm-count">${f.codes.length} منتج</span>
+          <button type="button" class="fm-sub" title="الفلاتر الفرعية">📁</button>
+          <button type="button" class="fm-edit" title="تعديل الاسم">✏</button>
+          <button type="button" class="fm-open">✏ المنتجات</button>
+          <button type="button" class="fm-del">🗑</button>
+        `;
+        row.querySelector(".fm-sub").addEventListener("click", ()=>{ currentView = "sub"; currentFilterId = f.id; render(); });
+        row.querySelector(".fm-edit").addEventListener("click", ()=>{
+          const newName = prompt("اسم الفلتر الجديد:", f.name);
+          if(!newName || newName.trim() === "" || newName.trim() === f.name) return;
+          f.name = newName.trim();
+          saveFilters();
+          render();
+        });
+        row.querySelector(".fm-open").addEventListener("click", ()=>{ currentView = "products"; currentFilterId = f.id; render(); });
+        row.querySelector(".fm-del").addEventListener("click", ()=>{
+          if(!confirm(`حذف فلتر "${f.name}"؟`)) return;
+          FILTERS[brand] = ensureFilters(brand).filter(x=>x.id!==f.id);
+          saveFilters();
+          render();
+        });
+        listEl.appendChild(row);
+      });
+    }
+    const input = panel.querySelector("#fpAddInput");
+    const addBtn = panel.querySelector("#fpAddBtn");
+    const doAdd = ()=>{
+      const name = input.value.trim();
+      if(!name) return;
+      ensureFilters(brand).push({id: "f" + Date.now(), name, codes: [], sub: []});
+      saveFilters();
+      input.value = "";
+      render();
+    };
+    addBtn.addEventListener("click", doAdd);
+    input.addEventListener("keydown", (e)=>{ if(e.key === "Enter") doAdd(); });
+  }
+
+  function renderSubList(){
+    const listNow = ensureFilters(brand);
+    const parent = listNow.find(x=>x.id===currentFilterId);
+    if(!parent){ currentView = "list"; render(); return; }
+    if(!Array.isArray(parent.sub)) parent.sub = [];
+    panel.innerHTML = `
+      <div class="brand-title">📁 ${escHtml(parent.name)} — فرعيات</div>
+      <div class="filter-page-list" id="fpList"></div>
+      <div class="filter-page-add">
+        <input type="text" class="new-filter-input" placeholder="اسم الفلتر الفرعي…" id="fpAddInput">
+        <button type="button" class="new-filter-btn" id="fpAddBtn">+ إضافة</button>
+      </div>
+    `;
+    const backRow = document.createElement("div");
+    backRow.className = "fm-row";
+    backRow.innerHTML = `<button type="button" class="fm-back">→ رجوع للفلاتر</button>`;
+    backRow.querySelector(".fm-back").addEventListener("click", ()=>{ currentView = "list"; render(); });
+    panel.querySelector("#fpList").appendChild(backRow);
+    parent.sub.forEach(s=>{
+      const row = document.createElement("div");
+      row.className = "fm-row";
+      row.innerHTML = `
+        <span class="fm-name">${escHtml(s.name)}</span>
+        <span class="fm-count">${s.codes.length} منتج</span>
+        <button type="button" class="fm-edit" title="تعديل الاسم">✏</button>
+        <button type="button" class="fm-open">✏ المنتجات</button>
+        <button type="button" class="fm-del">🗑</button>
+      `;
+      row.querySelector(".fm-edit").addEventListener("click", ()=>{
+        const newName = prompt("اسم الفلتر الفرعي:", s.name);
+        if(!newName || newName.trim() === "" || newName.trim() === s.name) return;
+        s.name = newName.trim();
+        saveFilters();
+        render();
+      });
+      row.querySelector(".fm-open").addEventListener("click", ()=>{ currentView = "subProducts"; currentFilterId = parent.id; currentSubId = s.id; render(); });
+      row.querySelector(".fm-del").addEventListener("click", ()=>{
+        if(!confirm(`حذف الفلتر الفرعي "${s.name}"؟`)) return;
+        parent.sub = parent.sub.filter(x=>x.id!==s.id);
+        saveFilters();
+        render();
+      });
+      panel.querySelector("#fpList").appendChild(row);
+    });
+    const input = panel.querySelector("#fpAddInput");
+    const addBtn = panel.querySelector("#fpAddBtn");
+    const doAdd = ()=>{
+      const name = input.value.trim();
+      if(!name) return;
+      parent.sub.push({id: "sf" + Date.now(), name, codes: []});
+      saveFilters();
+      input.value = "";
+      render();
+    };
+    addBtn.addEventListener("click", doAdd);
+    input.addEventListener("keydown", (e)=>{ if(e.key === "Enter") doAdd(); });
+  }
+
+  function renderProducts(){
+    const listNow = ensureFilters(brand);
+    const filter = listNow.find(x=>x.id===currentFilterId);
+    if(!filter){ currentView = "list"; render(); return; }
+    if(!Array.isArray(filter.codes)) filter.codes = [];
+    if(!Array.isArray(filter.order)) filter.order = [];
+    const codeSet = new Set(filter.codes.map(c=>String(c).toLowerCase()));
+    panel.innerHTML = `
+      <div class="brand-title">✏ ${escHtml(filter.name)} — المنتجات</div>
+      <div class="filter-page-list" id="fpList"></div>
+      <div class="filter-page-add"><button type="button" class="new-filter-btn" id="fpDoneBtn">✅ تم</button></div>
+    `;
+    const backRow = document.createElement("div");
+    backRow.className = "fm-row";
+    backRow.innerHTML = `<button type="button" class="fm-back">→ رجوع للفلاتر</button>`;
+    backRow.querySelector(".fm-back").addEventListener("click", ()=>{ currentView = "list"; render(); });
+    panel.querySelector("#fpList").appendChild(backRow);
+    const included = allProducts.filter(bl=>codeSet.has(bl.code.toLowerCase()));
+    const excluded = allProducts.filter(bl=>!codeSet.has(bl.code.toLowerCase()));
+    const ordered = included.sort((a,b)=>{
+      const ai = filter.order.findIndex(c=>c.toLowerCase()===a.code.toLowerCase());
+      const bi = filter.order.findIndex(c=>c.toLowerCase()===b.code.toLowerCase());
+      return (ai>=0?ai:99999) - (bi>=0?bi:99999);
+    });
+    [...ordered, ...excluded].forEach(block=>{
+      const isIn = codeSet.has(block.code.toLowerCase());
+      const row = document.createElement("div");
+      row.className = "fm-check-row";
+      const cid = "fpchk_" + Math.random().toString(36).slice(2);
+      const orderBtns = isIn ? `<span class="fm-order-btns"><button type="button" class="fm-ou" data-code="${block.code}" title="أعلى">▲</button><button type="button" class="fm-od" data-code="${block.code}" title="أسفل">▼</button></span>` : "";
+      row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderBtns}`;
+      row.querySelector("input").addEventListener("change", (e)=>{
+        if(e.target.checked){
+          if(!filter.codes.some(c=>c.toLowerCase()===block.code.toLowerCase())) filter.codes.push(block.code);
+          codeSet.add(block.code.toLowerCase());
+        } else {
+          filter.codes = filter.codes.filter(c=>c.toLowerCase()!==block.code.toLowerCase());
+          filter.order = filter.order.filter(c=>c.toLowerCase()!==block.code.toLowerCase());
+          codeSet.delete(block.code.toLowerCase());
+        }
+        saveFilters();
+        render();
+      });
+      panel.querySelector("#fpList").appendChild(row);
+    });
+    panel.querySelectorAll(".fm-ou").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const code = btn.dataset.code;
+        const idx = filter.order.findIndex(c=>c.toLowerCase()===code.toLowerCase());
+        if(idx > 0){
+          [filter.order[idx-1], filter.order[idx]] = [filter.order[idx], filter.order[idx-1]];
+          saveFilters();
+          render();
+        }
+      });
+    });
+    panel.querySelectorAll(".fm-od").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const code = btn.dataset.code;
+        const idx = filter.order.findIndex(c=>c.toLowerCase()===code.toLowerCase());
+        if(idx >= 0 && idx < filter.order.length - 1){
+          [filter.order[idx], filter.order[idx+1]] = [filter.order[idx+1], filter.order[idx]];
+          saveFilters();
+          render();
+        }
+      });
+    });
+    panel.querySelector("#fpDoneBtn").addEventListener("click", ()=>{ currentView = "list"; render(); });
+  }
+
+  function renderSubProducts(){
+    const listNow = ensureFilters(brand);
+    const parent = listNow.find(x=>x.id===currentFilterId);
+    if(!parent){ currentView = "list"; render(); return; }
+    const sub = parent.sub.find(x=>x.id===currentSubId);
+    if(!sub){ currentView = "sub"; render(); return; }
+    if(!Array.isArray(sub.codes)) sub.codes = [];
+    if(!Array.isArray(sub.order)) sub.order = [];
+    const codeSet = new Set(sub.codes.map(c=>String(c).toLowerCase()));
+    panel.innerHTML = `
+      <div class="brand-title">✏ ${escHtml(sub.name)} — منتجات فرعية</div>
+      <div class="filter-page-list" id="fpList"></div>
+      <div class="filter-page-add"><button type="button" class="new-filter-btn" id="fpDoneBtn">✅ تم</button></div>
+    `;
+    const backRow = document.createElement("div");
+    backRow.className = "fm-row";
+    backRow.innerHTML = `<button type="button" class="fm-back">→ رجوع للفرعيات</button>`;
+    backRow.querySelector(".fm-back").addEventListener("click", ()=>{ currentView = "sub"; render(); });
+    panel.querySelector("#fpList").appendChild(backRow);
+    const included = allProducts.filter(bl=>codeSet.has(bl.code.toLowerCase()));
+    const excluded = allProducts.filter(bl=>!codeSet.has(bl.code.toLowerCase()));
+    const ordered = included.sort((a,b)=>{
+      const ai = sub.order.findIndex(c=>c.toLowerCase()===a.code.toLowerCase());
+      const bi = sub.order.findIndex(c=>c.toLowerCase()===b.code.toLowerCase());
+      return (ai>=0?ai:99999) - (bi>=0?bi:99999);
+    });
+    [...ordered, ...excluded].forEach(block=>{
+      const isIn = codeSet.has(block.code.toLowerCase());
+      const row = document.createElement("div");
+      row.className = "fm-check-row";
+      const cid = "fpschk_" + Math.random().toString(36).slice(2);
+      const orderBtns = isIn ? `<span class="fm-order-btns"><button type="button" class="fm-ou" data-code="${block.code}" title="أعلى">▲</button><button type="button" class="fm-od" data-code="${block.code}" title="أسفل">▼</button></span>` : "";
+      row.innerHTML = `<input type="checkbox" id="${cid}" ${isIn?"checked":""}><label for="${cid}">${escHtml(block.code)}</label>${orderBtns}`;
+      row.querySelector("input").addEventListener("change", (e)=>{
+        if(e.target.checked){
+          if(!sub.codes.some(c=>c.toLowerCase()===block.code.toLowerCase())) sub.codes.push(block.code);
+          codeSet.add(block.code.toLowerCase());
+        } else {
+          sub.codes = sub.codes.filter(c=>c.toLowerCase()!==block.code.toLowerCase());
+          sub.order = sub.order.filter(c=>c.toLowerCase()!==block.code.toLowerCase());
+          codeSet.delete(block.code.toLowerCase());
+        }
+        saveFilters();
+        render();
+      });
+      panel.querySelector("#fpList").appendChild(row);
+    });
+    panel.querySelectorAll(".fm-ou").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const code = btn.dataset.code;
+        const idx = sub.order.findIndex(c=>c.toLowerCase()===code.toLowerCase());
+        if(idx > 0){
+          [sub.order[idx-1], sub.order[idx]] = [sub.order[idx], sub.order[idx-1]];
+          saveFilters();
+          render();
+        }
+      });
+    });
+    panel.querySelectorAll(".fm-od").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const code = btn.dataset.code;
+        const idx = sub.order.findIndex(c=>c.toLowerCase()===code.toLowerCase());
+        if(idx >= 0 && idx < sub.order.length - 1){
+          [sub.order[idx], sub.order[idx+1]] = [sub.order[idx+1], sub.order[idx]];
+          saveFilters();
+          render();
+        }
+      });
+    });
+    panel.querySelector("#fpDoneBtn").addEventListener("click", ()=>{ currentView = "sub"; render(); });
+  }
+
+  render();
 }
 
 function openFilterPicker(){
