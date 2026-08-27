@@ -1682,6 +1682,12 @@ function applyFilterToGrid(panel, brand, filterId){
   if(!grid) return;
   if(!filterId){
     grid.querySelectorAll(".block").forEach(b=>{ b.style.display = ""; });
+    const data = Array.isArray(DATA[brand]) ? DATA[brand] : [];
+    if(data.length){
+      const blockMap = {};
+      grid.querySelectorAll(".block").forEach(b=>{ blockMap[b.dataset.code] = b; });
+      data.forEach(d=>{ const el = blockMap[d.code.toLowerCase()]; if(el) grid.appendChild(el); });
+    }
     return;
   }
   const found = findFilterById(brand, filterId);
@@ -2092,6 +2098,7 @@ function buildFilterPanel(panel, brand){
       });
       const numInput = row.querySelector("input.fm-order-num");
       if(numInput){
+        numInput.addEventListener("focus", ()=>{ try{numInput.select();}catch(e){} });
         numInput.addEventListener("change", ()=>{
           const code = numInput.dataset.code;
           const newPos = parseInt(numInput.value);
@@ -2183,6 +2190,7 @@ function buildFilterPanel(panel, brand){
       });
       const numInput = row.querySelector("input.fm-order-num");
       if(numInput){
+        numInput.addEventListener("focus", ()=>{ try{numInput.select();}catch(e){} });
         numInput.addEventListener("change", ()=>{
           const code = numInput.dataset.code;
           const newPos = parseInt(numInput.value);
@@ -2439,6 +2447,7 @@ function openFilterManager(brand){
         });
         const numInput = row.querySelector("input.fm-order-num");
         if(numInput){
+          numInput.addEventListener("focus", ()=>{ try{numInput.select();}catch(e){} });
           numInput.addEventListener("change", ()=>{
             const code = numInput.dataset.code;
             const newPos = parseInt(numInput.value);
@@ -2539,6 +2548,7 @@ function openFilterManager(brand){
         });
         const numInput = row.querySelector("input.fm-order-num");
         if(numInput){
+          numInput.addEventListener("focus", ()=>{ try{numInput.select();}catch(e){} });
           numInput.addEventListener("change", ()=>{
             const code = numInput.dataset.code;
             const newPos = parseInt(numInput.value);
