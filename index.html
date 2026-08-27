@@ -1,4 +1,4 @@
-<!-- index v2.21 -->
+<!-- index v2.22 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -435,8 +435,8 @@
     margin-bottom:10px;
   }
   .fp-search-input{
-    width:100%;min-height:42px;border:1.5px solid var(--border);border-radius:10px;
-    padding:8px 12px;font-size:14px;font-family:inherit;background:var(--card);color:var(--text);
+    width:100%;min-height:48px;border:1.5px solid var(--border);border-radius:12px;
+    padding:12px 14px;font-size:16px;font-family:inherit;background:var(--card);color:var(--text);
     box-shadow:var(--shadow);
   }
   .fp-search-input:focus{outline:none;border-color:var(--primary);}
@@ -713,7 +713,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.21</span>
+  <span class="version">v2.22</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -757,7 +757,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.21";
+const APP_VERSION = "2.22";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1951,7 +1951,6 @@ function buildFilterPanel(panel, brand){
           <span class="fm-name">${escHtml(f.name)}${subCount ? ` <small style="color:var(--subtext)">(${subCount} فرعية)</small>` : ""}</span>
           <span class="fm-count">${f.codes.length} منتج</span>
           <button type="button" class="fm-sub" title="الفلاتر الفرعية">📁</button>
-          <button type="button" class="fm-edit" title="تعديل الاسم">✏</button>
           <button type="button" class="fm-open">✏ المنتجات</button>
           <button type="button" class="fm-del">🗑</button>
         `;
@@ -1969,13 +1968,6 @@ function buildFilterPanel(panel, brand){
           if(didLongPress){ e.preventDefault(); e.stopPropagation(); return; }
         });
         row.querySelector(".fm-sub").addEventListener("click", ()=>{ currentView = "sub"; currentFilterId = f.id; render(); });
-        row.querySelector(".fm-edit").addEventListener("click", ()=>{
-          const newName = prompt("اسم الفلتر الجديد:", f.name);
-          if(!newName || newName.trim() === "" || newName.trim() === f.name) return;
-          f.name = newName.trim();
-          saveFilters();
-          render();
-        });
         row.querySelector(".fm-open").addEventListener("click", ()=>{ currentView = "products"; currentFilterId = f.id; render(); });
         row.querySelector(".fm-del").addEventListener("click", ()=>{
           if(!confirm(`حذف فلتر "${f.name}"؟`)) return;
@@ -2034,7 +2026,6 @@ function buildFilterPanel(panel, brand){
       row.innerHTML = `
         <span class="fm-name">${escHtml(s.name)}</span>
         <span class="fm-count">${s.codes.length} منتج</span>
-        <button type="button" class="fm-edit" title="تعديل الاسم">✏</button>
         <button type="button" class="fm-open">✏ المنتجات</button>
         <button type="button" class="fm-del">🗑</button>
       `;
@@ -2049,13 +2040,6 @@ function buildFilterPanel(panel, brand){
       nameEl.addEventListener("pointercancel", ()=>clearTimeout(lpTimer));
       nameEl.addEventListener("pointerleave", ()=>clearTimeout(lpTimer));
       nameEl.addEventListener("click", (e)=>{ if(didLongPress){ e.preventDefault(); e.stopPropagation(); return; } });
-      row.querySelector(".fm-edit").addEventListener("click", ()=>{
-        const newName = prompt("اسم الفلتر الفرعي:", s.name);
-        if(!newName || newName.trim() === "" || newName.trim() === s.name) return;
-        s.name = newName.trim();
-        saveFilters();
-        render();
-      });
       row.querySelector(".fm-open").addEventListener("click", ()=>{ currentView = "subProducts"; currentFilterId = parent.id; currentSubId = s.id; render(); });
       row.querySelector(".fm-del").addEventListener("click", ()=>{
         if(!confirm(`حذف الفلتر الفرعي "${s.name}"؟`)) return;
