@@ -1,4 +1,4 @@
-<!-- index v2.30 -->
+<!-- index v2.29 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -484,20 +484,13 @@
     background:rgba(255,193,7,.12);color:#d97706;border:none;border-radius:8px;
     width:38px;height:38px;font-size:14px;cursor:pointer;flex:none;
   }
-  .fm-order-num{width:46px;height:34px;text-align:center;border:1.5px solid var(--border);border-radius:6px;font-size:15px;font-weight:800;color:var(--text);background:var(--soft);flex:none;}
-  .fm-order-btns{display:flex;flex-direction:column;gap:3px;margin-inline-start:5px;}
+  .fm-order-num{width:36px;height:28px;text-align:center;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-weight:700;color:var(--text);background:var(--soft);flex:none;}
+  .fm-order-btns{display:flex;flex-direction:column;gap:2px;margin-inline-start:4px;}
   .fm-order-btns button{
-    background:var(--soft);border:1px solid var(--border);color:var(--text);border-radius:7px;
-    width:32px;height:26px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;
+    background:var(--soft);border:1px solid var(--border);color:var(--text);border-radius:6px;
+    width:28px;height:22px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;
   }
   .fm-order-btns button:active{transform:scale(.9);}
-  .fm-check-head{
-    display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid var(--border);
-    font-size:11.5px;font-weight:800;color:var(--subtext);
-  }
-  .fm-check-head .spc{width:20px;height:20px;flex:none;}
-  .fm-check-head .lab{flex:1;}
-  .fm-check-head .ord{flex:none;width:83px;text-align:center;}
   .fm-check-row{
     display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--soft);
   }
@@ -712,7 +705,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.30</span>
+  <span class="version">v2.29</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -756,7 +749,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.30";
+const APP_VERSION = "2.29";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -2073,10 +2066,6 @@ function buildFilterPanel(panel, brand){
     backRow.innerHTML = `<button type="button" class="fm-back">→ رجوع للفلاتر</button>`;
     backRow.querySelector(".fm-back").addEventListener("click", ()=>{ currentView = "list"; render(); });
     panel.querySelector("#fpList").appendChild(backRow);
-    const headRow = document.createElement("div");
-    headRow.className = "fm-check-head";
-    headRow.innerHTML = `<span class="spc"></span><span class="lab">اسم المنتج</span><span class="ord">الترتيب</span>`;
-    panel.querySelector("#fpList").appendChild(headRow);
     const included = allProducts.filter(bl=>codeSet.has(bl.code.toLowerCase()));
     const excluded = allProducts.filter(bl=>!codeSet.has(bl.code.toLowerCase()));
     const ordered = included.sort((a,b)=>{
@@ -2169,10 +2158,6 @@ function buildFilterPanel(panel, brand){
     backRow.innerHTML = `<button type="button" class="fm-back">→ رجوع للفرعيات</button>`;
     backRow.querySelector(".fm-back").addEventListener("click", ()=>{ currentView = "sub"; render(); });
     panel.querySelector("#fpList").appendChild(backRow);
-    const headRow = document.createElement("div");
-    headRow.className = "fm-check-head";
-    headRow.innerHTML = `<span class="spc"></span><span class="lab">اسم المنتج</span><span class="ord">الترتيب</span>`;
-    panel.querySelector("#fpList").appendChild(headRow);
     const included = allProducts.filter(bl=>codeSet.has(bl.code.toLowerCase()));
     const excluded = allProducts.filter(bl=>!codeSet.has(bl.code.toLowerCase()));
     const ordered = included.sort((a,b)=>{
