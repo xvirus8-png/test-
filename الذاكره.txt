@@ -1,7 +1,11 @@
-آخر جلسة: 2026-08-26
-الحالة: index.html v2.16 - شاشة Splash:
+آخر جلسة: 2026-08-27
+الحالة: index.html v2.19 - تنزيل AppBar:
+- v2.19: زر "إنهاء التعديل" داخل edit-toolbar + حذف أزرار اكسل + إخفاء Footer عند editMode + نقل الفلاتر للدرج (نافذة اختيار البراند)
+- v2.17: زر "📦 المنتجات النافذة" بالقائمة الجانبية → PIN 2004 → نافذة إدارة المنتجات النافذة
+  * علامة صح = نافذ (رمادي + badge أحمر + يمنع الإضافة)
+  * localStorage + cloud sync (nafed key)
+  * CSS: nafed-modal, pin-modal, nafed-row-item, nafed-badge
 - v2.16: Splash screen — Aurora gradient + لوقو 160px pulse + Orbit dots + by:MAHMOOD TARQ
-  * تظهر عند تفعيل السحابة — fade out بعد نجاح cloudPull — لو فشل تدوم للأبد
 - v2.15: نقل let backups + const إلى السطور 909-913 (قبل أي استدعاء) — تأكيد عدم تأثير cache
 - v2.14: نظام النسخ الاحتياطي — زر "📥 نسخة احتياطية" بالدرج → نافذة إدارة
   * إنشاء نسخة: data + qty + filters + cloud + theme (بدون orders)

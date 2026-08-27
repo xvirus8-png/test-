@@ -1,4 +1,4 @@
-<!-- index v2.17 -->
+<!-- index v2.19 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -406,12 +406,11 @@
     background:var(--card);border:1.5px solid var(--border);border-radius:14px;
     padding:12px;margin-bottom:14px;box-shadow:var(--shadow);
   }
-  .edit-toolbar .import-btn, .edit-toolbar #exportExcelBtn{
-    background:var(--primary);color:#fff;border:none;border-radius:10px;
+  .edit-end-btn{
+    background:var(--success,#16a34a);color:#fff;border:none;border-radius:10px;
     padding:10px 14px;min-height:42px;font-weight:700;font-size:13.5px;cursor:pointer;
-    display:inline-flex;align-items:center;gap:6px;
+    display:inline-flex;align-items:center;gap:6px;flex-shrink:0;
   }
-  .edit-toolbar #exportExcelBtn{background:var(--warning);}
   .edit-hint{font-size:12px;color:var(--subtext);}
   .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   table.price-table{
@@ -686,7 +685,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.17</span>
+  <span class="version">v2.19</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -721,6 +720,7 @@
     <button class="drawer-item" onclick="openHistory()"><i class="bi bi-clock-history"></i> السجل<span class="drawer-count" id="historyCount"></span></button>
     <button class="drawer-item" id="nafedBtn" onclick="openNafedPin();closeDrawer()"><i class="bi bi-box-seam"></i> المنتجات النافذة</button>
     <button class="drawer-item" id="editBtn" onclick="toggleEditMode();closeDrawer()"><i class="bi bi-pencil-square"></i> تعديل الأسعار</button>
+    <button class="drawer-item" onclick="openFilterPicker();closeDrawer()"><i class="bi bi-tags"></i> الفلاتر</button>
     <button class="drawer-item" id="cloudBtn" onclick="openCloudSettings();closeDrawer()" title="السحابة غير مفعلة"><i class="bi bi-cloud"></i> سحابة<span class="badge-dot" id="cloudDot"></span></button>
     <button class="drawer-item" id="backupsBtn" onclick="openBackups();closeDrawer()"><i class="bi bi-download"></i> نسخة احتياطية</button>
     <button class="drawer-item" id="themeBtn" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i> المظهر الداكن</button>
@@ -729,7 +729,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.17";
+const APP_VERSION = "2.19";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1555,7 +1555,8 @@ function toggleEditMode(){
   editMode = !editMode;
   document.body.classList.toggle("edit-mode", editMode);
   document.getElementById("editBtn").innerHTML = editMode ? '<i class="bi bi-check2-circle"></i> إنهاء التعديل' : '<i class="bi bi-pencil-square"></i> تعديل الأسعار';
-  buildPanels(); // rerender to show/hide edit controls
+  document.querySelector("footer.bar").style.display = editMode ? "none" : "";
+  buildPanels();
 }
 
 function buildPanels(){
@@ -1571,15 +1572,10 @@ function buildPanels(){
     const toolbar = document.createElement("div");
     toolbar.className = "edit-toolbar";
     toolbar.innerHTML = `
-      <label class="import-btn"><i class="bi bi-file-earmark-arrow-down"></i> استيراد اكسل
-        <input type="file" id="importExcelInput" accept=".xlsx,.xls" style="display:none;">
-      </label>
-      <button type="button" id="exportExcelBtn"><i class="bi bi-file-earmark-arrow-up"></i> تصدير اكسل</button>
+      <button type="button" class="edit-end-btn" onclick="toggleEditMode()"><i class="bi bi-check2-circle"></i> إنهاء التعديل</button>
       <span class="edit-hint">عدّل الاسم / مبلغ الجملة / مبلغ المفرد مباشرة بالجدول، ورتب المنتجات من عمود "الترتيب"</span>
     `;
     main.appendChild(toolbar);
-    toolbar.querySelector("#importExcelInput").addEventListener("change", handleImportExcel);
-    toolbar.querySelector("#exportExcelBtn").addEventListener("click", exportExcel);
   }
 
   Object.entries(DATA).forEach(([brand, blocks])=>{
@@ -1864,6 +1860,33 @@ function openBadgeSubDropdown(){
     }
   };
   setTimeout(()=>document.addEventListener("pointerdown", closeDD), 0);
+}
+
+function openFilterPicker(){
+  const brands = Object.keys(DATA || {});
+  if(!brands.length){ alert("لا يوجد بيانات بعد."); return; }
+  const overlay = document.createElement("div");
+  overlay.className = "variants-modal";
+  overlay.innerHTML = `
+    <div class="variants-panel">
+      <div class="variants-panel-head">
+        <div class="variants-panel-title">🏷️ اختر ماركة</div>
+        <button type="button" class="close-variants" aria-label="إغلاق">×</button>
+      </div>
+      <div class="variants-list" id="fpBody"></div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = ()=>{ overlay.remove(); };
+  overlay.addEventListener("click", (e)=>{ if(e.target === overlay) close(); });
+  overlay.querySelector(".close-variants").addEventListener("click", close);
+  const body = overlay.querySelector("#fpBody");
+  brands.forEach(b=>{
+    const row = document.createElement("div");
+    row.className = "fm-row";
+    row.innerHTML = `<span class="fm-name">${escHtml(b)}</span><button type="button" class="fm-open" title="إدارة الفلاتر">⚙️</button>`;
+    row.querySelector(".fm-open").addEventListener("click", ()=>{ close(); openFilterManager(b); });
+    body.appendChild(row);
+  });
 }
 
 function openFilterManager(brand){
@@ -2617,7 +2640,6 @@ function buildEditTable(panel, brand){
   const blocks = Array.isArray(DATA[brand]) ? DATA[brand] : [];
   panel.innerHTML = `
     <div class="brand-title">${brand} — جدول الأسعار</div>
-    <div class="filter-bar"><button type="button" class="filter-manage-btn" id="fmOpenBtn">🗂 إدارة الفلاتر</button></div>
     <div class="table-scroll">
     <table class="price-table">
       <thead>
@@ -2629,7 +2651,6 @@ function buildEditTable(panel, brand){
     <button type="button" class="add-row-btn">+ إضافة منتج</button>
   `;
   const tbody = panel.querySelector(`#tbody-${brand}`);
-  panel.querySelector("#fmOpenBtn").addEventListener("click", ()=>openFilterManager(brand));
 
   blocks.forEach((block, idx)=>{
     normalizeProductBlock(block);
