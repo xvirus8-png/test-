@@ -650,7 +650,7 @@
   .pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);transition:all .15s;}
   .pin-dot.filled{background:var(--primary);border-color:var(--primary);}
   .pin-dot.error{background:var(--danger);border-color:var(--danger);}
-  .pin-input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;}
+  .pin-input{width:100%;max-width:200px;text-align:center;padding:12px 8px;border:1.5px solid var(--border);border-radius:12px;font-size:24px;font-weight:800;letter-spacing:8px;background:var(--card);color:var(--text);direction:ltr;}
   .pin-actions{display:flex;gap:10px;width:100%;margin-top:4px;}
   .pin-actions button{flex:1;min-height:48px;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;}
   .pin-ok{background:var(--primary);color:#fff;}
@@ -1322,29 +1322,24 @@ function hideSplashGuard(){
 function openNafedPin(){
   var overlay=document.createElement("div");
   overlay.className="pin-modal";
-  overlay.innerHTML='<div class="pin-panel"><div class="pin-title">🔐 أدخل الرمز السري</div><div class="pin-sub">للوصول للمنتجات النافذة</div><div class="pin-dots" id="pinDots"><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span></div><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" class="pin-input" id="pinInput" autocomplete="off"><div class="pin-actions"><button class="pin-ok" id="pinOkBtn">تأكيد</button><button class="pin-cancel" id="pinCancelBtn">إلغاء</button></div></div>';
+  overlay.innerHTML='<div class="pin-panel"><div class="pin-title">🔐 أدخل الرمز السري</div><div class="pin-sub">للوصول للمنتجات النافذة</div><input type="tel" maxlength="4" class="pin-input" id="pinInput" placeholder="••••" autocomplete="off" inputmode="numeric"><div class="pin-actions"><button class="pin-ok" id="pinOkBtn">تأكيد</button><button class="pin-cancel" id="pinCancelBtn">إلغاء</button></div></div>';
   document.body.appendChild(overlay);
   var pinInput=overlay.querySelector("#pinInput");
-  var dots=overlay.querySelectorAll(".pin-dot");
-  function updateDots(val){
-    var len=(val||"").length;
-    for(var i=0;i<4;i++){dots[i].classList.toggle("filled",i<len);dots[i].classList.remove("error");}
-  }
   function checkPin(){
     var v=pinInput.value;
     if(v===NAFED_PIN){overlay.remove();openNafedManager();}
     else{
-      dots.forEach(function(d){d.classList.add("error");});
-      setTimeout(function(){pinInput.value="";updateDots("");pinInput.focus();},500);
+      pinInput.style.borderColor="var(--danger)";
+      pinInput.style.color="var(--danger)";
+      setTimeout(function(){pinInput.value="";pinInput.style.borderColor="";pinInput.style.color="";pinInput.focus();},600);
     }
   }
   pinInput.addEventListener("input",function(){
     var clean=pinInput.value.replace(/[^0-9]/g,"");
     if(clean!==pinInput.value) pinInput.value=clean;
-    updateDots(clean);
     if(clean.length===4) setTimeout(checkPin,150);
   });
-  overlay.querySelector("#pinOkBtn").addEventListener("click",function(){if(pinInput.value.length===4)checkPin();});
+  overlay.querySelector("#pinOkBtn").addEventListener("click",function(){if(pinInput.value.length>=1)checkPin();});
   overlay.querySelector("#pinCancelBtn").addEventListener("click",function(){overlay.remove();});
   overlay.addEventListener("click",function(e){if(e.target===overlay)overlay.remove();});
   setTimeout(function(){pinInput.focus();},100);
