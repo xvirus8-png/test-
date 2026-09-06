@@ -1001,6 +1001,7 @@ function saveFilters(){
 function ensureFilters(brand){
   if(!Array.isArray(FILTERS[brand])) FILTERS[brand] = [];
   FILTERS[brand].forEach(f=>{
+    if(!Array.isArray(f.codes)) f.codes = [];
     if(!Array.isArray(f.sub)) f.sub = [];
     if(!Array.isArray(f.order)) f.order = [];
     f.sub.forEach(s=>{ if(!Array.isArray(s.codes)) s.codes = []; if(!Array.isArray(s.order)) s.order = []; });
@@ -1183,6 +1184,7 @@ async function cloudPull(){
     const f = await httpJson("GET","filters");
     if(f && typeof f==="object"){
       FILTERS = f;
+      Object.keys(FILTERS).forEach(b=>ensureFilters(b));
       saveFilters();
     }
     const n = await httpJson("GET","nafed");
