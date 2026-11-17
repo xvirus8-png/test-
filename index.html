@@ -1,4 +1,4 @@
-<!-- index v2.33 -->
+<!-- index v2.34 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -700,7 +700,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.33</span>
+  <span class="version">v2.34</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -744,7 +744,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.33";
+const APP_VERSION = "2.34";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1323,8 +1323,24 @@ function openCloudSettings(){
     if(!/^https:\/\/.+/.test(url)){ alert("الرابط يجب أن يبدأ بـ https://"); return; }
     cloudCfg = {url, room: room||"shop1"};
     localStorage.setItem(LS_CLOUD_KEY, JSON.stringify(cloudCfg));
-    cloudPull();
-    close();
+    //Push local data first so an old cloud copy can't overwrite recent edits, then pull fresh.
+    const btn = document.getElementById("cloudSaveBtn");
+    if(btn){ btn.disabled = true; btn.textContent = "⏳ جاري المزامنة…"; }
+    (async()=>{
+      try{
+        await Promise.all([
+          httpJson("PUT","products",DATA),
+          httpJson("PUT","filters",FILTERS),
+          httpJson("PUT","nafed",NAFED),
+          httpJson("PUT","updatedAt",Date.now())
+        ]);
+        await cloudPull();
+      }catch(e){
+        cloudStatus = "error"; cloudUi();
+        console.warn("مزامنة السحابة فشلت:", e);
+      }
+      close();
+    })();
   });
 
   const onKey = (e)=>{ if(e.key === "Escape") close(); };
