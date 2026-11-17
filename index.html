@@ -1,4 +1,4 @@
-<!-- index v2.35 -->
+<!-- index v2.37 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -384,6 +384,7 @@
     display:inline-flex;align-items:center;justify-content:center;gap:7px;
   }
   .btn-preview{background:var(--pl);color:var(--primary);}
+  .btn-fill{background:var(--soft);color:var(--success);}
   .btn-clear{background:var(--soft);color:var(--danger);}
   .hint{font-size:12.5px;color:var(--subtext);text-align:center;padding:20px;}
   .edit-price-btn{
@@ -630,6 +631,7 @@
   }
   .pv-btn:active{transform:scale(.97);}
   .pv-edit{background:var(--pl);color:var(--primary);}
+  .pv-excel{background:rgba(22,163,74,.15);color:var(--success);}
   .pv-share{background:var(--warning);}
 
   /* === NAFED MODAL === */
@@ -700,7 +702,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.35</span>
+  <span class="version">v2.37</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -722,6 +724,7 @@
 
 <footer class="bar">
   <button class="btn-preview" onclick="previewOrder()"><i class="bi bi-eye"></i> معاينة</button>
+  <button class="btn-fill" onclick="fillBrandOnes()"><i class="bi bi-1-circle"></i> املأ 1</button>
   <button class="btn-clear" onclick="clearAll()"><i class="bi bi-trash3"></i> مسح</button>
 </footer>
 
@@ -744,7 +747,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.35";
+const APP_VERSION = "2.37";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -3345,6 +3348,21 @@ function updateTotals(){
   document.getElementById("totalAmount").textContent = fmt(t.amount);
 }
 
+function fillBrandOnes(){
+  const brand = document.querySelector(".brand-panel.active")?.dataset.brand || Object.keys(DATA||{})[0];
+  if(!brand) return;
+  if(!QTY[brand]) QTY[brand] = {};
+  (DATA[brand]||[]).forEach(block=>{
+    if(!QTY[brand][block.code]) QTY[brand][block.code] = {};
+    (block.items||[]).forEach(item=>{
+      if(isNafed(brand, block.code, item)) return;
+      QTY[brand][block.code][item] = 1;
+    });
+  });
+  saveQty();
+  buildPanels();
+}
+
 function clearAll(){
   if(!confirm("متأكد تريد تمسح كل الطلبية؟")) return;
   QTY = {};
@@ -3478,6 +3496,49 @@ function orderFileName(customer){
   return `${safeName || "order"}.pdf`;
 }
 
+// Excel export of the order shown in the preview — text-only table, no images.
+function exportPreviewExcel(orderId){
+  const o = orderId ? (ORDERS.find(x=>x.id===orderId)||null) : null;
+  const qty = o ? (o.qty||{}) : QTY;
+  const customer = o ? (o.customer||"") : (previewCustomerName||"");
+  if(!hasAnyQty(qty)){ alert("ما فيه اي كمية مدخلة للطلبية"); return; }
+  const wb = XLSX.utils.book_new();
+  let hasSheet = false;
+  Object.entries(qty).forEach(([brand, codes])=>{
+    const entries = Object.entries(codes||{}).filter(([c,items])=>items && Object.keys(items).length>0);
+    if(!entries.length) return;
+    hasSheet = true;
+    const aoa = [["الكود","الدرجة","الكمية","السعر","الإجمالي","الباركود"]];
+    let brandQty = 0, brandTotal = 0;
+    entries.forEach(([code, items])=>{
+      const block = (DATA[brand]||[]).find(b=>b.code===code);
+      const price = block ? parsePrices(block.price).small : 0;
+      const notes = {}, realItems = {};
+      Object.entries(items).forEach(([k,v])=>{
+        const nm = k.match(/^(.*)::N$/);
+        if(nm){ notes[nm[1]] = String(v); } else { realItems[k] = v; }
+      });
+      Object.keys(notes).forEach(nl=>{ if(!(nl in realItems)) realItems[nl] = 0; });
+      Object.entries(realItems).forEach(([label, val])=>{
+        const meta = label.match(/^(.*)::(T|G)$/);
+        const showLabel = meta ? `${meta[1]} · ${meta[2]==="T" ? "Tester" : "Gift"}` : label;
+        const q = Number(val)||0;
+        const linePrice = meta ? 0 : price;
+        const barcode = !meta && block && block.itemBarcodes && block.itemBarcodes[label] ? String(block.itemBarcodes[label]).trim() : "";
+        aoa.push([code, showLabel, q, linePrice, q*linePrice, barcode]);
+        brandQty += q; brandTotal += q*linePrice;
+      });
+    });
+    aoa.push(["", "الإجمالي", brandQty, "", brandTotal, ""]);
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = [{wch:14},{wch:18},{wch:10},{wch:12},{wch:12},{wch:16}];
+    XLSX.utils.book_append_sheet(wb, ws, brand.slice(0,31));
+  });
+  if(!hasSheet){ alert("ما فيه اي كمية مدخلة للطلبية"); return; }
+  const safeName = customer ? String(customer).replace(/[^a-zA-Z0-9ء-ي_ -]/g,"").trim().replace(/\s+/g,"_") : "";
+  XLSX.writeFile(wb, `طلبية_${safeName||"order"}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
 function buildOrderPdf(canvas){
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({unit:"mm", format:"a4"});
@@ -3588,6 +3649,7 @@ function ensurePreviewModal(titleHtml, orderId){
         <div class="preview-body" id="previewBody"></div>
         <div class="preview-actions" id="previewActions">
           <button class="pv-btn pv-edit"><i class="bi bi-pencil"></i> تعديل</button>
+          <button class="pv-btn pv-excel"><i class="bi bi-file-earmark-excel"></i> إكسل</button>
           <button class="pv-btn pv-share"><i class="bi bi-share"></i> مشاركة</button>
         </div>
       </div>`;
@@ -3595,6 +3657,7 @@ function ensurePreviewModal(titleHtml, orderId){
   }
   const live = !orderId;
   modal.querySelector(".pv-edit").onclick = ()=>{ live ? closePreview() : editSavedOrder(orderId); };
+  modal.querySelector(".pv-excel").onclick = ()=>{ exportPreviewExcel(orderId); };
   modal.querySelector(".pv-share").onclick = ()=>{ live ? shareLiveOrder() : shareSavedOrder(orderId); };
   modal.querySelector("#previewTitle").innerHTML = titleHtml;
   return modal;
