@@ -1,4 +1,4 @@
-<!-- index v2.31 -->
+<!-- index v2.33 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -700,7 +700,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.31</span>
+  <span class="version">v2.33</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -744,7 +744,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.31";
+const APP_VERSION = "2.33";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -937,32 +937,32 @@ const DEFAULT_DATA = {
     {code:"لب لاينر (2-16)", price:"6.375 / 8.500", items:["2","5","6","9","10","13","14","15","16"]},
   ],
   "Future": [
-    {code:"FU6300", price:"3.750 / 5.000", items:["6301","6302","6303","6304","6305","6306"]},
-    {code:"FU5000", price:"3.750 / 5.000", items:["5001","5002","5003","5004","5005"]},
-    {code:"FU6100", price:"6.750 / 9.000", items:["6101","6103","6104","6105","6106"]},
-    {code:"FU5100", price:"5.250 / 7.000", items:["5101","5102","5103","5105","5108","5110","5113","5114","5115","5116"]},
-    {code:"FU2900", price:"6.000 / 8.000", items:["2901","2902","2903","2906","4405","4406"]},
-    {code:"FU600", price:"7.500 / 10.000", items:["601","602","603","604","605","606","607","608"]},
-    {code:"FU2500", price:"5.625 / 7.500", items:["2502","2503","2504","2507"]},
-    {code:"FU2601", price:"5.625 / 7.500", items:["-"]},
-    {code:"FU5902", price:"3.750 / 5.000", items:["-"]},
-    {code:"FU5401", price:"6.375 / 8.500", items:["-"]},
-    {code:"FU5701", price:"6.375 / 8.500", items:["-"]},
-    {code:"FU6400", price:"6.000 / 8.000", items:["6402","6403","6406"]},
-    {code:"FU3100", price:"6.000 / 8.000", items:["3101","3102","3103","3111"]},
-    {code:"FU120", price:"10.875 / 14.500", items:["121","122"]},
+    {code:"FU6300", price:"3.750 / 5.000", items:["6301","6302","6303","6304","6305","6306"], itemBarcodes:{"6301":"915","6302":"916","6303":"917","6304":"918","6305":"919","6306":"920"}},
+    {code:"FU5000", price:"3.750 / 5.000", items:["5001","5002","5003","5004","5005"], itemBarcodes:{"5001":"875","5002":"876","5003":"877","5004":"878","5005":"879"}},
+    {code:"FU6100", price:"6.750 / 9.000", items:["6101","6103","6104","6105","6106"], itemBarcodes:{"6101":"907","6103":"908","6104":"909","6105":"910","6106":"911"}},
+    {code:"FU5100", price:"5.250 / 7.000", items:["5101","5102","5103","5105","5108","5110","5113","5114","5115","5116"], itemBarcodes:{"5101":"883","5102":"884","5103":"885","5105":"887","5108":"886","5110":"888","5113":"970","5114":"889","5115":"890","5116":"891"}},
+    {code:"FU2900", price:"6.000 / 8.000", items:["2901","2902","2903","2906","4405","4406"], itemBarcodes:{"2901":"825","2902":"826","2903":"827","2906":"828","4405":"867","4406":"868"}},
+    {code:"FU600", price:"7.500 / 10.000", items:["601","602","603","604","605","606","607","608"], itemBarcodes:{"601":"670","602":"671","603":"672","604":"673","605":"674","606":"675","607":"784","608":"785"}},
+    {code:"FU2500", price:"5.625 / 7.500", items:["2502","2503","2504","2507"], itemBarcodes:{"2502":"813","2503":"814","2504":"815","2507":"816"}},
+    {code:"FU2601", price:"5.625 / 7.500", items:["-"], itemBarcodes:{"-":"817"}},
+    {code:"FU5902", price:"3.750 / 5.000", items:["-"], itemBarcodes:{"-":"921"}},
+    {code:"FU5401", price:"6.375 / 8.500", items:["-"], itemBarcodes:{"-":"892"}},
+    {code:"FU5701", price:"6.375 / 8.500", items:["-"], itemBarcodes:{"-":"893"}},
+    {code:"FU6400", price:"6.000 / 8.000", items:["6402","6403","6406"], itemBarcodes:{"6402":"912","6403":"913","6406":"914"}},
+    {code:"FU3100", price:"6.000 / 8.000", items:["3101","3102","3103","3111"], itemBarcodes:{"3101":"951","3102":"972","3103":"952","3111":"973"}},
+    {code:"FU120", price:"10.875 / 14.500", items:["121","122"], itemBarcodes:{"121":"809","122":"810"}},
     {code:"FU6900", price:"26.250 / 35.000", items:["6901","6902"]},
-    {code:"FU3701", price:"6.375 / 8.500", items:["-"]},
-    {code:"FU4201", price:"6.750 / 9.000", items:["-"]},
-    {code:"FU3301", price:"4.125 / 5.500", items:["-"]},
-    {code:"FU4700", price:"6.375 / 8.500", items:["4701","4702","4704"]},
-    {code:"FU3502", price:"9.000 / 12.000", items:["-"]},
-    {code:"FU3600", price:"9.000 / 12.000", items:["3601","3602"]},
-    {code:"FU4100", price:"13.875 / 18.500", items:["4101","4102"]},
-    {code:"FU100", price:"18.750 / 25.000", items:["101","112"]},
-    {code:"FU4800", price:"7.500 / 10.000", items:["4801","4802","4804"]},
-    {code:"FU6001", price:"15.000 / 20.000", items:["-"]},
-    {code:"FU5201", price:"13.875 / 18.500", items:["-"]},
+    {code:"FU3701", price:"6.375 / 8.500", items:["-"], itemBarcodes:{"-":"905"}},
+    {code:"FU4201", price:"6.750 / 9.000", items:["-"], itemBarcodes:{"-":"870"}},
+    {code:"FU3301", price:"4.125 / 5.500", items:["-"], itemBarcodes:{"-":"871"}},
+    {code:"FU4700", price:"6.375 / 8.500", items:["4701","4702","4704"], itemBarcodes:{"4701":"872","4702":"873","4704":"874"}},
+    {code:"FU3502", price:"9.000 / 12.000", items:["-"], itemBarcodes:{"-":"894"}},
+    {code:"FU3600", price:"9.000 / 12.000", items:["3601","3602"], itemBarcodes:{"3601":"864","3602":"865"}},
+    {code:"FU4100", price:"13.875 / 18.500", items:["4101","4102"], itemBarcodes:{"4101":"948","4102":"949"}},
+    {code:"FU100", price:"18.750 / 25.000", items:["101","112"], itemBarcodes:{"101":"565","112":"755"}},
+    {code:"FU4800", price:"7.500 / 10.000", items:["4801","4802","4804"], itemBarcodes:{"4801":"880","4802":"881","4804":"882"}},
+    {code:"FU6001", price:"15.000 / 20.000", items:["-"], itemBarcodes:{"-":"903"}},
+    {code:"FU5201", price:"13.875 / 18.500", items:["-"], itemBarcodes:{"-":"904"}},
   ]
 };
 
@@ -1066,10 +1066,23 @@ function mergeSavedData(saved){
   }
   return result;
 }
+function mergeDefaultBarcodes(result){
+  //Fill future barcodes from DEFAULT_DATA without overwriting any user-entered value.
+  (DEFAULT_DATA.Future||[]).forEach(def=>{
+    if(!def.itemBarcodes) return;
+    const savedBlock = (result.Future||[]).find(b=>b && b.code && b.code.toLowerCase()===def.code.toLowerCase());
+    if(!savedBlock) return;
+    if(!savedBlock.itemBarcodes || typeof savedBlock.itemBarcodes!=="object") savedBlock.itemBarcodes = {};
+    Object.keys(def.itemBarcodes).forEach(item=>{
+      if(!savedBlock.itemBarcodes[item]) savedBlock.itemBarcodes[item] = def.itemBarcodes[item];
+    });
+  });
+  return result;
+}
 function loadData(){
   try{
     const savedRaw = localStorage.getItem(LS_DATA_KEY);
-    if(savedRaw) return mergeSavedData(JSON.parse(savedRaw));
+    if(savedRaw) return mergeDefaultBarcodes(mergeSavedData(JSON.parse(savedRaw)));
   }catch(e){
     console.warn("تعذر قراءة بيانات المنتجات المحفوظة:", e);
   }
@@ -1177,7 +1190,7 @@ async function cloudPull(){
     cloudSupress = true;
     const p = await httpJson("GET","products");
     if(p && typeof p==="object"){
-      DATA = mergeSavedData(p);
+      DATA = mergeDefaultBarcodes(mergeSavedData(p));
       normalizeAllProducts();
       saveData();
     }
@@ -2693,6 +2706,15 @@ function normalizeAllProducts(){
   Object.keys(DATA || {}).forEach(brand=>{
     if(!Array.isArray(DATA[brand])) DATA[brand] = [];
     DATA[brand] = DATA[brand].map(normalizeProductBlock);
+  });
+  //Re-apply default Future barcodes after any cloud pull / reload, without overwriting user-entered ones.
+  (DEFAULT_DATA.Future||[]).forEach(def=>{
+    if(!def.itemBarcodes) return;
+    const savedBlock = (DATA.Future||[]).find(b=>b && b.code && b.code.toLowerCase()===def.code.toLowerCase());
+    if(!savedBlock) return;
+    Object.keys(def.itemBarcodes).forEach(item=>{
+      if(!savedBlock.itemBarcodes[item]) savedBlock.itemBarcodes[item] = def.itemBarcodes[item];
+    });
   });
 }
 
