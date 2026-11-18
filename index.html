@@ -1,4 +1,4 @@
-<!-- index v2.39 -->
+<!-- index v2.40 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -702,7 +702,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.39</span>
+  <span class="version">v2.40</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -747,7 +747,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.39";
+const APP_VERSION = "2.40";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -3427,10 +3427,8 @@ function computeTotals(qtySource){
 
 // qtySource = snapshot of quantities to render (defaults to live QTY)
 // customerName = optional name printed on the sheet header
-// opts.images=false → drops the product photo and keeps the barcode text (used by sharing)
-async function renderOrderCanvas(qtySource, customerName, opts){
+async function renderOrderCanvas(qtySource, customerName){
   const srcQty = qtySource || QTY;
-  const withImages = !(opts && opts.images === false);
   if(!hasAnyQty(srcQty)){ alert("ما فيه اي كمية مدخلة للطلبية"); return null; }
 
   const container = document.createElement("div");
@@ -3467,12 +3465,8 @@ async function renderOrderCanvas(qtySource, customerName, opts){
         const price = meta ? 0 : basePrice;
         const noteHtml = !meta && notes[label] ? `<div style="font-size:10px;color:#666;margin-top:2px;">📝 ${escHtml(notes[label])}</div>` : "";
         const variantBarcode = !meta && block && block.itemBarcodes && block.itemBarcodes[label] ? String(block.itemBarcodes[label]).trim() : "";
-        const picHtml = withImages ? (block && block.image ? `<img src="${block.image}" style="width:38px;height:38px;object-fit:contain;border-radius:4px;">` : "📦") : "";
-        const barcodeHtml = variantBarcode
-          ? `<div style="direction:ltr;font-family:monospace;font-size:11px;font-weight:bold;color:#000;margin-top:3px;">${escHtml(variantBarcode)}</div>`
-          : (withImages ? "" : `<span style="color:#999;">—</span>`);
           html += `<tr>
-          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${picHtml}${barcodeHtml}</td>
+          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${block && block.image ? `<img src="${block.image}" style="width:38px;height:38px;object-fit:contain;border-radius:4px;">` : "📦"}${variantBarcode ? `<div style="direction:ltr;font-family:monospace;font-size:11px;font-weight:bold;color:#000;margin-top:3px;">${escHtml(variantBarcode)}</div>` : ""}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${code}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${showLabel}${noteHtml}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${qty>0?qty:"–"}</td>
@@ -3502,15 +3496,13 @@ function orderFileName(customer){
   return `${safeName || "order"}.pdf`;
 }
 
-// Text-only workbook of an order (no images). Shared by the Excel button and the share sheet.
-function buildOrderExcel(qty, customer){
-  const wb = XLSX.utils.book_new();
-  let hasSheet = false;
+// Single source of truth for the order table — the Excel file and the PDF share the exact same rows.
+function collectOrderSheets(qty){
+  const sheets = [];
   Object.entries(qty || {}).forEach(([brand, codes])=>{
     const entries = Object.entries(codes||{}).filter(([c,items])=>items && Object.keys(items).length>0);
     if(!entries.length) return;
-    hasSheet = true;
-    const aoa = [["الكود","الدرجة","الكمية","السعر","الإجمالي","الباركود"]];
+    const rows = [];
     let brandQty = 0, brandTotal = 0;
     entries.forEach(([code, items])=>{
       const block = (DATA[brand]||[]).find(b=>b.code===code);
@@ -3527,17 +3519,88 @@ function buildOrderExcel(qty, customer){
         const q = Number(val)||0;
         const linePrice = meta ? 0 : price;
         const barcode = !meta && block && block.itemBarcodes && block.itemBarcodes[label] ? String(block.itemBarcodes[label]).trim() : "";
-        aoa.push([code, showLabel, q, linePrice, q*linePrice, barcode]);
+        rows.push([code, showLabel, q, linePrice, q*linePrice, barcode]);
         brandQty += q; brandTotal += q*linePrice;
       });
     });
-    aoa.push(["", "الإجمالي", brandQty, "", brandTotal, ""]);
+    sheets.push({ brand, rows, total: ["", "الإجمالي", brandQty, "", brandTotal, ""] });
+  });
+  return sheets;
+}
+
+// Text-only workbook of an order (no images). Shared by the Excel button and the share sheet.
+function buildOrderExcel(qty, customer){
+  const wb = XLSX.utils.book_new();
+  const sheets = collectOrderSheets(qty);
+  sheets.forEach(sh=>{
+    const aoa = [["الكود","الدرجة","الكمية","السعر","الإجمالي","الباركود"], ...sh.rows, sh.total];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!cols"] = [{wch:14},{wch:18},{wch:10},{wch:12},{wch:12},{wch:16}];
-    XLSX.utils.book_append_sheet(wb, ws, brand.slice(0,31));
+    XLSX.utils.book_append_sheet(wb, ws, sh.brand.slice(0,31));
   });
   const safeName = customer ? String(customer).replace(/[^a-zA-Z0-9ء-ي_ -]/g,"").trim().replace(/\s+/g,"_") : "";
-  return { wb, hasSheet, fname: `طلبية_${safeName||"order"}_${new Date().toISOString().slice(0,10)}.xlsx` };
+  return { wb, hasSheet: sheets.length>0, sheets, fname: `طلبية_${safeName||"order"}_${new Date().toISOString().slice(0,10)}.xlsx` };
+}
+
+// PDF canvas that mirrors the Excel sheet exactly (same columns/rows/totals), text-only.
+async function renderExcelStyleCanvas(qty, customer){
+  if(!hasAnyQty(qty)){ alert("ما فيه اي كمية مدخلة للطلبية"); return null; }
+  const sheets = collectOrderSheets(qty);
+  if(!sheets.length){ alert("ما فيه اي كمية مدخلة للطلبية"); return null; }
+
+  const cell = "border:1px solid #999;padding:5px 4px;text-align:center;";
+  const container = document.createElement("div");
+  container.id = "exportCanvas";
+  container.style.width = "800px";
+  container.style.fontFamily = "Tahoma, sans-serif";
+  container.style.direction = "rtl";
+  container.style.background = "#ffffff";
+  container.style.padding = "16px";
+  container.style.boxSizing = "border-box";
+
+  let html = `<h2 style="text-align:center;margin:0 0 4px;font-size:20px;">طلبية - ${new Date().toLocaleDateString('ar-IQ')}</h2>`;
+  if(customer){ html += `<h3 style="text-align:center;color:#2f6b52;margin:0 0 8px;font-size:15px;">الزبون: ${escHtml(customer)}</h3>`; }
+
+  sheets.forEach(sh=>{
+    html += `<div class="exp-brand" style="margin-top:16px;font-weight:bold;font-size:14px;color:#b5442e;">${escHtml(sh.brand)}</div>`;
+    html += `<table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;">
+      <thead><tr style="background:#eee;">
+        <th style="${cell}">الكود</th><th style="${cell}">الدرجة</th><th style="${cell}">الكمية</th>
+        <th style="${cell}">السعر</th><th style="${cell}">الإجمالي</th><th style="${cell}">الباركود</th>
+      </tr></thead><tbody>`;
+    sh.rows.forEach(r=>{
+      html += `<tr>
+        <td style="${cell}">${escHtml(String(r[0]))}</td>
+        <td style="${cell}">${escHtml(String(r[1]))}</td>
+        <td style="${cell}">${r[2]}</td>
+        <td style="${cell}">${fmt(r[3])}</td>
+        <td style="${cell}">${fmt(r[4])}</td>
+        <td style="${cell}direction:ltr;font-family:monospace;font-size:11px;">${escHtml(String(r[5]||""))}</td>
+      </tr>`;
+    });
+    html += `<tr style="font-weight:bold;background:#f7f3ea;">
+        <td style="${cell}"></td><td style="${cell}">الإجمالي</td>
+        <td style="${cell}">${sh.total[2]}</td><td style="${cell}"></td>
+        <td style="${cell}">${fmt(sh.total[4])}</td><td style="${cell}"></td>
+      </tr></tbody></table>`;
+  });
+
+  container.innerHTML = html;
+  container.style.position = "fixed";
+  container.style.left = "-9999px";
+  document.body.appendChild(container);
+
+  // Row boundaries (CSS px) so buildOrderPdf can break pages between rows instead of cutting them
+  const box = container.getBoundingClientRect();
+  const cuts = [];
+  container.querySelectorAll("tr").forEach(tr=>{ cuts.push(tr.getBoundingClientRect().bottom - box.top); });
+  container.querySelectorAll(".exp-brand").forEach(el=>{ cuts.push(el.getBoundingClientRect().top - box.top); });
+
+  const canvas = await html2canvas(container, {scale:2, backgroundColor:"#ffffff"});
+  document.body.removeChild(container);
+  canvas.__scale = box.width ? canvas.width / box.width : 1;
+  canvas.__cuts = cuts;
+  return canvas;
 }
 
 // Excel export of the order shown in the preview — text-only table, no images.
@@ -3551,31 +3614,58 @@ function exportPreviewExcel(orderId){
   XLSX.writeFile(wb, fname);
 }
 
-// Builds a compact PDF: each page gets its own slice of the sheet (no repeated full image)
-// and JPEG compression instead of PNG — keeps long orders well under a few MB.
+// Builds a compact PDF: each page gets its own slice of the sheet (no repeated full image),
+// JPEG compression, and page breaks land between table rows whenever possible.
 function buildOrderPdf(canvas){
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({unit:"mm", format:"a4"});
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-  const pxPerMm = canvas.width / pageWidth;              // canvas px per pdf mm
+  const pxPerMm = canvas.width / pageWidth;                     // canvas px per pdf mm
   const pagePx = Math.max(1, Math.floor(pageHeight * pxPerMm)); // canvas px that fit one page
+
+  // Preferred break points: measured row/table boundaries (canvas px)
+  const scale = canvas.__scale || 1;
+  const cuts = (canvas.__cuts || [])
+    .map(y=>Math.round(y * scale))
+    .filter(y=>y > 0 && y < canvas.height)
+    .sort((a,b)=>a-b);
+
+  const bounds = [];
+  if(cuts.length){
+    let start = 0;
+    while(start < canvas.height){
+      const limit = start + pagePx;
+      if(limit >= canvas.height){ bounds.push(canvas.height); break; }
+      let best = 0;
+      for(let i = cuts.length - 1; i >= 0; i--){
+        if(cuts[i] <= limit){ if(cuts[i] > start + pagePx * 0.45) best = cuts[i]; break; }
+      }
+      if(!best) best = limit; // no row boundary fits → plain cut
+      bounds.push(best);
+      start = best;
+    }
+  }else{
+    for(let y = pagePx; y < canvas.height; y += pagePx) bounds.push(y);
+    bounds.push(canvas.height);
+  }
+
   const slice = document.createElement("canvas");
   const ctx = slice.getContext("2d");
-
-  let y = 0, first = true;
-  while(y < canvas.height){
-    const h = Math.min(pagePx, canvas.height - y);
+  let start = 0, first = true;
+  bounds.forEach(end=>{
+    const h = end - start;
+    if(h <= 0) return;
     slice.width = canvas.width;
     slice.height = h;
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, slice.width, slice.height);
-    ctx.drawImage(canvas, 0, y, canvas.width, h, 0, 0, canvas.width, h);
+    ctx.drawImage(canvas, 0, start, canvas.width, h, 0, 0, canvas.width, h);
     if(!first) pdf.addPage();
     pdf.addImage(slice.toDataURL("image/jpeg", 0.85), "JPEG", 0, 0, pageWidth, h / pxPerMm);
     first = false;
-    y += h;
-  }
+    start = end;
+  });
   return pdf;
 }
 
@@ -3735,7 +3825,7 @@ function downloadBlob(blob, name){
 // WhatsApp/iOS accept only ONE file per share sheet, so the Excel is saved straight to
 // Downloads and the PDF goes through the share sheet (that combination actually arrives).
 async function shareOrderFiles(qtySource, customerName){
-  const canvas = await renderOrderCanvas(qtySource, customerName, {images:false});
+  const canvas = await renderExcelStyleCanvas(qtySource, customerName);
   if(!canvas) return false;
   const pdfBlob = buildOrderPdf(canvas).output("blob");
   const pdfName = orderFileName(customerName);
