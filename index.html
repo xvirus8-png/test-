@@ -1,4 +1,4 @@
-<!-- index v2.38 -->
+<!-- index v2.39 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -702,7 +702,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.38</span>
+  <span class="version">v2.39</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -747,7 +747,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.38";
+const APP_VERSION = "2.39";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -3551,26 +3551,30 @@ function exportPreviewExcel(orderId){
   XLSX.writeFile(wb, fname);
 }
 
+// Builds a compact PDF: each page gets its own slice of the sheet (no repeated full image)
+// and JPEG compression instead of PNG — keeps long orders well under a few MB.
 function buildOrderPdf(canvas){
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({unit:"mm", format:"a4"});
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-  const imgWidth = pageWidth;
-  const imgHeight = (canvas.height * imgWidth) / canvas.width;
-  const imgData = canvas.toDataURL("image/png");
+  const pxPerMm = canvas.width / pageWidth;              // canvas px per pdf mm
+  const pagePx = Math.max(1, Math.floor(pageHeight * pxPerMm)); // canvas px that fit one page
+  const slice = document.createElement("canvas");
+  const ctx = slice.getContext("2d");
 
-  let heightLeft = imgHeight;
-  let position = 0;
-
-  pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-  heightLeft -= pageHeight;
-
-  while(heightLeft > 0){
-    position = heightLeft - imgHeight;
-    pdf.addPage();
-    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
+  let y = 0, first = true;
+  while(y < canvas.height){
+    const h = Math.min(pagePx, canvas.height - y);
+    slice.width = canvas.width;
+    slice.height = h;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, slice.width, slice.height);
+    ctx.drawImage(canvas, 0, y, canvas.width, h, 0, 0, canvas.width, h);
+    if(!first) pdf.addPage();
+    pdf.addImage(slice.toDataURL("image/jpeg", 0.85), "JPEG", 0, 0, pageWidth, h / pxPerMm);
+    first = false;
+    y += h;
   }
   return pdf;
 }
@@ -3728,6 +3732,8 @@ function downloadBlob(blob, name){
   setTimeout(()=>URL.revokeObjectURL(url), 60000);
 }
 
+// WhatsApp/iOS accept only ONE file per share sheet, so the Excel is saved straight to
+// Downloads and the PDF goes through the share sheet (that combination actually arrives).
 async function shareOrderFiles(qtySource, customerName){
   const canvas = await renderOrderCanvas(qtySource, customerName, {images:false});
   if(!canvas) return false;
@@ -3737,11 +3743,12 @@ async function shareOrderFiles(qtySource, customerName){
   if(!hasSheet){ alert("ما فيه اي كمية مدخلة للطلبية"); return false; }
   const xlsxBuf = XLSX.write(wb, {bookType:"xlsx", type:"array"});
   const xlsxBlob = new Blob([xlsxBuf], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+
+  downloadBlob(xlsxBlob, xlsxName); // Excel → Downloads (same press)
   try{
     const pdfFile = new File([pdfBlob], pdfName, {type:"application/pdf"});
-    const xlsxFile = new File([xlsxBlob], xlsxName, {type: xlsxBlob.type});
-    if(navigator.canShare && navigator.canShare({files:[pdfFile, xlsxFile]})){
-      await navigator.share({files:[pdfFile, xlsxFile], title:"طلبية " + (customerName||""), text:"طلبية " + (customerName||"")});
+    if(navigator.canShare && navigator.canShare({files:[pdfFile]})){
+      await navigator.share({files:[pdfFile], title:"طلبية " + (customerName||""), text:"طلبية " + (customerName||"")});
       return true; // user completed (or cancelled) the native share sheet
     }
   }catch(err){
@@ -3749,8 +3756,7 @@ async function shareOrderFiles(qtySource, customerName){
     // fall through to downloads
   }
   downloadBlob(pdfBlob, pdfName);
-  downloadBlob(xlsxBlob, xlsxName);
-  alert("جهازك ما يدعم مشاركة ملفين معاً — تم تحميل PDF والإكسل، شاركهم من ملفات الجهاز.");
+  alert("جهازك ما يدعم المشاركة — تم تحميل PDF والإكسل، شاركهم من ملفات الجهاز.");
   return true;
 }
 async function shareLiveOrder(){
