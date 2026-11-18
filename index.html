@@ -1,4 +1,4 @@
-<!-- index v2.37 -->
+<!-- index v2.38 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -702,7 +702,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.37</span>
+  <span class="version">v2.38</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -747,7 +747,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.37";
+const APP_VERSION = "2.38";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -3427,8 +3427,10 @@ function computeTotals(qtySource){
 
 // qtySource = snapshot of quantities to render (defaults to live QTY)
 // customerName = optional name printed on the sheet header
-async function renderOrderCanvas(qtySource, customerName){
+// opts.images=false → drops the product photo and keeps the barcode text (used by sharing)
+async function renderOrderCanvas(qtySource, customerName, opts){
   const srcQty = qtySource || QTY;
+  const withImages = !(opts && opts.images === false);
   if(!hasAnyQty(srcQty)){ alert("ما فيه اي كمية مدخلة للطلبية"); return null; }
 
   const container = document.createElement("div");
@@ -3465,8 +3467,12 @@ async function renderOrderCanvas(qtySource, customerName){
         const price = meta ? 0 : basePrice;
         const noteHtml = !meta && notes[label] ? `<div style="font-size:10px;color:#666;margin-top:2px;">📝 ${escHtml(notes[label])}</div>` : "";
         const variantBarcode = !meta && block && block.itemBarcodes && block.itemBarcodes[label] ? String(block.itemBarcodes[label]).trim() : "";
+        const picHtml = withImages ? (block && block.image ? `<img src="${block.image}" style="width:38px;height:38px;object-fit:contain;border-radius:4px;">` : "📦") : "";
+        const barcodeHtml = variantBarcode
+          ? `<div style="direction:ltr;font-family:monospace;font-size:11px;font-weight:bold;color:#000;margin-top:3px;">${escHtml(variantBarcode)}</div>`
+          : (withImages ? "" : `<span style="color:#999;">—</span>`);
           html += `<tr>
-          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${block && block.image ? `<img src="${block.image}" style="width:38px;height:38px;object-fit:contain;border-radius:4px;">` : "📦"}${variantBarcode ? `<div style="direction:ltr;font-family:monospace;font-size:11px;font-weight:bold;color:#000;margin-top:3px;">${escHtml(variantBarcode)}</div>` : ""}</td>
+          <td style="border:1px solid #ccc;padding:4px;text-align:center;">${picHtml}${barcodeHtml}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${code}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${showLabel}${noteHtml}</td>
           <td style="border:1px solid #ccc;padding:4px;text-align:center;">${qty>0?qty:"–"}</td>
@@ -3496,15 +3502,11 @@ function orderFileName(customer){
   return `${safeName || "order"}.pdf`;
 }
 
-// Excel export of the order shown in the preview — text-only table, no images.
-function exportPreviewExcel(orderId){
-  const o = orderId ? (ORDERS.find(x=>x.id===orderId)||null) : null;
-  const qty = o ? (o.qty||{}) : QTY;
-  const customer = o ? (o.customer||"") : (previewCustomerName||"");
-  if(!hasAnyQty(qty)){ alert("ما فيه اي كمية مدخلة للطلبية"); return; }
+// Text-only workbook of an order (no images). Shared by the Excel button and the share sheet.
+function buildOrderExcel(qty, customer){
   const wb = XLSX.utils.book_new();
   let hasSheet = false;
-  Object.entries(qty).forEach(([brand, codes])=>{
+  Object.entries(qty || {}).forEach(([brand, codes])=>{
     const entries = Object.entries(codes||{}).filter(([c,items])=>items && Object.keys(items).length>0);
     if(!entries.length) return;
     hasSheet = true;
@@ -3534,9 +3536,19 @@ function exportPreviewExcel(orderId){
     ws["!cols"] = [{wch:14},{wch:18},{wch:10},{wch:12},{wch:12},{wch:16}];
     XLSX.utils.book_append_sheet(wb, ws, brand.slice(0,31));
   });
-  if(!hasSheet){ alert("ما فيه اي كمية مدخلة للطلبية"); return; }
   const safeName = customer ? String(customer).replace(/[^a-zA-Z0-9ء-ي_ -]/g,"").trim().replace(/\s+/g,"_") : "";
-  XLSX.writeFile(wb, `طلبية_${safeName||"order"}_${new Date().toISOString().slice(0,10)}.xlsx`);
+  return { wb, hasSheet, fname: `طلبية_${safeName||"order"}_${new Date().toISOString().slice(0,10)}.xlsx` };
+}
+
+// Excel export of the order shown in the preview — text-only table, no images.
+function exportPreviewExcel(orderId){
+  const o = orderId ? (ORDERS.find(x=>x.id===orderId)||null) : null;
+  const qty = o ? (o.qty||{}) : QTY;
+  const customer = o ? (o.customer||"") : (previewCustomerName||"");
+  if(!hasAnyQty(qty)){ alert("ما فيه اي كمية مدخلة للطلبية"); return; }
+  const { wb, hasSheet, fname } = buildOrderExcel(qty, customer);
+  if(!hasSheet){ alert("ما فيه اي كمية مدخلة للطلبية"); return; }
+  XLSX.writeFile(wb, fname);
 }
 
 function buildOrderPdf(canvas){
@@ -3704,38 +3716,47 @@ function editSavedOrder(id){
   loadOrder(id);
 }
 
-// ===== Sharing: native share sheet when available, viewer tab as fallback =====
-async function shareOrderPdf(qtySource, customerName){
-  const canvas = await renderOrderCanvas(qtySource, customerName);
+// ===== Sharing: PDF (no product photos) + Excel together, native share sheet when supported =====
+function downloadBlob(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 60000);
+}
+
+async function shareOrderFiles(qtySource, customerName){
+  const canvas = await renderOrderCanvas(qtySource, customerName, {images:false});
   if(!canvas) return false;
-  const pdf = buildOrderPdf(canvas);
-  const blob = pdf.output("blob");
-  const fname = orderFileName(customerName);
+  const pdfBlob = buildOrderPdf(canvas).output("blob");
+  const pdfName = orderFileName(customerName);
+  const { wb, hasSheet, fname: xlsxName } = buildOrderExcel(qtySource, customerName);
+  if(!hasSheet){ alert("ما فيه اي كمية مدخلة للطلبية"); return false; }
+  const xlsxBuf = XLSX.write(wb, {bookType:"xlsx", type:"array"});
+  const xlsxBlob = new Blob([xlsxBuf], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
   try{
-    const file = new File([blob], fname, {type:"application/pdf"});
-    if(navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({files:[file], title:"طلبية " + (customerName||""), text:"طلبية " + (customerName||"")});
+    const pdfFile = new File([pdfBlob], pdfName, {type:"application/pdf"});
+    const xlsxFile = new File([xlsxBlob], xlsxName, {type: xlsxBlob.type});
+    if(navigator.canShare && navigator.canShare({files:[pdfFile, xlsxFile]})){
+      await navigator.share({files:[pdfFile, xlsxFile], title:"طلبية " + (customerName||""), text:"طلبية " + (customerName||"")});
       return true; // user completed (or cancelled) the native share sheet
     }
   }catch(err){
     if(err && err.name === "AbortError") return true; // user closed the share sheet
-    // fall through to viewer fallback
+    // fall through to downloads
   }
-  const win = window.open("", "_blank");
-  if(win){
-    const url = URL.createObjectURL(blob);
-    win.location.href = url;
-    setTimeout(()=>URL.revokeObjectURL(url), 60000);
-  }else{
-    pdf.save(fname);
-    alert("المتصفح منع المشاركة — تم تحميل الـ PDF بدلاً من ذلك، شاركه من ملفات الجهاز.");
-  }
+  downloadBlob(pdfBlob, pdfName);
+  downloadBlob(xlsxBlob, xlsxName);
+  alert("جهازك ما يدعم مشاركة ملفين معاً — تم تحميل PDF والإكسل، شاركهم من ملفات الجهاز.");
   return true;
 }
 async function shareLiveOrder(){
   try{
     if(!hasAnyQty()){ alert("ما فيه اي كمية مدخلة للطلبية"); return; }
-    await shareOrderPdf(QTY, previewCustomerName || "");
+    await shareOrderFiles(QTY, previewCustomerName || "");
   }catch(err){
     alert("⚠️ خطأ بالمشاركة:\n" + err.message);
   }
@@ -3744,7 +3765,7 @@ async function shareSavedOrder(id){
   try{
     const o = savedOrderOrNull(id);
     if(!o) return;
-    await shareOrderPdf(o.qty||{}, o.customer||"");
+    await shareOrderFiles(o.qty||{}, o.customer||"");
   }catch(err){
     alert("⚠️ خطأ بالمشاركة:\n" + err.message);
   }
