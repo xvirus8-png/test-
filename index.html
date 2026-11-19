@@ -1,4 +1,4 @@
-<!-- index v2.43 -->
+<!-- index v2.44 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -633,6 +633,8 @@
   .pv-edit{background:var(--pl);color:var(--primary);}
   .pv-excel{background:rgba(22,163,74,.15);color:var(--success);}
   .pv-share{background:var(--warning);}
+  .pv-btn:disabled{opacity:.6;cursor:wait;}
+  .pv-share.is-ready{background:var(--success);}
 
   /* === BUSY OVERLAY (PDF/Excel preparation) === */
   #busyOverlay{position:fixed;inset:0;background:rgba(10,14,25,.55);display:flex;align-items:center;justify-content:center;z-index:9999;direction:rtl;}
@@ -708,7 +710,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.43</span>
+  <span class="version">v2.44</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -753,7 +755,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.43";
+const APP_VERSION = "2.44";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -3696,7 +3698,8 @@ async function renderExcelStylePages(qty, customer){
     const el = makeEl(html);
     document.body.appendChild(el);
     try{
-      canvases.push(await html2canvas(el, {scale:2, backgroundColor:"#ffffff"}));
+      // 1.5 instead of 2: ~44% fewer pixels, still ~160 dpi on an A4 page.
+      canvases.push(await html2canvas(el, {scale:1.5, backgroundColor:"#ffffff"}));
     }finally{
       document.body.removeChild(el);
     }
@@ -3725,7 +3728,7 @@ function buildOrderPdfFromPages(pages){
     let w = EXPORT_MM_W;
     let h = canvas.height / (canvas.width / EXPORT_MM_W);
     if(h > maxH){ const k = maxH / h; h *= k; w *= k; } // keep the aspect ratio, never squash
-    pdf.addImage(canvas.toDataURL("image/jpeg", 0.9), "JPEG", (210 - w) / 2, EXPORT_MM_M, w, h);
+    pdf.addImage(canvas.toDataURL("image/jpeg", 0.75), "JPEG", (210 - w) / 2, EXPORT_MM_M, w, h);
   });
   return pdf;
 }
@@ -3799,10 +3802,7 @@ async function previewOrder(){
     }finally{ hideBusy(); }
     if(!canvas){ closePreview(); return; }
     putPreviewImage(modal, canvas);
-    // pre-build the share files for small orders so the iOS share sheet opens instantly
-    if(orderRowCount(QTY) <= 120){
-      setTimeout(()=>{ prepareShareAssets(QTY, name).catch(()=>{}); }, 500);
-    }
+    primeShareAssets(QTY, name, modal);
   }catch(err){
     hideBusy();
     alert("⚠️ خطأ ببناء المعاينة:\n" + err.message);
@@ -3866,9 +3866,7 @@ async function previewSavedOrder(id){
     }finally{ hideBusy(); }
     if(!canvas){ closePreview(); return; }
     putPreviewImage(modal, canvas);
-    if(orderRowCount(o.qty||{}) <= 120){
-      setTimeout(()=>{ prepareShareAssets(o.qty||{}, o.customer||"").catch(()=>{}); }, 500);
-    }
+    primeShareAssets(o.qty||{}, o.customer||"", modal);
   }catch(err){
     hideBusy();
     alert("⚠️ خطأ ببناء المعاينة:\n" + err.message);
@@ -3913,8 +3911,39 @@ function hideBusy(){
 function nextPaint(){
   return new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve, 0)));
 }
-function orderRowCount(qty){
-  return collectOrderSheets(qty).reduce((n, sh)=>n + sh.rows.length, 0);
+
+// iOS kills the user gesture if anything is awaited between the tap and navigator.share.
+// The share button therefore stays disabled until the files have already been built.
+function setShareButtonState(btn, state){
+  if(!btn) return;
+  if(state === "loading"){
+    btn.disabled = true;
+    btn.classList.remove("is-ready");
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> جاري التحضير…';
+  }else if(state === "ready"){
+    btn.disabled = false;
+    btn.classList.add("is-ready");
+    btn.innerHTML = '<i class="bi bi-share"></i> جاهز، اضغط للإرسال';
+  }else{
+    btn.disabled = false;
+    btn.classList.remove("is-ready");
+    btn.innerHTML = '<i class="bi bi-share"></i> مشاركة';
+  }
+}
+
+// Build the PDF + Excel right after the preview appears — for every order size,
+// so the share tap never has to wait for html2canvas and never loses the iOS gesture.
+function primeShareAssets(qty, customer, modal){
+  const btn = modal ? modal.querySelector(".pv-share") : null;
+  setShareButtonState(btn, "loading");
+  const key = orderKey(qty, customer);
+  const job = (shareCache && shareCache.key === key) ? Promise.resolve(shareCache) : prepareShareAssets(qty, customer);
+  const stillOpen = ()=> document.getElementById("previewModal") === modal;
+  job.then(assets=>{
+    if(stillOpen()) setShareButtonState(btn, assets ? "ready" : "failed");
+  }).catch(()=>{
+    if(stillOpen()) setShareButtonState(btn, "failed");
+  });
 }
 
 // Files for the order currently shown; pre-built so the share sheet opens without a long wait.
@@ -3962,40 +3991,47 @@ function downloadBlob(blob, name){
 }
 
 // v2.43: PDF + Excel go through the share sheet together when canShare accepts both files.
-// Fallback (device accepts one file only): the PDF goes through the share sheet,
-// and the Excel lands in Downloads right after it (so it never consumes the iOS share gesture).
+// Fallback (device accepts one file only): only the PDF goes through the share sheet
+// (so it never consumes the iOS share gesture). The Excel is ALWAYS downloaded too —
+// a two-file share can look successful while WhatsApp silently drops the xlsx.
 async function shareOrderFiles(qtySource, customerName){
   const key = orderKey(qtySource, customerName);
   let assets = (shareCache && shareCache.key === key) ? shareCache : null;
   if(!assets){
+    // Safety net: building inside the tap loses the iOS gesture. Build now, then
+    // ask for a second tap instead of showing a false "device not supported" alert.
+    const modal = document.getElementById("previewModal");
+    const btn = modal ? modal.querySelector(".pv-share") : null;
+    setShareButtonState(btn, "loading");
     showBusy("جاري تحضير الـPDF والإكسل…");
     try{
       await nextPaint();
       assets = await prepareShareAssets(qtySource, customerName);
     }finally{ hideBusy(); }
+    setShareButtonState(btn, assets ? "ready" : "failed");
+    alert(assets ? "تم التحضير — اضغط «جاهز، اضغط للإرسال» مرّة ثانية" : "ما انحضّر الملفات — حاول مرّة ثانية");
+    return false;
   }
   if(!assets) return false;
 
   let shared = false;
-  let sharedBoth = false;
-  let tryingBoth = false;
   try{
     const pdfFile = new File([assets.pdfBlob], assets.pdfName, {type:"application/pdf"});
     const xlsxFile = new File([assets.xlsxBlob], assets.xlsxName, {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
     if(navigator.canShare && navigator.canShare({files:[pdfFile, xlsxFile]})){
       // No await between the click and this call when the cache is warm → keeps the iOS gesture.
-      tryingBoth = true;
       await navigator.share({files:[pdfFile, xlsxFile], title:"طلبية " + (customerName||""), text:"طلبية " + (customerName||"")});
       shared = true;
-      sharedBoth = true;
     }else if(navigator.canShare && navigator.canShare({files:[pdfFile]})){
       await navigator.share({files:[pdfFile], title:"طلبية " + (customerName||""), text:"طلبية " + (customerName||"")});
       shared = true;
     }
   }catch(err){
-    if(err && err.name === "AbortError"){ shared = true; if(tryingBoth) sharedBoth = true; } // user closed the share sheet
+    if(err && err.name === "AbortError") shared = true; // user closed the share sheet
   }
-  if(!sharedBoth) downloadBlob(assets.xlsxBlob, assets.xlsxName); // Excel → Downloads (only when it wasn't shared with the PDF)
+  // Excel always lands in Downloads: WhatsApp/iOS may quietly drop the xlsx from a
+  // two-file share sheet, so a local copy is kept even when the share succeeded.
+  downloadBlob(assets.xlsxBlob, assets.xlsxName);
   if(!shared){
     downloadBlob(assets.pdfBlob, assets.pdfName);
     alert("جهازك ما يدعم المشاركة — تم تحميل PDF والإكسل، شاركهم من ملفات الجهاز.");
