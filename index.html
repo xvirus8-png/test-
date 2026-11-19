@@ -1,4 +1,4 @@
-<!-- index v2.45 -->
+<!-- index v2.47 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -710,7 +710,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.45</span>
+  <span class="version">v2.47</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -755,7 +755,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.45";
+const APP_VERSION = "2.47";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -3538,7 +3538,8 @@ function collectOrderSheets(qty){
         const q = Number(val)||0;
         const linePrice = meta ? 0 : price;
         const barcode = !meta && block && block.itemBarcodes && block.itemBarcodes[label] ? String(block.itemBarcodes[label]).trim() : "";
-        rows.push([code, showLabel, q, linePrice, q*linePrice, barcode]);
+        // v2.46: 7th field = free qty (Gift + Tester). Excel reads only the first 6; the PDF uses this one.
+        rows.push([code, showLabel, q, linePrice, q*linePrice, barcode, meta ? q : ""]);
         brandQty += q; brandTotal += q*linePrice;
       });
     });
@@ -3552,7 +3553,8 @@ function buildOrderExcel(qty, customer){
   const wb = XLSX.utils.book_new();
   const sheets = collectOrderSheets(qty);
   sheets.forEach(sh=>{
-    const aoa = [["الكود","الدرجة","الكمية","السعر","الإجمالي","الباركود"], ...sh.rows, sh.total];
+    // v2.46: keep Excel at its original 6 columns (the PDF added a 7th free-qty field).
+    const aoa = [["الكود","الدرجة","الكمية","السعر","الإجمالي","الباركود"], ...sh.rows.map(r=>r.slice(0,6)), sh.total];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!cols"] = [{wch:14},{wch:18},{wch:10},{wch:12},{wch:12},{wch:16}];
     XLSX.utils.book_append_sheet(wb, ws, sh.brand.slice(0,31));
@@ -3565,28 +3567,39 @@ function buildOrderExcel(qty, customer){
 // iOS blanks any canvas bigger than ~16.7 megapixels — that is why big invoices used to
 // come out as white pages. Each page below is under ~4 MP, gets real A4 margins, and
 // repeats the column header (plus the brand name) so nothing looks cut.
-const EXPORT_CELL = "border:1px solid #999;padding:5px 4px;text-align:center;";
+// v2.47: tighter columns (2px horizontal) + taller rows (8px vertical).
+const EXPORT_CELL = "border:1px solid #999;padding:8px 2px;text-align:center;";
 const EXPORT_PAGE_W = 800;   // CSS px that map to 190 mm (A4 width minus 10 mm margins)
 const EXPORT_PAGE_H = 1150;  // CSS px that fit A4 height minus margins (safe cap)
 const EXPORT_MM_W = 190;     // printable width in mm
 const EXPORT_MM_M = 10;      // page margin in mm
 
+// v2.46: PDF shows only 4 columns — الكود / الدرجة / الكمية / الكمية المجانية.
+// Price, total and barcode columns were removed by request; Excel keeps all six.
 function exportTableHead(){
   const cell = EXPORT_CELL;
   return `<thead><tr style="background:#eee;">
       <th style="${cell}">الكود</th><th style="${cell}">الدرجة</th><th style="${cell}">الكمية</th>
-      <th style="${cell}">السعر</th><th style="${cell}">الإجمالي</th><th style="${cell}">الباركود</th>
+      <th style="${cell}">الكمية المجانية</th>
     </tr></thead>`;
 }
-function exportRowHtml(r){
+// v2.47: alternating row backgrounds + Gift/Tester pills (PDF only; Excel stays text).
+function exportRowHtml(r, ri){
   const cell = EXPORT_CELL;
-  return `<tr class="exp-row">
+  const bg = (ri % 2) ? "#ffffff" : "#fafafa";
+  const raw = String(r[1]);
+  const gm = raw.match(/^(.*?) · (Tester|Gift)$/);
+  let gradeHtml = escHtml(raw);
+  if(gm){
+    const pillBg = gm[2] === "Tester" ? "#c62828" : "#2e7d32";
+    gradeHtml = escHtml(gm[1]) +
+      ` <span style="display:inline-block;padding:2px 8px;border-radius:999px;background:${pillBg};color:#ffffff;font-size:10px;font-weight:bold;line-height:1.4;">${gm[2]}</span>`;
+  }
+  return `<tr class="exp-row" style="background:${bg};">
       <td style="${cell}">${escHtml(String(r[0]))}</td>
-      <td style="${cell}">${escHtml(String(r[1]))}</td>
+      <td style="${cell}">${gradeHtml}</td>
       <td style="${cell}">${r[2]}</td>
-      <td style="${cell}">${fmt(r[3])}</td>
-      <td style="${cell}">${fmt(r[4])}</td>
-      <td style="${cell}direction:ltr;font-family:monospace;font-size:11px;">${escHtml(String(r[5]||""))}</td>
+      <td style="${cell}">${r[6] === "" ? "" : escHtml(String(r[6]))}</td>
     </tr>`;
 }
 function exportTotalHtml(total){
@@ -3594,7 +3607,6 @@ function exportTotalHtml(total){
   return `<tr class="exp-total" style="font-weight:bold;background:#f7f3ea;">
       <td style="${cell}"></td><td style="${cell}">الإجمالي</td>
       <td style="${cell}">${total[2]}</td><td style="${cell}"></td>
-      <td style="${cell}">${fmt(total[4])}</td><td style="${cell}"></td>
     </tr>`;
 }
 function exportHeaderHtml(customer, compact){
@@ -3635,7 +3647,7 @@ async function renderExcelStylePages(qty, customer){
   sheets.forEach(sh=>{
     measure += exportBrandHtml(sh.brand);
     measure += `<table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;">${exportTableHead()}<tbody>`;
-    sh.rows.forEach(r=>{ measure += exportRowHtml(r); });
+    sh.rows.forEach((r, ri)=>{ measure += exportRowHtml(r, ri); });
     measure += exportTotalHtml(sh.total) + `</tbody></table>`;
   });
   const probe = makeEl(pageWrap(measure));
@@ -3696,7 +3708,7 @@ async function renderExcelStylePages(qty, customer){
     pg.segs.forEach(sg=>{
       html += exportBrandHtml(sg.brand);
       html += `<table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;">${exportTableHead()}<tbody>`;
-      sg.rows.forEach(r=>{ html += exportRowHtml(r); });
+      sg.rows.forEach((r, ri)=>{ html += exportRowHtml(r, ri); });
       if(sg.total) html += exportTotalHtml(totalsByBrand[sg.brand]);
       html += `</tbody></table>`;
     });
@@ -3755,7 +3767,7 @@ function buildOrderPdfFromPages(pages){
     let w = EXPORT_MM_W;
     let h = canvas.height / (canvas.width / EXPORT_MM_W);
     if(h > maxH){ const k = maxH / h; h *= k; w *= k; } // keep the aspect ratio, never squash
-    pdf.addImage(canvas.toDataURL("image/jpeg", 0.75), "JPEG", (210 - w) / 2, EXPORT_MM_M, w, h);
+    pdf.addImage(canvas.toDataURL("image/jpeg", 0.85), "JPEG", (210 - w) / 2, EXPORT_MM_M, w, h);
   });
   return pdf;
 }
