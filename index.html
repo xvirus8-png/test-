@@ -1,4 +1,4 @@
-<!-- index v2.44 -->
+<!-- index v2.45 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -710,7 +710,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.44</span>
+  <span class="version">v2.45</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -755,7 +755,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.44";
+const APP_VERSION = "2.45";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -1128,6 +1128,7 @@ function saveQty(){
   }catch(e){
     console.warn("تحذير: مساحة التخزين المحلي ممتلئة", e);
   }
+  scheduleBgPrebuild(); // v2.45: keep the PDF/preview render warm while editing
 }
 
 /* ================= CLOUD SYNC =================
@@ -3614,12 +3615,17 @@ async function renderExcelStylePages(qty, customer){
   const sheets = collectOrderSheets(qty);
   if(!sheets.length){ alert("ما فيه اي كمية مدخلة للطلبية"); return null; }
 
-  const pageStyle = `width:${EXPORT_PAGE_W}px;font-family:Tahoma,sans-serif;direction:rtl;color:#1c1c1c;` +
-    `background:#ffffff;padding:16px;box-sizing:border-box;position:fixed;left:-9999px;top:0;`;
+  // v2.45: several fixed-height A4 pages stack into ONE html2canvas call.
+  // html2canvas spends ~1.1 s of fixed overhead per call before drawing anything,
+  // so 3 batched calls instead of 13 is the biggest speed win for large invoices.
+  const batchStyle = `width:${EXPORT_PAGE_W}px;font-family:Tahoma,sans-serif;direction:rtl;color:#1c1c1c;` +
+    `background:#ffffff;position:fixed;left:-9999px;top:0;margin:0;padding:0;`;
+  const pageWrap = (inner)=>
+    `<div class="exp-page" style="height:${EXPORT_PAGE_H}px;padding:16px;box-sizing:border-box;overflow:hidden;background:#ffffff;">${inner}</div>`;
   const makeEl = (html)=>{
     const el = document.createElement("div");
     el.className = "exportCanvas";
-    el.style.cssText = pageStyle;
+    el.style.cssText = batchStyle;
     el.innerHTML = html;
     return el;
   };
@@ -3632,7 +3638,7 @@ async function renderExcelStylePages(qty, customer){
     sh.rows.forEach(r=>{ measure += exportRowHtml(r); });
     measure += exportTotalHtml(sh.total) + `</tbody></table>`;
   });
-  const probe = makeEl(measure);
+  const probe = makeEl(pageWrap(measure));
   document.body.appendChild(probe);
   const topEl = probe.querySelector(".exp-top"), contEl = probe.querySelector(".exp-cont");
   const topH = topEl ? topEl.getBoundingClientRect().height : 0;
@@ -3682,24 +3688,45 @@ async function renderExcelStylePages(qty, customer){
     page.used += m.totalH;
   });
 
-  // 3) render each page on its own (small canvas → safe on iPhone)
+  // 3) build each page's HTML once
   const totalsByBrand = {};
   sheets.forEach(sh=>{ totalsByBrand[sh.brand] = sh.total; });
-  const canvases = [];
-  for(let p = 0; p < pages.length; p++){
+  const pageHtmls = pages.map((pg, p)=>{
     let html = exportHeaderHtml(customer, p > 0);
-    pages[p].segs.forEach(sg=>{
+    pg.segs.forEach(sg=>{
       html += exportBrandHtml(sg.brand);
       html += `<table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;">${exportTableHead()}<tbody>`;
       sg.rows.forEach(r=>{ html += exportRowHtml(r); });
       if(sg.total) html += exportTotalHtml(totalsByBrand[sg.brand]);
       html += `</tbody></table>`;
     });
-    const el = makeEl(html);
+    return pageWrap(html);
+  });
+
+  // 4) render in batches of whole pages (≤12 MP per canvas — safely under iOS's
+  //    ~16.7 MP blanking limit), then slice each batch back into one canvas per
+  //    A4 page so buildOrderPdfFromPages() keeps working unchanged.
+  const SCALE = 1.5;
+  const BATCH_MP = 12e6;
+  const pageMP = (EXPORT_PAGE_W * SCALE) * (EXPORT_PAGE_H * SCALE) / 1e6;
+  const batchSize = Math.max(1, Math.floor((BATCH_MP / 1e6) / pageMP)); // 5 pages ≈ 10.3 MP
+  const canvases = [];
+  for(let start = 0; start < pageHtmls.length; start += batchSize){
+    const group = pageHtmls.slice(start, start + batchSize);
+    const el = makeEl(group.join(""));
     document.body.appendChild(el);
     try{
-      // 1.5 instead of 2: ~44% fewer pixels, still ~160 dpi on an A4 page.
-      canvases.push(await html2canvas(el, {scale:1.5, backgroundColor:"#ffffff"}));
+      const batch = await html2canvas(el, {scale:SCALE, backgroundColor:"#ffffff"});
+      const n = group.length;
+      for(let k = 0; k < n; k++){
+        const y0 = Math.round(k * batch.height / n);
+        const y1 = Math.round((k + 1) * batch.height / n);
+        const cv = document.createElement("canvas");
+        cv.width = batch.width;
+        cv.height = y1 - y0;
+        cv.getContext("2d").drawImage(batch, 0, y0, batch.width, y1 - y0, 0, 0, batch.width, y1 - y0);
+        canvases.push(cv);
+      }
     }finally{
       document.body.removeChild(el);
     }
@@ -3793,21 +3820,48 @@ async function previewOrder(){
     previewCustomerName = name;
     commitOrderToLog(name);
     const modal = ensurePreviewModal('<i class="bi bi-eye"></i> معاينة - ' + name, null);
-    modal.querySelector("#previewBody").innerHTML = "<div class='history-empty'>جاري التحضير…</div>";
-    showBusy("جاري تجهيز المعاينة…");
-    let canvas = null;
-    try{
-      await nextPaint();
-      canvas = await renderOrderCanvas(QTY, name);
-    }finally{ hideBusy(); }
-    if(!canvas){ closePreview(); return; }
-    putPreviewImage(modal, canvas);
-    primeShareAssets(QTY, name, modal);
+    await showPreviewAssets(modal, QTY, name);
   }catch(err){
     hideBusy();
     alert("⚠️ خطأ ببناء المعاينة:\n" + err.message);
     closePreview();
   }
+}
+
+// v2.45: one entry for live + saved previews. Reuses the cached image when possible,
+// otherwise a SINGLE batched render feeds the preview, the PDF and the Excel.
+async function showPreviewAssets(modal, qty, customer){
+  modal.querySelector("#previewBody").innerHTML = "<div class='history-empty'>جاري التحضير…</div>";
+  const key = orderKey(qty, customer);
+  if(previewCache && previewCache.key === key){
+    putPreviewDataUrl(modal, previewCache.dataUrl);
+    primeShareAssets(qty, customer, modal);
+    return;
+  }
+  if(shareCache && shareCache.key === key && shareCache.previewDataUrl){
+    previewCache = { key, dataUrl: shareCache.previewDataUrl };
+    putPreviewDataUrl(modal, previewCache.dataUrl);
+    setShareButtonState(modal.querySelector(".pv-share"), "ready");
+    return;
+  }
+  // A background render may already exist for this quantity under a different
+  // name (a new order's name is only known here). Show that image right away —
+  // the modal title carries the name — and rebuild the files with the real name.
+  const bgKey = orderKey(qty, "");
+  if(shareCache && shareCache.key === bgKey && shareCache.previewDataUrl){
+    putPreviewDataUrl(modal, shareCache.previewDataUrl);
+    primeShareAssets(qty, customer, modal);
+    return;
+  }
+  showBusy("جاري تجهيز المعاينة…");
+  let assets = null;
+  try{
+    await nextPaint();
+    assets = await prepareShareAssets(qty, customer);
+  }finally{ hideBusy(); }
+  if(!assets){ closePreview(); return; }
+  putPreviewDataUrl(modal, assets.previewDataUrl);
+  setShareButtonState(modal.querySelector(".pv-share"), "ready");
 }
 
 // orderId = null → buttons act on the LIVE order; otherwise on the SAVED entry
@@ -3850,6 +3904,41 @@ function putPreviewImage(modal, canvas){
   body.appendChild(img);
 }
 
+function putPreviewDataUrl(modal, dataUrl){
+  const body = modal.querySelector("#previewBody");
+  body.innerHTML = "";
+  const img = document.createElement("img");
+  img.className = "preview-img";
+  img.alt = "معاينة الطلبية";
+  img.src = dataUrl;
+  body.appendChild(img);
+}
+
+// v2.45: build the preview from the SAME page canvases used for the PDF — one
+// render instead of two. Pages are stacked and scaled down to ≤6 MP (iOS-safe,
+// and ~half the encode time of the old 12 MP preview).
+function buildPreviewFromPages(pages, maxMP){
+  if(!pages || !pages.length) return null;
+  maxMP = maxMP || 6e6;
+  const pw = pages[0].width, ph = pages[0].height;
+  const gap = Math.round(pw * 0.015);
+  const totalH = pages.length * ph + (pages.length - 1) * gap;
+  let scale = Math.min(1, Math.sqrt(maxMP / (pw * totalH)));
+  if(totalH * scale > 16000) scale = 16000 / totalH; // iOS max canvas dimension
+  const outW = Math.max(1, Math.round(pw * scale));
+  const outH = Math.max(1, Math.round(totalH * scale));
+  const cv = document.createElement("canvas");
+  cv.width = outW;
+  cv.height = outH;
+  const ctx = cv.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, outW, outH);
+  const dh = Math.round(ph * scale), dg = Math.round(gap * scale);
+  let y = 0;
+  pages.forEach(p=>{ ctx.drawImage(p, 0, y, outW, dh); y += dh + dg; });
+  return cv;
+}
+
 // Preview of a SAVED history entry — rendered from its stored snapshot
 async function previewSavedOrder(id){
   try{
@@ -3857,16 +3946,7 @@ async function previewSavedOrder(id){
     if(!o) return;
     if(!hasAnyQty(o.qty)){ alert("هذي الطلبية ما فيها كميات محفوظة"); return; }
     const modal = ensurePreviewModal(`<i class="bi bi-clock-history"></i> معاينة: ${o.customer || "بدون اسم"}`, id);
-    modal.querySelector("#previewBody").innerHTML = "<div class='history-empty'>جاري التحضير…</div>";
-    showBusy("جاري تجهيز المعاينة…");
-    let canvas = null;
-    try{
-      await nextPaint();
-      canvas = await renderOrderCanvas(o.qty||{}, o.customer||"");
-    }finally{ hideBusy(); }
-    if(!canvas){ closePreview(); return; }
-    putPreviewImage(modal, canvas);
-    primeShareAssets(o.qty||{}, o.customer||"", modal);
+    await showPreviewAssets(modal, o.qty||{}, o.customer||"");
   }catch(err){
     hideBusy();
     alert("⚠️ خطأ ببناء المعاينة:\n" + err.message);
@@ -3949,6 +4029,7 @@ function primeShareAssets(qty, customer, modal){
 // Files for the order currently shown; pre-built so the share sheet opens without a long wait.
 let shareCache = null;
 let sharePrep = null;
+let previewCache = null;           // v2.45: preview image cache, keyed like the share cache
 function orderKey(qty, customer){
   try{ return String(customer||"") + "|" + JSON.stringify(qty||{}); }catch(e){ return null; }
 }
@@ -3959,23 +4040,46 @@ async function prepareShareAssets(qty, customer){
   const promise = (async ()=>{
     const built = await renderExcelStylePages(qty, customer);
     if(!built || !built.pages.length) return null;
+    // v2.45: the preview comes from these exact same page canvases — no second render.
+    const previewCanvas = buildPreviewFromPages(built.pages);
+    const previewDataUrl = previewCanvas ? previewCanvas.toDataURL("image/jpeg", 0.75) : null;
     const pdfBlob = buildOrderPdfFromPages(built.pages).output("blob");
     const ex = buildOrderExcel(qty, customer);
     if(!ex.hasSheet) return null;
     const xlsxBuf = XLSX.write(ex.wb, {bookType:"xlsx", type:"array"});
     const xlsxBlob = new Blob([xlsxBuf], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
     const item = {
-      key, pdfBlob, xlsxBlob,
+      key, pdfBlob, xlsxBlob, previewDataUrl,
       pdfName: orderFileName(customer),
       xlsxName: ex.fname,
       pages: built.pages.length
     };
     shareCache = item;
+    if(previewDataUrl) previewCache = { key, dataUrl: previewDataUrl };
     return item;
   })();
   sharePrep = { key, promise };
   try{ return await promise; }
   finally{ if(sharePrep && sharePrep.promise === promise) sharePrep = null; }
+}
+
+// v2.45: while the user is still entering quantities, warm the heavy render in
+// the background (debounced + idle) so opening the preview is usually instant.
+let bgPrebuildTimer = null;
+function knownCustomer(){
+  try{ return previewCustomerName || editingPrefill() || ""; }catch(e){ return ""; }
+}
+function scheduleBgPrebuild(){
+  if(bgPrebuildTimer) clearTimeout(bgPrebuildTimer);
+  bgPrebuildTimer = setTimeout(()=>{
+    bgPrebuildTimer = null;
+    if(document.getElementById("previewModal")) return; // never compete with a visible preview
+    if(!hasAnyQty()) return;
+    const name = knownCustomer();
+    const run = ()=>{ prepareShareAssets(QTY, name).catch(()=>{}); };
+    try{ if(window.requestIdleCallback) requestIdleCallback(run, {timeout:3000}); else run(); }
+    catch(e){ run(); }
+  }, 900);
 }
 
 // ===== Sharing: PDF (Excel-style, no photos) + Excel in one press =====
