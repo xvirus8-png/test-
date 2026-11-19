@@ -1,4 +1,4 @@
-<!-- index v2.40 -->
+<!-- index v2.41 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -634,6 +634,12 @@
   .pv-excel{background:rgba(22,163,74,.15);color:var(--success);}
   .pv-share{background:var(--warning);}
 
+  /* === BUSY OVERLAY (PDF/Excel preparation) === */
+  #busyOverlay{position:fixed;inset:0;background:rgba(10,14,25,.55);display:flex;align-items:center;justify-content:center;z-index:9999;direction:rtl;}
+  #busyOverlay .busy-box{background:#fff;color:#1c1c1c;padding:16px 22px;border-radius:14px;font:700 15px Tahoma,sans-serif;display:flex;align-items:center;gap:12px;box-shadow:0 12px 34px rgba(0,0,0,.35);}
+  #busyOverlay .busy-spin{width:18px;height:18px;border:3px solid #e3e3e3;border-top-color:#b5442e;border-radius:50%;animation:busySpin .8s linear infinite;flex:0 0 auto;}
+  @keyframes busySpin{to{transform:rotate(360deg)}}
+
   /* === NAFED MODAL === */
   .nafed-modal{position:fixed;inset:0;background:rgba(15,17,23,.6);z-index:210;display:flex;align-items:flex-end;justify-content:center;}
   .nafed-panel{background:var(--card);width:100%;max-width:600px;max-height:88vh;border-radius:20px 20px 0 0;display:flex;flex-direction:column;box-shadow:0 -4px 20px rgba(0,0,0,.3);padding-bottom:env(safe-area-inset-bottom);}
@@ -702,7 +708,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.40</span>
+  <span class="version">v2.41</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -747,7 +753,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.40";
+const APP_VERSION = "2.41";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -3486,7 +3492,17 @@ async function renderOrderCanvas(qtySource, customerName){
   container.style.left = "-9999px";
   document.body.appendChild(container);
 
-  const canvas = await html2canvas(container, {scale:2, backgroundColor:"#ffffff"});
+  // iOS blanks canvases above ~16.7 MP, so lower the scale for very long invoices
+  // instead of returning a white preview.
+  const box = container.getBoundingClientRect();
+  const cssArea = Math.max(1, box.width * box.height);
+  const MAX_PREVIEW_MP = 12e6;
+  let scale = 2;
+  if(cssArea * 4 > MAX_PREVIEW_MP) scale = Math.sqrt(MAX_PREVIEW_MP / cssArea);
+  if(box.height * scale > 16000) scale = 16000 / box.height;
+  scale = Math.min(2, Math.max(0.5, scale));
+
+  const canvas = await html2canvas(container, {scale, backgroundColor:"#ffffff"});
   document.body.removeChild(container);
   return canvas;
 }
@@ -3542,65 +3558,150 @@ function buildOrderExcel(qty, customer){
   return { wb, hasSheet: sheets.length>0, sheets, fname: `طلبية_${safeName||"order"}_${new Date().toISOString().slice(0,10)}.xlsx` };
 }
 
-// PDF canvas that mirrors the Excel sheet exactly (same columns/rows/totals), text-only.
-async function renderExcelStyleCanvas(qty, customer){
+// ===== Excel-style PDF, rendered page by page =====
+// iOS blanks any canvas bigger than ~16.7 megapixels — that is why big invoices used to
+// come out as white pages. Each page below is under ~4 MP, gets real A4 margins, and
+// repeats the column header (plus the brand name) so nothing looks cut.
+const EXPORT_CELL = "border:1px solid #999;padding:5px 4px;text-align:center;";
+const EXPORT_PAGE_W = 800;   // CSS px that map to 190 mm (A4 width minus 10 mm margins)
+const EXPORT_PAGE_H = 1150;  // CSS px that fit A4 height minus margins (safe cap)
+const EXPORT_MM_W = 190;     // printable width in mm
+const EXPORT_MM_M = 10;      // page margin in mm
+
+function exportTableHead(){
+  const cell = EXPORT_CELL;
+  return `<thead><tr style="background:#eee;">
+      <th style="${cell}">الكود</th><th style="${cell}">الدرجة</th><th style="${cell}">الكمية</th>
+      <th style="${cell}">السعر</th><th style="${cell}">الإجمالي</th><th style="${cell}">الباركود</th>
+    </tr></thead>`;
+}
+function exportRowHtml(r){
+  const cell = EXPORT_CELL;
+  return `<tr class="exp-row">
+      <td style="${cell}">${escHtml(String(r[0]))}</td>
+      <td style="${cell}">${escHtml(String(r[1]))}</td>
+      <td style="${cell}">${r[2]}</td>
+      <td style="${cell}">${fmt(r[3])}</td>
+      <td style="${cell}">${fmt(r[4])}</td>
+      <td style="${cell}direction:ltr;font-family:monospace;font-size:11px;">${escHtml(String(r[5]||""))}</td>
+    </tr>`;
+}
+function exportTotalHtml(total){
+  const cell = EXPORT_CELL;
+  return `<tr class="exp-total" style="font-weight:bold;background:#f7f3ea;">
+      <td style="${cell}"></td><td style="${cell}">الإجمالي</td>
+      <td style="${cell}">${total[2]}</td><td style="${cell}"></td>
+      <td style="${cell}">${fmt(total[4])}</td><td style="${cell}"></td>
+    </tr>`;
+}
+function exportHeaderHtml(customer, compact){
+  const date = new Date().toLocaleDateString('ar-IQ');
+  if(compact){
+    return `<div class="exp-cont" style="overflow:hidden;text-align:center;font-weight:bold;font-size:12px;color:#444;margin:0 0 10px;">طلبية - ${date}${customer ? " · الزبون: " + escHtml(customer) : ""}</div>`;
+  }
+  return `<div class="exp-top" style="overflow:hidden;"><h2 style="text-align:center;margin:0 0 4px;font-size:20px;">طلبية - ${date}</h2>` +
+    (customer ? `<h3 style="text-align:center;color:#2f6b52;margin:0 0 8px;font-size:15px;">الزبون: ${escHtml(customer)}</h3>` : "") + `</div>`;
+}
+function exportBrandHtml(brand){
+  return `<div class="exp-brand" style="padding-top:14px;font-weight:bold;font-size:14px;color:#b5442e;">${escHtml(brand)}</div>`;
+}
+
+// Renders the order into one canvas per A4 page — never a single giant canvas.
+async function renderExcelStylePages(qty, customer){
   if(!hasAnyQty(qty)){ alert("ما فيه اي كمية مدخلة للطلبية"); return null; }
   const sheets = collectOrderSheets(qty);
   if(!sheets.length){ alert("ما فيه اي كمية مدخلة للطلبية"); return null; }
 
-  const cell = "border:1px solid #999;padding:5px 4px;text-align:center;";
-  const container = document.createElement("div");
-  container.id = "exportCanvas";
-  container.style.width = "800px";
-  container.style.fontFamily = "Tahoma, sans-serif";
-  container.style.direction = "rtl";
-  container.style.background = "#ffffff";
-  container.style.padding = "16px";
-  container.style.boxSizing = "border-box";
+  const pageStyle = `width:${EXPORT_PAGE_W}px;font-family:Tahoma,sans-serif;direction:rtl;color:#1c1c1c;` +
+    `background:#ffffff;padding:16px;box-sizing:border-box;position:fixed;left:-9999px;top:0;`;
+  const makeEl = (html)=>{
+    const el = document.createElement("div");
+    el.className = "exportCanvas";
+    el.style.cssText = pageStyle;
+    el.innerHTML = html;
+    return el;
+  };
 
-  let html = `<h2 style="text-align:center;margin:0 0 4px;font-size:20px;">طلبية - ${new Date().toLocaleDateString('ar-IQ')}</h2>`;
-  if(customer){ html += `<h3 style="text-align:center;color:#2f6b52;margin:0 0 8px;font-size:15px;">الزبون: ${escHtml(customer)}</h3>`; }
-
+  // 1) measure every piece once, with the exact markup the pages use
+  let measure = exportHeaderHtml(customer, false) + exportHeaderHtml(customer, true);
   sheets.forEach(sh=>{
-    html += `<div class="exp-brand" style="margin-top:16px;font-weight:bold;font-size:14px;color:#b5442e;">${escHtml(sh.brand)}</div>`;
-    html += `<table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;">
-      <thead><tr style="background:#eee;">
-        <th style="${cell}">الكود</th><th style="${cell}">الدرجة</th><th style="${cell}">الكمية</th>
-        <th style="${cell}">السعر</th><th style="${cell}">الإجمالي</th><th style="${cell}">الباركود</th>
-      </tr></thead><tbody>`;
-    sh.rows.forEach(r=>{
-      html += `<tr>
-        <td style="${cell}">${escHtml(String(r[0]))}</td>
-        <td style="${cell}">${escHtml(String(r[1]))}</td>
-        <td style="${cell}">${r[2]}</td>
-        <td style="${cell}">${fmt(r[3])}</td>
-        <td style="${cell}">${fmt(r[4])}</td>
-        <td style="${cell}direction:ltr;font-family:monospace;font-size:11px;">${escHtml(String(r[5]||""))}</td>
-      </tr>`;
+    measure += exportBrandHtml(sh.brand);
+    measure += `<table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;">${exportTableHead()}<tbody>`;
+    sh.rows.forEach(r=>{ measure += exportRowHtml(r); });
+    measure += exportTotalHtml(sh.total) + `</tbody></table>`;
+  });
+  const probe = makeEl(measure);
+  document.body.appendChild(probe);
+  const topEl = probe.querySelector(".exp-top"), contEl = probe.querySelector(".exp-cont");
+  const topH = topEl ? topEl.getBoundingClientRect().height : 0;
+  const contH = contEl ? contEl.getBoundingClientRect().height : 0;
+  const brandEls = [...probe.querySelectorAll(".exp-brand")];
+  const tableEls = [...probe.querySelectorAll("table")];
+  const metrics = sheets.map((sh, i)=>{
+    const tbl = tableEls[i];
+    const headEl = tbl ? tbl.querySelector("thead tr") : null;
+    const totalEl = tbl ? tbl.querySelector("tbody tr.exp-total") : null;
+    const rowEls = tbl ? [...tbl.querySelectorAll("tbody tr.exp-row")] : [];
+    return {
+      brandH: brandEls[i] ? brandEls[i].getBoundingClientRect().height : 20,
+      headH: headEl ? headEl.getBoundingClientRect().height : 24,
+      totalH: totalEl ? totalEl.getBoundingClientRect().height : 24,
+      rowHs: rowEls.map(tr=>tr.getBoundingClientRect().height)
+    };
+  });
+  document.body.removeChild(probe);
+
+  // 2) split rows into pages without cutting a row or separating the brand total
+  const PAD = 32; // container padding: 16 top + 16 bottom
+  const capFirst = EXPORT_PAGE_H - PAD - topH;
+  const capNext = EXPORT_PAGE_H - PAD - contH;
+  const pages = [];
+  let page = { segs: [], used: 0, cap: capFirst };
+  pages.push(page);
+  const newPage = ()=>{ page = { segs: [], used: 0, cap: capNext }; pages.push(page); };
+
+  sheets.forEach((sh, i)=>{
+    const m = metrics[i];
+    const intro = m.brandH + m.headH;
+    let seg = null;
+    const startSeg = ()=>{ seg = { brand: sh.brand, rows: [], total: false }; page.segs.push(seg); page.used += intro; };
+    sh.rows.forEach((r, ri)=>{
+      const rh = m.rowHs[ri] || m.rowHs[0] || 24;
+      if(!seg){
+        if(page.segs.length && page.used + intro + rh > page.cap) newPage();
+        startSeg();
+      }else if(page.used + rh > page.cap){
+        newPage(); startSeg();
+      }
+      seg.rows.push(r); page.used += rh;
     });
-    html += `<tr style="font-weight:bold;background:#f7f3ea;">
-        <td style="${cell}"></td><td style="${cell}">الإجمالي</td>
-        <td style="${cell}">${sh.total[2]}</td><td style="${cell}"></td>
-        <td style="${cell}">${fmt(sh.total[4])}</td><td style="${cell}"></td>
-      </tr></tbody></table>`;
+    if(page.used + m.totalH > page.cap){ newPage(); startSeg(); }
+    seg.total = true;
+    page.used += m.totalH;
   });
 
-  container.innerHTML = html;
-  container.style.position = "fixed";
-  container.style.left = "-9999px";
-  document.body.appendChild(container);
-
-  // Row boundaries (CSS px) so buildOrderPdf can break pages between rows instead of cutting them
-  const box = container.getBoundingClientRect();
-  const cuts = [];
-  container.querySelectorAll("tr").forEach(tr=>{ cuts.push(tr.getBoundingClientRect().bottom - box.top); });
-  container.querySelectorAll(".exp-brand").forEach(el=>{ cuts.push(el.getBoundingClientRect().top - box.top); });
-
-  const canvas = await html2canvas(container, {scale:2, backgroundColor:"#ffffff"});
-  document.body.removeChild(container);
-  canvas.__scale = box.width ? canvas.width / box.width : 1;
-  canvas.__cuts = cuts;
-  return canvas;
+  // 3) render each page on its own (small canvas → safe on iPhone)
+  const totalsByBrand = {};
+  sheets.forEach(sh=>{ totalsByBrand[sh.brand] = sh.total; });
+  const canvases = [];
+  for(let p = 0; p < pages.length; p++){
+    let html = exportHeaderHtml(customer, p > 0);
+    pages[p].segs.forEach(sg=>{
+      html += exportBrandHtml(sg.brand);
+      html += `<table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;">${exportTableHead()}<tbody>`;
+      sg.rows.forEach(r=>{ html += exportRowHtml(r); });
+      if(sg.total) html += exportTotalHtml(totalsByBrand[sg.brand]);
+      html += `</tbody></table>`;
+    });
+    const el = makeEl(html);
+    document.body.appendChild(el);
+    try{
+      canvases.push(await html2canvas(el, {scale:2, backgroundColor:"#ffffff"}));
+    }finally{
+      document.body.removeChild(el);
+    }
+  }
+  return { pages: canvases, sheets, plan: pages };
 }
 
 // Excel export of the order shown in the preview — text-only table, no images.
@@ -3614,57 +3715,17 @@ function exportPreviewExcel(orderId){
   XLSX.writeFile(wb, fname);
 }
 
-// Builds a compact PDF: each page gets its own slice of the sheet (no repeated full image),
-// JPEG compression, and page breaks land between table rows whenever possible.
-function buildOrderPdf(canvas){
+// Places every page canvas on an A4 sheet with real 10 mm margins.
+function buildOrderPdfFromPages(pages){
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({unit:"mm", format:"a4"});
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-  const pxPerMm = canvas.width / pageWidth;                     // canvas px per pdf mm
-  const pagePx = Math.max(1, Math.floor(pageHeight * pxPerMm)); // canvas px that fit one page
-
-  // Preferred break points: measured row/table boundaries (canvas px)
-  const scale = canvas.__scale || 1;
-  const cuts = (canvas.__cuts || [])
-    .map(y=>Math.round(y * scale))
-    .filter(y=>y > 0 && y < canvas.height)
-    .sort((a,b)=>a-b);
-
-  const bounds = [];
-  if(cuts.length){
-    let start = 0;
-    while(start < canvas.height){
-      const limit = start + pagePx;
-      if(limit >= canvas.height){ bounds.push(canvas.height); break; }
-      let best = 0;
-      for(let i = cuts.length - 1; i >= 0; i--){
-        if(cuts[i] <= limit){ if(cuts[i] > start + pagePx * 0.45) best = cuts[i]; break; }
-      }
-      if(!best) best = limit; // no row boundary fits → plain cut
-      bounds.push(best);
-      start = best;
-    }
-  }else{
-    for(let y = pagePx; y < canvas.height; y += pagePx) bounds.push(y);
-    bounds.push(canvas.height);
-  }
-
-  const slice = document.createElement("canvas");
-  const ctx = slice.getContext("2d");
-  let start = 0, first = true;
-  bounds.forEach(end=>{
-    const h = end - start;
-    if(h <= 0) return;
-    slice.width = canvas.width;
-    slice.height = h;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, slice.width, slice.height);
-    ctx.drawImage(canvas, 0, start, canvas.width, h, 0, 0, canvas.width, h);
-    if(!first) pdf.addPage();
-    pdf.addImage(slice.toDataURL("image/jpeg", 0.85), "JPEG", 0, 0, pageWidth, h / pxPerMm);
-    first = false;
-    start = end;
+  const maxH = 297 - 2 * EXPORT_MM_M;
+  pages.forEach((canvas, i)=>{
+    if(i) pdf.addPage();
+    let w = EXPORT_MM_W;
+    let h = canvas.height / (canvas.width / EXPORT_MM_W);
+    if(h > maxH){ const k = maxH / h; h *= k; w *= k; } // keep the aspect ratio, never squash
+    pdf.addImage(canvas.toDataURL("image/jpeg", 0.9), "JPEG", (210 - w) / 2, EXPORT_MM_M, w, h);
   });
   return pdf;
 }
@@ -3730,10 +3791,20 @@ async function previewOrder(){
     commitOrderToLog(name);
     const modal = ensurePreviewModal('<i class="bi bi-eye"></i> معاينة - ' + name, null);
     modal.querySelector("#previewBody").innerHTML = "<div class='history-empty'>جاري التحضير…</div>";
-    const canvas = await renderOrderCanvas(QTY, name);
+    showBusy("جاري تجهيز المعاينة…");
+    let canvas = null;
+    try{
+      await nextPaint();
+      canvas = await renderOrderCanvas(QTY, name);
+    }finally{ hideBusy(); }
     if(!canvas){ closePreview(); return; }
     putPreviewImage(modal, canvas);
+    // pre-build the share files for small orders so the iOS share sheet opens instantly
+    if(orderRowCount(QTY) <= 120){
+      setTimeout(()=>{ prepareShareAssets(QTY, name).catch(()=>{}); }, 500);
+    }
   }catch(err){
+    hideBusy();
     alert("⚠️ خطأ ببناء المعاينة:\n" + err.message);
     closePreview();
   }
@@ -3787,10 +3858,19 @@ async function previewSavedOrder(id){
     if(!hasAnyQty(o.qty)){ alert("هذي الطلبية ما فيها كميات محفوظة"); return; }
     const modal = ensurePreviewModal(`<i class="bi bi-clock-history"></i> معاينة: ${o.customer || "بدون اسم"}`, id);
     modal.querySelector("#previewBody").innerHTML = "<div class='history-empty'>جاري التحضير…</div>";
-    const canvas = await renderOrderCanvas(o.qty||{}, o.customer||"");
+    showBusy("جاري تجهيز المعاينة…");
+    let canvas = null;
+    try{
+      await nextPaint();
+      canvas = await renderOrderCanvas(o.qty||{}, o.customer||"");
+    }finally{ hideBusy(); }
     if(!canvas){ closePreview(); return; }
     putPreviewImage(modal, canvas);
+    if(orderRowCount(o.qty||{}) <= 120){
+      setTimeout(()=>{ prepareShareAssets(o.qty||{}, o.customer||"").catch(()=>{}); }, 500);
+    }
   }catch(err){
+    hideBusy();
     alert("⚠️ خطأ ببناء المعاينة:\n" + err.message);
     closePreview();
   }
@@ -3810,7 +3890,66 @@ function editSavedOrder(id){
   loadOrder(id);
 }
 
-// ===== Sharing: PDF (no product photos) + Excel together, native share sheet when supported =====
+// ===== Busy overlay + share cache =====
+let busyDepth = 0;
+function showBusy(msg){
+  busyDepth++;
+  let ov = document.getElementById("busyOverlay");
+  if(!ov){
+    ov = document.createElement("div");
+    ov.id = "busyOverlay";
+    ov.innerHTML = `<div class="busy-box"><span class="busy-spin"></span><span class="busy-msg"></span></div>`;
+    document.body.appendChild(ov);
+  }
+  ov.querySelector(".busy-msg").textContent = msg || "جاري التحضير…";
+  ov.style.display = "flex";
+}
+function hideBusy(){
+  busyDepth = Math.max(0, busyDepth - 1);
+  if(busyDepth) return;
+  const ov = document.getElementById("busyOverlay");
+  if(ov) ov.remove();
+}
+function nextPaint(){
+  return new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve, 0)));
+}
+function orderRowCount(qty){
+  return collectOrderSheets(qty).reduce((n, sh)=>n + sh.rows.length, 0);
+}
+
+// Files for the order currently shown; pre-built so the share sheet opens without a long wait.
+let shareCache = null;
+let sharePrep = null;
+function orderKey(qty, customer){
+  try{ return String(customer||"") + "|" + JSON.stringify(qty||{}); }catch(e){ return null; }
+}
+async function prepareShareAssets(qty, customer){
+  const key = orderKey(qty, customer);
+  if(shareCache && shareCache.key === key) return shareCache;
+  if(sharePrep && sharePrep.key === key) return sharePrep.promise;
+  const promise = (async ()=>{
+    const built = await renderExcelStylePages(qty, customer);
+    if(!built || !built.pages.length) return null;
+    const pdfBlob = buildOrderPdfFromPages(built.pages).output("blob");
+    const ex = buildOrderExcel(qty, customer);
+    if(!ex.hasSheet) return null;
+    const xlsxBuf = XLSX.write(ex.wb, {bookType:"xlsx", type:"array"});
+    const xlsxBlob = new Blob([xlsxBuf], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    const item = {
+      key, pdfBlob, xlsxBlob,
+      pdfName: orderFileName(customer),
+      xlsxName: ex.fname,
+      pages: built.pages.length
+    };
+    shareCache = item;
+    return item;
+  })();
+  sharePrep = { key, promise };
+  try{ return await promise; }
+  finally{ if(sharePrep && sharePrep.promise === promise) sharePrep = null; }
+}
+
+// ===== Sharing: PDF (Excel-style, no photos) + Excel in one press =====
 function downloadBlob(blob, name){
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -3822,31 +3961,36 @@ function downloadBlob(blob, name){
   setTimeout(()=>URL.revokeObjectURL(url), 60000);
 }
 
-// WhatsApp/iOS accept only ONE file per share sheet, so the Excel is saved straight to
-// Downloads and the PDF goes through the share sheet (that combination actually arrives).
+// WhatsApp/iOS accept only ONE file per share sheet: the PDF goes through the share sheet,
+// and the Excel lands in Downloads right after it (so it never consumes the iOS share gesture).
 async function shareOrderFiles(qtySource, customerName){
-  const canvas = await renderExcelStyleCanvas(qtySource, customerName);
-  if(!canvas) return false;
-  const pdfBlob = buildOrderPdf(canvas).output("blob");
-  const pdfName = orderFileName(customerName);
-  const { wb, hasSheet, fname: xlsxName } = buildOrderExcel(qtySource, customerName);
-  if(!hasSheet){ alert("ما فيه اي كمية مدخلة للطلبية"); return false; }
-  const xlsxBuf = XLSX.write(wb, {bookType:"xlsx", type:"array"});
-  const xlsxBlob = new Blob([xlsxBuf], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  const key = orderKey(qtySource, customerName);
+  let assets = (shareCache && shareCache.key === key) ? shareCache : null;
+  if(!assets){
+    showBusy("جاري تحضير الـPDF والإكسل…");
+    try{
+      await nextPaint();
+      assets = await prepareShareAssets(qtySource, customerName);
+    }finally{ hideBusy(); }
+  }
+  if(!assets) return false;
 
-  downloadBlob(xlsxBlob, xlsxName); // Excel → Downloads (same press)
+  let shared = false;
   try{
-    const pdfFile = new File([pdfBlob], pdfName, {type:"application/pdf"});
+    const pdfFile = new File([assets.pdfBlob], assets.pdfName, {type:"application/pdf"});
     if(navigator.canShare && navigator.canShare({files:[pdfFile]})){
+      // No await between the click and this call when the cache is warm → keeps the iOS gesture.
       await navigator.share({files:[pdfFile], title:"طلبية " + (customerName||""), text:"طلبية " + (customerName||"")});
-      return true; // user completed (or cancelled) the native share sheet
+      shared = true;
     }
   }catch(err){
-    if(err && err.name === "AbortError") return true; // user closed the share sheet
-    // fall through to downloads
+    if(err && err.name === "AbortError") shared = true; // user closed the share sheet
   }
-  downloadBlob(pdfBlob, pdfName);
-  alert("جهازك ما يدعم المشاركة — تم تحميل PDF والإكسل، شاركهم من ملفات الجهاز.");
+  downloadBlob(assets.xlsxBlob, assets.xlsxName); // Excel → Downloads, same press
+  if(!shared){
+    downloadBlob(assets.pdfBlob, assets.pdfName);
+    alert("جهازك ما يدعم المشاركة — تم تحميل PDF والإكسل، شاركهم من ملفات الجهاز.");
+  }
   return true;
 }
 async function shareLiveOrder(){
