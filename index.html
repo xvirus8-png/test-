@@ -1,4 +1,4 @@
-<!-- index v2.42 -->
+<!-- index v2.43 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -708,7 +708,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.42</span>
+  <span class="version">v2.43</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -753,7 +753,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.42";
+const APP_VERSION = "2.43";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -3961,7 +3961,8 @@ function downloadBlob(blob, name){
   setTimeout(()=>URL.revokeObjectURL(url), 60000);
 }
 
-// WhatsApp/iOS accept only ONE file per share sheet: the PDF goes through the share sheet,
+// v2.43: PDF + Excel go through the share sheet together when canShare accepts both files.
+// Fallback (device accepts one file only): the PDF goes through the share sheet,
 // and the Excel lands in Downloads right after it (so it never consumes the iOS share gesture).
 async function shareOrderFiles(qtySource, customerName){
   const key = orderKey(qtySource, customerName);
@@ -3976,17 +3977,25 @@ async function shareOrderFiles(qtySource, customerName){
   if(!assets) return false;
 
   let shared = false;
+  let sharedBoth = false;
+  let tryingBoth = false;
   try{
     const pdfFile = new File([assets.pdfBlob], assets.pdfName, {type:"application/pdf"});
-    if(navigator.canShare && navigator.canShare({files:[pdfFile]})){
+    const xlsxFile = new File([assets.xlsxBlob], assets.xlsxName, {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    if(navigator.canShare && navigator.canShare({files:[pdfFile, xlsxFile]})){
       // No await between the click and this call when the cache is warm → keeps the iOS gesture.
+      tryingBoth = true;
+      await navigator.share({files:[pdfFile, xlsxFile], title:"طلبية " + (customerName||""), text:"طلبية " + (customerName||"")});
+      shared = true;
+      sharedBoth = true;
+    }else if(navigator.canShare && navigator.canShare({files:[pdfFile]})){
       await navigator.share({files:[pdfFile], title:"طلبية " + (customerName||""), text:"طلبية " + (customerName||"")});
       shared = true;
     }
   }catch(err){
-    if(err && err.name === "AbortError") shared = true; // user closed the share sheet
+    if(err && err.name === "AbortError"){ shared = true; if(tryingBoth) sharedBoth = true; } // user closed the share sheet
   }
-  downloadBlob(assets.xlsxBlob, assets.xlsxName); // Excel → Downloads, same press
+  if(!sharedBoth) downloadBlob(assets.xlsxBlob, assets.xlsxName); // Excel → Downloads (only when it wasn't shared with the PDF)
   if(!shared){
     downloadBlob(assets.pdfBlob, assets.pdfName);
     alert("جهازك ما يدعم المشاركة — تم تحميل PDF والإكسل، شاركهم من ملفات الجهاز.");
