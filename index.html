@@ -1,4 +1,4 @@
-<!-- index v2.47 -->
+<!-- index v2.48 -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -710,7 +710,7 @@
 <header>
   <button id="menuBtn" class="hbtn" onclick="openDrawer()" title="القائمة"><i class="bi bi-list"></i></button>
   <h1><i class="bi bi-clipboard2-check"></i> فيروز<span id="cloudDot" class="cloud-dot" title="حالة السحابة"><i class="bi bi-cloud-fill"></i></span></h1>
-  <span class="version">v2.47</span>
+  <span class="version">v2.48</span>
   <div class="totals">
     <span>القطع: <b id="totalPieces">0</b></span>
     <span>المبلغ: <b id="totalAmount">0</b></span>
@@ -755,7 +755,7 @@
 </aside>
 
 <script>
-const APP_VERSION = "2.47";
+const APP_VERSION = "2.48";
 window.onerror = function(msg, src, line){
   try{ alert("⚠️ خطأ بالتطبيق:\n" + msg + "\nالسطر: " + line); }catch(e){}
 };
@@ -3537,10 +3537,12 @@ function collectOrderSheets(qty){
         const showLabel = meta ? `${meta[1]} · ${meta[2]==="T" ? "Tester" : "Gift"}` : label;
         const q = Number(val)||0;
         const linePrice = meta ? 0 : price;
+        // v2.48: gifts/testers show 0 in the normal qty column; the real count stays in the free-qty field.
+        const orderQty = meta ? 0 : q;
         const barcode = !meta && block && block.itemBarcodes && block.itemBarcodes[label] ? String(block.itemBarcodes[label]).trim() : "";
         // v2.46: 7th field = free qty (Gift + Tester). Excel reads only the first 6; the PDF uses this one.
-        rows.push([code, showLabel, q, linePrice, q*linePrice, barcode, meta ? q : ""]);
-        brandQty += q; brandTotal += q*linePrice;
+        rows.push([code, showLabel, orderQty, linePrice, orderQty*linePrice, barcode, meta ? q : ""]);
+        brandQty += orderQty; brandTotal += orderQty*linePrice;
       });
     });
     sheets.push({ brand, rows, total: ["", "الإجمالي", brandQty, "", brandTotal, ""] });
@@ -3583,23 +3585,24 @@ function exportTableHead(){
       <th style="${cell}">الكمية المجانية</th>
     </tr></thead>`;
 }
-// v2.47: alternating row backgrounds + Gift/Tester pills (PDF only; Excel stays text).
+// v2.47: alternating row backgrounds; Gift/Tester pill sits beside the free-qty number (PDF only).
 function exportRowHtml(r, ri){
   const cell = EXPORT_CELL;
   const bg = (ri % 2) ? "#ffffff" : "#fafafa";
   const raw = String(r[1]);
   const gm = raw.match(/^(.*?) · (Tester|Gift)$/);
-  let gradeHtml = escHtml(raw);
+  // Grade goes back to plain text; the pill moves to the free-qty cell.
+  const gradeHtml = escHtml(gm ? gm[1] : raw);
+  let freeQtyHtml = r[6] === "" ? "0" : escHtml(String(r[6]));
   if(gm){
     const pillBg = gm[2] === "Tester" ? "#c62828" : "#2e7d32";
-    gradeHtml = escHtml(gm[1]) +
-      ` <span style="display:inline-block;padding:2px 8px;border-radius:999px;background:${pillBg};color:#ffffff;font-size:10px;font-weight:bold;line-height:1.4;">${gm[2]}</span>`;
+    freeQtyHtml += ` <span style="display:inline-block;padding:2px 8px;border-radius:999px;background:${pillBg};color:#ffffff;font-size:10px;font-weight:bold;line-height:1.4;">${gm[2]}</span>`;
   }
   return `<tr class="exp-row" style="background:${bg};">
       <td style="${cell}">${escHtml(String(r[0]))}</td>
       <td style="${cell}">${gradeHtml}</td>
       <td style="${cell}">${r[2]}</td>
-      <td style="${cell}">${r[6] === "" ? "" : escHtml(String(r[6]))}</td>
+      <td style="${cell}">${freeQtyHtml}</td>
     </tr>`;
 }
 function exportTotalHtml(total){
